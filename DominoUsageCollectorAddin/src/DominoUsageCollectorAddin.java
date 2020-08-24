@@ -1,5 +1,5 @@
-import java.io.PrintWriter;
-import java.io.StringWriter;
+
+
 import java.util.StringJoiner;
 
 import lotus.domino.NotesFactory;
@@ -9,8 +9,8 @@ import lotus.notes.addins.JavaServerAddin;
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	// Constants
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "0.0.1";		
-	final String			JADDIN_DATE				= "2020-06-24";
+	final String			JADDIN_VERSION			= "44";
+	final String			JADDIN_DATE				= "2020-08-24";
 	final long				JADDIN_TIMER			= 10000;	// 10 seconds; 3600000 - 1 hour
 	
 	private String[] 		args 					= null;
@@ -59,25 +59,40 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 		
 		try {
 			Session session = NotesFactory.createSession();
+			String server = session.createName(session.getServerName()).getAbbreviated();
+			String endpoint = args[0];
 			
 			logMessage(" version " + this.JADDIN_VERSION);
 			logMessage(" will be called with parameters: " + joiner.toString());
 			logMessage(" timer: " + JADDIN_TIMER);
 
+			DataCollector dc = new DataCollector(session, endpoint, server, this.JADDIN_VERSION);
+			
+			ProgramConfig pc = new ProgramConfig(session, endpoint);
+			pc.setupServerStartUp();	// run addin when server restarts
+			pc.setupOnce(false, 0);		// disable one-time run (must be enabled when new version released)
+			
+			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
 				setAddinState("Idle");
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
-				setAddinState("submitting data to: " + args[0]);
+				setAddinState("Sending data to prominic.net");
+				dc.send();
 				
-				logMessage(session.getCommonUserName());
+				setAddinState("Checking for a new version of DominoUsageCollectorAddin");
+				boolean res = ur.applyNewVersion(session, endpoint, server, JADDIN_VERSION);
+				if (res) {
+					pc.setupOnce(true, 5);
+					this.stopAddin();
+				}
+				
+				logMessage(JADDIN_NAME + " " + this.JADDIN_VERSION);
 			}
 
-			logMessage("UNLOADED (OK)");
+			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);
 		} catch(Exception e) {
-            StringWriter sw = new StringWriter();
-            e.printStackTrace(new PrintWriter(sw));
-            System.out.println(sw.toString());
+			e.printStackTrace();
 		}
 	}
 
