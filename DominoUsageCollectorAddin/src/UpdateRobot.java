@@ -27,7 +27,7 @@ public class UpdateRobot {
 			System.out.println("Version is up to date");
 			return false;
 		}
-		System.out.println(activeVersion == configVersion);
+
 		System.out.println("activeVersion = " + activeVersion + " | " + "configVersion = " + configVersion);
 		System.out.println("New version has been detected: " + configVersion);
 
@@ -48,7 +48,8 @@ public class UpdateRobot {
 			System.out.println("New version will be downloaded to: " + filePath);
 			boolean upload = saveURLTo(fileUrl, filePath);
 			if (!upload) {
-				System.out.println("File was NOT downloaded due to some error");
+				System.out.println("File was NOT downloaded due to some error. Update aborted.");
+				return false;
 			};
 			System.out.println("File was downloaded to: " + filePath);
 		}
@@ -57,7 +58,7 @@ public class UpdateRobot {
 		// Example: JAVAUSERCLASSESEXT=.\ProminicAddin\DominoUsageCollectorAddin5.jar
 		String userClasses = session.getEnvironmentString(JAVA_USER_CLASSES, true);
 		System.out.println(JAVA_USER_CLASSES + " (current) = " + userClasses);
-		String NotesIniLine = ".\\" + filePath;
+		String NotesIniLine = "." + File.separator + filePath;
 
 		String platform = session.getPlatform();
 		String notesIniSep = platform.contains("Windows") ? ";" : ":";
