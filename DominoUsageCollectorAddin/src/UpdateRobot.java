@@ -5,18 +5,21 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 
+import lotus.domino.NotesException;
 import lotus.domino.Session;
 
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
 
-	public boolean applyNewVersion(Session session, String endpoint, String server, String activeVersion) throws Exception {
+	public boolean applyNewVersion(Session session, String endpoint, String server, String activeVersion) throws NotesException {
 		String url = endpoint + "/config?openagent&server=" + server;
-		StringBuffer res = RESTClient.sendGET(url);
-
-		if(res == null) {
-			throw new Exception("GET result is null: " + url);
-		};
+		StringBuffer res = null;
+		try {
+			res = RESTClient.sendGET(url);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
 
 		// 1. read config
 		String[] arr = res.toString().split("\\|");

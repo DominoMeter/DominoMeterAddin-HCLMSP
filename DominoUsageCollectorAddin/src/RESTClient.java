@@ -1,5 +1,5 @@
 import java.io.BufferedReader;
-
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 public class RESTClient {
 	private static final String USER_AGENT = "Mozilla/5.0";
 
-	static boolean sendPOST(String endpoint) throws Exception {
+	static boolean sendPOST(String endpoint) throws IOException {
 		URL url = new URL(endpoint);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setDoOutput(true);
@@ -19,13 +19,13 @@ public class RESTClient {
 		int responseCode = conn.getResponseCode();
 
 		if (responseCode != HttpURLConnection.HTTP_OK) {
-			throw new Exception("POST failed: " + endpoint);
+			throw new IOException("POST failed: " + endpoint);
 		}
 
 		return true;
 	}
 
-	static StringBuffer sendGET(String endpoint) throws Exception {
+	static StringBuffer sendGET(String endpoint) throws IOException {
 		URL url = new URL(endpoint);
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.setRequestMethod("GET");
@@ -43,7 +43,7 @@ public class RESTClient {
 
 			return response;
 		} else {
-			throw new Exception("GET failed: " + endpoint);
+			throw new IOException("GET failed: " + endpoint);
 		}
 	}
 	

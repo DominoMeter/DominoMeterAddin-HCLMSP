@@ -1,6 +1,5 @@
-import java.text.SimpleDateFormat;
+import java.io.IOException;
 import java.util.Date;
-import java.util.TimeZone;
 
 import lotus.domino.Database;
 import lotus.domino.NotesException;
@@ -31,7 +30,7 @@ public class DataCollector {
 		return m_database;
 	}
 	
-	public boolean send() throws Exception {
+	public boolean send() throws NotesException {
 		Database database = getAddressBook();
 		if (database == null) {
 			return false;
@@ -48,27 +47,18 @@ public class DataCollector {
 		url.append("&server=" + m_server);	// key
 		
 		url.append("&addinVersion=" + m_version);
-		url.append("&addinStartDate=" + toISODateUTC(m_startDate));
+		url.append("&addinStartDate=" + Long.toString(m_startDate.getTime()));
 
 		url.append("&usercount=" + Long.toString(count));
 		url.append("&os=" + RESTClient.encodeValue(statOS));
 		url.append("&java=" + RESTClient.encodeValue(statJavaVersion));
 		
-		return RESTClient.sendPOST(url.toString());
+		try {
+			return RESTClient.sendPOST(url.toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
 	}
 	
-	
-	/**
-	 * Convert Java Date to ISO 8601 UTC string
-	 *  
-	 * Note: This method is also called by the JAddinThread and the user add-in
-	 * 
-	 * @param date Java Date object
-	 * @return Formatted date in ISO format ("yyyy-mm-ddThh:mm:ssZ")
-	 */
-	static synchronized final String toISODateUTC(Date date) {
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-		dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-		return (dateFormat.format(date));	
-	}
 }

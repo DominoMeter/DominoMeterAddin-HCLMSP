@@ -8,8 +8,7 @@ import lotus.domino.Session;
 import lotus.domino.View;
 
 public class ProgramConfig {
-	private final static String COMMENT_PROMINIC_STARTUP_ONLY = "[PROMINIC.NET] DominoUsageCollectorAddin - at server startup only. Don't change comment!";
-	private final static String COMMENT_PROMINIC_ONCE = "[PROMINIC.NET] DominoUsageCollectorAddin - once. Don't change comment!";
+	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoUsageCollectorAddin (created automatically). Please do not delete it.";
 	
 	private Session m_session = null;
 	private Database m_database = null;
@@ -51,8 +50,7 @@ public class ProgramConfig {
 		while (doc != null) {
 			nextDoc = view.getNextDocument(doc);
 
-			String comment = doc.getItemValueString("Comments");
-			if (comment.equalsIgnoreCase(COMMENT_PROMINIC_STARTUP_ONLY)) {
+			if (isDominoUsageCollectorAddin(doc, "2")) {
 				if (program == null) {
 					program = doc;
 				}
@@ -67,15 +65,7 @@ public class ProgramConfig {
 
 		if (program == null) {
 			System.out.println("updateServerStartUp - create program document");
-			program = database.createDocument();
-			program.replaceItemValue("Form", "Program");
-			program.replaceItemValue("Type", "Program");
-			program.replaceItemValue("Source", database.getServer());
-			program.replaceItemValue("Program", "runjava");
-			program.replaceItemValue("Enabled", "2");
-			program.replaceItemValue("Comments", COMMENT_PROMINIC_STARTUP_ONLY);
-			program.replaceItemValue("CmdLine", "DominoUsageCollectorAddin " + m_endpoint);
-			program.computeWithForm(true, false);
+			program = createProgram(database, "2");
 			program.save();
 		}
 		else {
@@ -89,16 +79,17 @@ public class ProgramConfig {
 	 * Create/Update program document "Run once at specific time"
 	 * Used to run a new version of DominoUsageCollectorAddin
 	 */
-	public boolean setupOnce(boolean enabled, int adjustMinutes) throws NotesException {
-		updateOnce(this.getAddressBook(), enabled, adjustMinutes);
-		return true;
+	public boolean setupRunOnce() throws NotesException {
+		Document doc = updateOnce(this.getAddressBook());
+		
+		return doc != null;
 	}
 
 	/*
 	 * Create/Update/Enable "Run once at specific time"
 	 * Used when we want to load a new version of DominoUsageCollectoAddin.
 	 */
-	private Document updateOnce(Database database, boolean enabled, int adjustMinutes) throws NotesException {
+	private Document updateOnce(Database database) throws NotesException {
 		System.out.println("updateOnce - " + database.getTitle());
 
 		View view = database.getView("($Programs)");
@@ -108,8 +99,7 @@ public class ProgramConfig {
 		while (doc != null) {
 			nextDoc = view.getNextDocument(doc);
 
-			String comment = doc.getItemValueString("Comments");
-			if (comment.equalsIgnoreCase(COMMENT_PROMINIC_ONCE)) {
+			if (isDominoUsageCollectorAddin(doc, "1")) {
 				if (program == null) {
 					program = doc;
 				}
@@ -124,28 +114,67 @@ public class ProgramConfig {
 
 		if (program == null) {
 			System.out.println("updateOnce - create program document");
-			program = database.createDocument();
-			program.replaceItemValue("Form", "Program");
-			program.replaceItemValue("Type", "Program");
-			program.replaceItemValue("Source", database.getServer());
-			program.replaceItemValue("Program", "runjava");
-			program.replaceItemValue("Comments", COMMENT_PROMINIC_ONCE);
-			program.replaceItemValue("CmdLine", "DominoUsageCollectorAddin " + m_endpoint);
-			program.computeWithForm(true, false);
+			program = createProgram(database, "1");
 		}
 		else {
 			System.out.println("updateOnce - update program document");
 		}
-		
+
+		// this is only value we need to modify
 		Date jDate = new Date();
 		DateTime dt = m_session.createDateTime(jDate);
-		dt.adjustMinute(adjustMinutes);
+		dt.adjustMinute(5);
 		program.replaceItemValue("Schedule", dt);
-
-		program.replaceItemValue("Enabled", enabled ? "1" : "0");
 
 		program.save();
 
 		return program;
 	}
+	
+	/* 
+	 * Create stub program
+	 */
+	private Document createProgram(Database database, String enabled) throws NotesException {
+		Document doc = database.createDocument();
+
+		doc.replaceItemValue("Form", "Program");
+		doc.replaceItemValue("Type", "Program");
+		doc.replaceItemValue("Source", database.getServer());
+		doc.replaceItemValue("Program", "runjava");
+		doc.replaceItemValue("Enabled", enabled);
+		doc.replaceItemValue("Comments", COMMENT_PROMINIC);
+		doc.replaceItemValue("CmdLine", "DominoUsageCollectorAddin " + m_endpoint);
+		doc.computeWithForm(true, false);
+		
+		return doc;
+	}
+
+	/*
+	 * Delete one time run DominoUsageCollectorAddin
+	 */
+	public void deleteRunOnce() throws NotesException {
+		Database database = this.getAddressBook();
+		View view = database.getView("($Programs)");
+		Document doc = view.getFirstDocument();
+		Document nextDoc = null;
+		while (doc != null) {
+			nextDoc = view.getNextDocument(doc);
+
+			if (isDominoUsageCollectorAddin(doc, "1")) {
+				doc.remove(true);
+				System.out.println("updateOnce - deleted program document");
+			}
+			
+			doc = nextDoc;
+		}
+	}
+
+	/*
+	 * Check if Program document is DominoUsageCollectorAddin with specific type
+	 */
+	private boolean isDominoUsageCollectorAddin(Document doc, String enabled) throws NotesException {
+		String cmdLine = doc.getItemValueString("CmdLine");
+		return cmdLine.toLowerCase().contains("DominoUsageCollectorAddin".toLowerCase()) && doc.getItemValueString("Enabled").equalsIgnoreCase(enabled);
+	}
+
 }

@@ -6,11 +6,9 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "52";
+	final String			JADDIN_VERSION			= "56";
 	final String			JADDIN_DATE				= "2020-08-25";
-	final long				JADDIN_TIMER			= 3600000;	// 30 seconds; 3600000 - 1 hour
-
-	final int 				PROGRAM_AHEAD_MINUTES 	= 5;
+	final long				JADDIN_TIMER			= 30000;	// 30 seconds; 3600000 - 1 hour
 
 	// Instance variables
 	private String[] 		args 					= null;
@@ -47,7 +45,6 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 
 		// Set the Java thread name to the class name (default would be "Thread-n")		
 		this.setName(JADDIN_NAME);
-		logMessage(" version " + this.JADDIN_VERSION);
 		
 		// Create the status line showed in 'Show Task' console command
 		this.dominoTaskID = AddInCreateStatusLine(this.JADDIN_NAME + " Main Task");
@@ -70,8 +67,8 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 			logMessage(" timer: " + JADDIN_TIMER);
 
 			ProgramConfig pc = new ProgramConfig(session, endpoint);
-			pc.setupServerStartUp();	// run addin when server restarts
-			pc.setupOnce(false, 0);		// disable one-time run (must be enabled when new version released)
+			pc.setupServerStartUp();	// create server-startup run program
+			pc.deleteRunOnce();			// delete one-time run program
 
 			DataCollector dc = new DataCollector(session, endpoint, server, JADDIN_VERSION);
 			
@@ -88,7 +85,7 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 				setAddinState("Checking for a new version of DominoUsageCollectorAddin");
 				boolean res = ur.applyNewVersion(session, endpoint, server, JADDIN_VERSION);
 				if (res) {
-					pc.setupOnce(true, PROGRAM_AHEAD_MINUTES);
+					pc.setupRunOnce();	// create one-time run program. It's critical task.
 					this.stopAddin();
 				}
 				
