@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.util.Date;
 
 import lotus.domino.Database;
+import lotus.domino.Document;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
 import lotus.domino.View;
@@ -38,7 +39,13 @@ public class DataCollector {
 		
 		View view = database.getView("($People)");
 		long count = view.getAllEntries().getCount();
-		
+
+		String da = "";
+		Document serverDoc = database.getView("($ServersLookup)").getDocumentByKey(m_server, true);
+		if (serverDoc != null) {
+			da = serverDoc.getItemValueString("MasterAddressBook");
+		}
+
 		String statOS = System.getProperty("os.version", "n/a") + " (" + System.getProperty("os.name", "n/a") + ")";
 		String statJavaVersion = System.getProperty("java.version", "n/a") + " (" + System.getProperty("java.vendor", "n/a") + ")";
 		
@@ -49,7 +56,11 @@ public class DataCollector {
 		url.append("&addinVersion=" + m_version);
 		url.append("&addinStartDate=" + Long.toString(m_startDate.getTime()));
 
+		// names.nsf data
 		url.append("&usercount=" + Long.toString(count));
+		url.append("&da=" + da);
+		
+		// system data
 		url.append("&os=" + RESTClient.encodeValue(statOS));
 		url.append("&java=" + RESTClient.encodeValue(statJavaVersion));
 		
