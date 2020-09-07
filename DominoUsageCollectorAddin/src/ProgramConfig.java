@@ -48,13 +48,13 @@ public class ProgramConfig {
 		while (doc != null) {
 			nextDoc = view.getNextDocument(doc);
 
-			if (isDominoUsageCollectorAddin(doc, true)) {
+			if (isDominoUsageCollectorAddin(doc) && isProgramAtStartupOnly(doc)) {
 				if (program == null) {
 					program = doc;
 				}
 				else {
 					doc.remove(true);
-					System.out.println("updateServerStartUp - deleted program document (dupilcated)");
+					System.out.println("updateServerStartUp - deleted program document (dupilcate)");
 				}
 			}
 
@@ -62,7 +62,7 @@ public class ProgramConfig {
 		}
 
 		if (program == null) {
-			System.out.println("updateServerStartUp - create program document");
+			System.out.println("updateServerStartUp - create program document (at server start up only)");
 			program = createProgram(database, "2");
 			program.save();
 		}
@@ -75,7 +75,8 @@ public class ProgramConfig {
 	 * Used to run a new version of DominoUsageCollectorAddin
 	 */
 	public boolean setupRunOnce(boolean enable) throws NotesException {
-		Document doc = updateOnce(this.getAddressBook(), 20, enable);
+		int adjustMinutes = enable ? 20 : 0;
+		Document doc = updateOnce(this.getAddressBook(), adjustMinutes, enable);
 
 		return doc != null;
 	}
@@ -92,7 +93,7 @@ public class ProgramConfig {
 		while (doc != null) {
 			nextDoc = view.getNextDocument(doc);
 
-			if (isDominoUsageCollectorAddin(doc, false)) {
+			if (isDominoUsageCollectorAddin(doc) && !isProgramAtStartupOnly(doc)) {
 				if (program == null) {
 					program = doc;
 				}
@@ -152,8 +153,15 @@ public class ProgramConfig {
 	/*
 	 * Check if Program document is DominoUsageCollectorAddin
 	 */
-	private boolean isDominoUsageCollectorAddin(Document doc, boolean scheduled) throws NotesException {
-		return doc.getItemValueString("CmdLine").toLowerCase().contains("dominousagecollectoraddin") && "2".equalsIgnoreCase(doc.getItemValueString("Enabled"));
+	private boolean isDominoUsageCollectorAddin(Document doc) throws NotesException {
+		return doc.getItemValueString("CmdLine").toLowerCase().contains("dominousagecollectoraddin");
+	}
+	
+	/*
+	 * Check if Program document is set to be scheduled
+	 */
+	private boolean isProgramAtStartupOnly(Document doc) throws NotesException {
+		return "2".equalsIgnoreCase(doc.getItemValueString("Enabled"));
 	}
 
 }

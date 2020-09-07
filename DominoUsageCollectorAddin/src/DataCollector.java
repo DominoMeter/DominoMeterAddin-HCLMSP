@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.util.Date;
 
 import lotus.domino.Database;
@@ -30,6 +29,8 @@ public class DataCollector {
 	
 	public boolean send() throws NotesException {
 		Date dateStart = new Date();
+
+		String url = m_endpoint.concat("/config?openagent");
 		
 		Database database = getAddressBook();
 		if (database == null) {
@@ -61,9 +62,6 @@ public class DataCollector {
 		String statOS = System.getProperty("os.version", "n/a") + " (" + System.getProperty("os.name", "n/a") + ")";
 		String statJavaVersion = System.getProperty("java.version", "n/a") + " (" + System.getProperty("java.vendor", "n/a") + ")";
 		
-		StringBuffer url = new StringBuffer(m_endpoint);
-		url.append("/config?openagent");
-		
 		urlParameters.append("&addinVersion=" + m_version);
 
 		urlParameters.append("&usercount=" + Long.toString(count));
@@ -78,9 +76,9 @@ public class DataCollector {
 		urlParameters.append("&timeEnd=" + new Date().getTime());
 		
 		try {
-			RESTClient.sendPOST(url.toString(), urlParameters.toString());
+			RESTClient.sendPOST(url, urlParameters.toString());
 			return true;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			System.out.println("POST failed " + url);
 			return false;
 		}

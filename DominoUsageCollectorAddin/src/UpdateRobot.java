@@ -16,15 +16,15 @@ public class UpdateRobot {
 		StringBuffer res = null;
 		try {
 			res = RESTClient.sendGET(url);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			System.out.println("GET failed " + url);
 			return false;
 		}
 
 		// 1. read config
 		String[] arr = res.toString().split("\\|");
-		String configUNID = arr[0];
-		String configVersion = arr[1];
+		String configVersion = arr[0];
+		String fileURL = arr[1];
 
 		if (activeVersion.equals(configVersion)) {
 			System.out.println("Version is up to date");
@@ -46,7 +46,7 @@ public class UpdateRobot {
 			System.out.println("File with same name already exists (download is not needed): " + filePath);
 		}
 		else {
-			String fileUrl = endpoint + "/0/" + configUNID + "/$FILE/DominoUsageCollectorAddin.jar";
+			String fileUrl = endpoint + "/0/" + fileURL;
 			System.out.println("fileUrl = " + fileUrl);
 			System.out.println("New version will be downloaded to: " + filePath);
 			boolean upload = saveURLTo(fileUrl, filePath);
