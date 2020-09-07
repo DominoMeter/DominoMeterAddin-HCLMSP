@@ -54,7 +54,7 @@ public class ProgramConfig {
 				}
 				else {
 					doc.remove(true);
-					System.out.println("updateServerStartUp - deleted program document (dupilcate)");
+					log("duplicate program document detected (at server start up only) - deleted");
 				}
 			}
 
@@ -62,7 +62,7 @@ public class ProgramConfig {
 		}
 
 		if (program == null) {
-			System.out.println("updateServerStartUp - create program document (at server start up only)");
+			log("program document (at server start up only) - created");
 			program = createProgram(database, "2");
 			program.save();
 		}
@@ -99,7 +99,7 @@ public class ProgramConfig {
 				}
 				else {
 					doc.remove(true);
-					System.out.println("updateOnce - deleted program document (dupilcated)");
+					log("duplicate program document detected (run at specific time) - deleted");
 				}
 			}
 
@@ -108,13 +108,13 @@ public class ProgramConfig {
 
 		String sEnabled = enabled ? "1" : "0";
 		if (program == null) {
-			System.out.println("updateOnce - create program document. Enable: " + sEnabled);
+			log("program document (run at specific time) - created. Enabled: " + sEnabled);
 			program = createProgram(database, sEnabled);
 		}
 		else {
 			if (!sEnabled.equalsIgnoreCase(program.getItemValueString("Enabled"))) {
 				program.replaceItemValue("Enabled", sEnabled);
-				System.out.println("updateOnce - update program document. Enable: " + sEnabled);
+				log("program document (run at specific time) - updated. Enabled: " + sEnabled);
 			}
 		}
 
@@ -124,7 +124,7 @@ public class ProgramConfig {
 			DateTime dt = m_session.createDateTime(jDate);
 			dt.adjustMinute(adjustMinutes);
 			program.replaceItemValue("Schedule", dt);
-			System.out.println("updateOnce - update program document. Schedule: " + dt.getLocalTime());
+			log("program document (run at specific time) - updated. Schedule: " + dt.getLocalTime());
 		}
 
 		program.save();
@@ -164,4 +164,7 @@ public class ProgramConfig {
 		return "2".equalsIgnoreCase(doc.getItemValueString("Enabled"));
 	}
 
+	private void log(Object msg) {
+		System.out.println("[ProgramConfig] " + msg.toString());
+	}
 }

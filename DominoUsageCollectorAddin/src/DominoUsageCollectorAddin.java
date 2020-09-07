@@ -6,7 +6,7 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "71";
+	final String			JADDIN_VERSION			= "73";
 	final String			JADDIN_DATE				= "2020-09-07";
 	final long				JADDIN_TIMER			= 30000;	// 30 seconds; 3600000 - 1 hour
 
@@ -74,9 +74,6 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 			
 			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
-				setAddinState("Idle ");
-				JavaServerAddin.sleep(JADDIN_TIMER);
-
 				setAddinState("Sending data to prominic");
 				if (!dc.send()) {
 					this.logMessage("Data has not been sent to prominic");
@@ -90,6 +87,9 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 				}
 				
 				logMessage(JADDIN_NAME + " " + this.JADDIN_VERSION);
+
+				setAddinState("Idle ");
+				JavaServerAddin.sleep(JADDIN_TIMER);
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);

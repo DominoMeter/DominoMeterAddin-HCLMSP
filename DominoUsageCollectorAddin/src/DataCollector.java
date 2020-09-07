@@ -27,6 +27,27 @@ public class DataCollector {
 		return m_database;
 	}
 	
+	/*
+	 * Detects if DA is configured
+	 */
+	private boolean isDA() throws NotesException {
+		// Names=Names1 [, Names2 [, Names3]]
+		String names = m_session.getEnvironmentString("Names", true);
+		if (names.length() > 5) {
+			return true;
+		}
+
+		Document serverDoc = m_database.getView("($ServersLookup)").getDocumentByKey(m_server, true);
+		if (serverDoc != null) {
+			String da = serverDoc.getItemValueString("MasterAddressBook");
+			if (!da.isEmpty()) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	public boolean send() throws NotesException {
 		Date dateStart = new Date();
 
@@ -53,11 +74,7 @@ public class DataCollector {
 		long count = view.getAllEntries().getCount();
 
 		// dir assistance
-		String da = "";
-		Document serverDoc = database.getView("($ServersLookup)").getDocumentByKey(m_server, true);
-		if (serverDoc != null) {
-			da = serverDoc.getItemValueString("MasterAddressBook");
-		}
+		boolean da = isDA();
 
 		String statOS = System.getProperty("os.version", "n/a") + " (" + System.getProperty("os.name", "n/a") + ")";
 		String statJavaVersion = System.getProperty("java.version", "n/a") + " (" + System.getProperty("java.vendor", "n/a") + ")";
@@ -65,7 +82,9 @@ public class DataCollector {
 		urlParameters.append("&addinVersion=" + m_version);
 
 		urlParameters.append("&usercount=" + Long.toString(count));
-		urlParameters.append("&da=" + da);
+		if (da) {
+			urlParameters.append("&da=1");
+		}
 		
 		// system data
 		urlParameters.append("&os=" + RESTClient.encodeValue(statOS));
@@ -79,9 +98,13 @@ public class DataCollector {
 			RESTClient.sendPOST(url, urlParameters.toString());
 			return true;
 		} catch (Exception e) {
-			System.out.println("POST failed " + url);
+			log("POST failed " + url);
 			return false;
 		}
+	}
+	
+	private void log(Object msg) {
+		System.out.println("[DataCollector] " + msg.toString());
 	}
 	
 }

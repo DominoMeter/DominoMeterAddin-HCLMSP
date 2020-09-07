@@ -17,7 +17,7 @@ public class UpdateRobot {
 		try {
 			res = RESTClient.sendGET(url);
 		} catch (Exception e) {
-			System.out.println("GET failed " + url);
+			log("GET failed " + url);
 			return false;
 		}
 
@@ -27,46 +27,44 @@ public class UpdateRobot {
 		String fileURL = arr[1];
 
 		if (activeVersion.equals(configVersion)) {
-			System.out.println("Version is up to date");
+			log("Version is up to date");
 			return false;
 		}
 
-		System.out.println("activeVersion = " + activeVersion + " | " + "configVersion = " + configVersion);
-		System.out.println("New version has been detected: " + configVersion);
+		log("activeVersion = " + activeVersion + " | " + "configVersion = " + configVersion);
+		log("New version has been detected: " + configVersion);
 
 		// 2. check if current
 		String fileName = "DominoUsageCollectorAddin-" + configVersion + ".jar";
 		String filePath = "ProminicAddin" + File.separator + fileName;
-		System.out.println("fileName = " + fileName);
-		System.out.println("filePath = " + filePath);
+		log("fileName = " + fileName);
+		log("filePath = " + filePath);
 
 		// 3. download new version if not already
 		File tempFile = new File(filePath);
 		if (tempFile.exists()) {
-			System.out.println("File with same name already exists (download is not needed): " + filePath);
+			log("File with same name already exists (download is not needed): " + filePath);
 		}
 		else {
-			String fileUrl = endpoint + "/0/" + fileURL;
-			System.out.println("fileUrl = " + fileUrl);
-			System.out.println("New version will be downloaded to: " + filePath);
+			String fileUrl = endpoint + fileURL;
+			log("Attempt to download file: " + fileUrl);
+			log("New version will be downloaded to: " + filePath);
 			boolean upload = saveURLTo(fileUrl, filePath);
 			if (!upload) {
-				System.out.println("File was NOT downloaded due to some error. Update aborted.");
+				log("File was NOT downloaded due to some error. Update aborted.");
 				return false;
 			};
-			System.out.println("File was downloaded to: " + filePath);
+			log("File was downloaded to: " + filePath);
 		}
 
 		// 4. register new JAR in notes.ini
 		// Example: JAVAUSERCLASSESEXT=.\ProminicAddin\DominoUsageCollectorAddin5.jar
 		String userClasses = session.getEnvironmentString(JAVA_USER_CLASSES, true);
-		System.out.println(JAVA_USER_CLASSES + " (current) = " + userClasses);
+		log(JAVA_USER_CLASSES + " (current) = " + userClasses);
 		String NotesIniLine = "." + File.separator + filePath;
 
 		String platform = session.getPlatform();
 		String notesIniSep = platform.contains("Windows") ? ";" : ":";
-		System.out.println(platform);
-		System.out.println("separator = " + notesIniSep);
 
 		if (userClasses.isEmpty()) {
 			userClasses = NotesIniLine;
@@ -87,7 +85,7 @@ public class UpdateRobot {
 			}
 		}
 
-		System.out.println(JAVA_USER_CLASSES + " (new) set to " + userClasses);
+		log(JAVA_USER_CLASSES + " (new) set to " + userClasses);
 		session.setEnvironmentVar(JAVA_USER_CLASSES, userClasses, true);
 
 		return true;
@@ -107,6 +105,10 @@ public class UpdateRobot {
 		}
 
 		return true;
+	}
+	
+	private void log(Object msg) {
+		System.out.println("[UpdateRobot] " + msg.toString());
 	}
 
 }
