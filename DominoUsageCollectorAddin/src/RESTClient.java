@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
@@ -10,19 +11,35 @@ import java.nio.charset.StandardCharsets;
 public class RESTClient {
 	private static final String USER_AGENT = "Mozilla/5.0";
 
-	static boolean sendPOST(String endpoint) throws IOException {
+	static StringBuffer sendPOST(String endpoint, String urlParameters) throws IOException {
 		URL url = new URL(endpoint);
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		conn.setDoOutput(true);
-		conn.setRequestMethod("POST");
-		conn.setRequestProperty("User-Agent", USER_AGENT);
-		int responseCode = conn.getResponseCode();
+		HttpURLConnection con = (HttpURLConnection) url.openConnection();
+		con.setDoOutput(true);
+		con.setRequestMethod("POST");
+		con.setRequestProperty("User-Agent", USER_AGENT);
+		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-		if (responseCode != HttpURLConnection.HTTP_OK) {
-			throw new IOException("POST failed: " + endpoint);
+		try (DataOutputStream wr = new DataOutputStream(con.getOutputStream())) {
+			wr.writeBytes(urlParameters);
+			wr.flush();
 		}
 
-		return true;
+		int responseCode = con.getResponseCode();
+		if (responseCode == HttpURLConnection.HTTP_OK) {
+			try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
+				String line;
+				StringBuffer response = new StringBuffer();
+
+				while ((line = in.readLine()) != null) {
+					response.append(line);
+				}
+
+				return response;
+			}
+		}
+		else {
+			throw new IOException("POST failed: " + endpoint);
+		}
 	}
 
 	static StringBuffer sendGET(String endpoint) throws IOException {
@@ -46,12 +63,12 @@ public class RESTClient {
 			throw new IOException("GET failed: " + endpoint);
 		}
 	}
-	
-    public static String encodeValue(String value) {
-        try {
-            return URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
-        } catch (UnsupportedEncodingException ex) {
-            throw new RuntimeException(ex.getCause());
-        }
-    }
+
+	public static String encodeValue(String value) {
+		try {
+			return URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
+		} catch (UnsupportedEncodingException ex) {
+			throw new RuntimeException(ex.getCause());
+		}
+	}
 }

@@ -8,8 +8,8 @@ import lotus.domino.Session;
 import lotus.domino.View;
 
 public class ProgramConfig {
-	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoUsageCollectorAddin (created automatically). Please do not delete it.";
-	
+	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoUsageCollectorAddin (created automatically). Please do not delete it. Please contact Support@Prominic.NET with any questions about this program document.";
+
 	private Session m_session = null;
 	private Database m_database = null;
 	private String m_endpoint = null;
@@ -18,7 +18,7 @@ public class ProgramConfig {
 		m_session = session;
 		m_endpoint = endpoint;
 	}
-	
+
 	// TODO: session.getAddressBooks()
 	private Database getAddressBook() throws NotesException {
 		if (m_database == null) {
@@ -26,7 +26,7 @@ public class ProgramConfig {
 		}
 		return m_database;
 	}
-	
+
 	/*
 	 * Create/Update program document "At server startup only"
 	 * Must be run once when Addin loads
@@ -35,14 +35,14 @@ public class ProgramConfig {
 		updateServerStartUp(this.getAddressBook());
 		return true;
 	}
-	
+
 	/*
 	 * Create "At server startup only" if it does not exist in database
 	 * Delete if find duplicates (in case of some error etc).
 	 */
 	private Document updateServerStartUp(Database database) throws NotesException {
 		System.out.println("updateServerStartUp - " + database.getTitle());
-		
+
 		View view = database.getView("($Programs)");
 		Document doc = view.getFirstDocument();
 		Document nextDoc = null;
@@ -50,7 +50,7 @@ public class ProgramConfig {
 		while (doc != null) {
 			nextDoc = view.getNextDocument(doc);
 
-			if (isDominoUsageCollectorAddin(doc, "2")) {
+			if (isDominoUsageCollectorAddin(doc) && "2".equalsIgnoreCase(doc.getItemValueString("Enabled"))) {
 				if (program == null) {
 					program = doc;
 				}
@@ -59,7 +59,7 @@ public class ProgramConfig {
 					System.out.println("updateServerStartUp - deleted program document (dupilcated)");
 				}
 			}
-			
+
 			doc = nextDoc;
 		}
 
@@ -74,22 +74,33 @@ public class ProgramConfig {
 
 		return program;
 	}
-	
+
 	/*
 	 * Create/Update program document "Run once at specific time"
 	 * Used to run a new version of DominoUsageCollectorAddin
 	 */
 	public boolean setupRunOnce() throws NotesException {
-		Document doc = updateOnce(this.getAddressBook());
-		
+		Document doc = updateOnce(this.getAddressBook(), 20, "1");
+
 		return doc != null;
 	}
 
 	/*
-	 * Create/Update/Enable "Run once at specific time"
+	 * Disable program document "Run once at specific time"
+	 * Used to run a new version of DominoUsageCollectorAddin
+	 */
+	public boolean disableRunOnce() throws NotesException {
+		Document doc = updateOnce(this.getAddressBook(), 0, "0");
+
+		return doc != null;
+	}
+
+
+	/*
+	 * Create/Update/Enable/Disable "Run once at specific time"
 	 * Used when we want to load a new version of DominoUsageCollectoAddin.
 	 */
-	private Document updateOnce(Database database) throws NotesException {
+	private Document updateOnce(Database database, int adjustMinutes, String enabled) throws NotesException {
 		System.out.println("updateOnce - " + database.getTitle());
 
 		View view = database.getView("($Programs)");
@@ -99,38 +110,44 @@ public class ProgramConfig {
 		while (doc != null) {
 			nextDoc = view.getNextDocument(doc);
 
-			if (isDominoUsageCollectorAddin(doc, "1")) {
-				if (program == null) {
-					program = doc;
-				}
-				else {
-					doc.remove(true);
-					System.out.println("updateOnce - deleted program document (dupilcated)");
+			if (isDominoUsageCollectorAddin(doc)) {
+				String pEnabled = doc.getItemValueString("Enabled");
+				if ("1".equalsIgnoreCase(pEnabled) || "0".equalsIgnoreCase(pEnabled)) {
+					if (program == null) {
+						program = doc;
+					}
+					else {
+						doc.remove(true);
+						System.out.println("updateOnce - deleted program document (dupilcated)");
+					}
 				}
 			}
-			
+
 			doc = nextDoc;
 		}
 
 		if (program == null) {
-			System.out.println("updateOnce - create program document");
-			program = createProgram(database, "1");
+			System.out.println("updateOnce - create program document. Enable: " + enabled);
+			program = createProgram(database, enabled);
 		}
 		else {
-			System.out.println("updateOnce - update program document");
+			System.out.println("updateOnce - update program document. Enable: " + enabled);
+			program.replaceItemValue("Enabled", enabled);
 		}
 
 		// this is only value we need to modify
-		Date jDate = new Date();
-		DateTime dt = m_session.createDateTime(jDate);
-		dt.adjustMinute(5);
-		program.replaceItemValue("Schedule", dt);
+		if (adjustMinutes > 0) {
+			Date jDate = new Date();
+			DateTime dt = m_session.createDateTime(jDate);
+			dt.adjustMinute(adjustMinutes);
+			program.replaceItemValue("Schedule", dt);
+		}
 
 		program.save();
 
 		return program;
 	}
-	
+
 	/* 
 	 * Create stub program
 	 */
@@ -145,36 +162,15 @@ public class ProgramConfig {
 		doc.replaceItemValue("Comments", COMMENT_PROMINIC);
 		doc.replaceItemValue("CmdLine", "DominoUsageCollectorAddin " + m_endpoint);
 		doc.computeWithForm(true, false);
-		
+
 		return doc;
 	}
 
 	/*
-	 * Delete one time run DominoUsageCollectorAddin
+	 * Check if Program document is DominoUsageCollectorAddin
 	 */
-	public void deleteRunOnce() throws NotesException {
-		Database database = this.getAddressBook();
-		View view = database.getView("($Programs)");
-		Document doc = view.getFirstDocument();
-		Document nextDoc = null;
-		while (doc != null) {
-			nextDoc = view.getNextDocument(doc);
-
-			if (isDominoUsageCollectorAddin(doc, "1")) {
-				doc.remove(true);
-				System.out.println("updateOnce - deleted program document");
-			}
-			
-			doc = nextDoc;
-		}
-	}
-
-	/*
-	 * Check if Program document is DominoUsageCollectorAddin with specific type
-	 */
-	private boolean isDominoUsageCollectorAddin(Document doc, String enabled) throws NotesException {
-		String cmdLine = doc.getItemValueString("CmdLine");
-		return cmdLine.toLowerCase().contains("DominoUsageCollectorAddin".toLowerCase()) && doc.getItemValueString("Enabled").equalsIgnoreCase(enabled);
+	private boolean isDominoUsageCollectorAddin(Document doc) throws NotesException {
+		return doc.getItemValueString("CmdLine").toLowerCase().contains("dominousagecollectoraddin");
 	}
 
 }

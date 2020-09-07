@@ -13,17 +13,14 @@ public class DataCollector {
 	private String m_endpoint = null;
 	private String m_server = "";
 	private String m_version = "";
-	private Date m_startDate = null;
 	
 	public DataCollector(Session session, String endpoint, String server, String version) {
 		m_session = session;
 		m_endpoint = endpoint;
 		m_server = server;
 		m_version = version;
-		m_startDate = new Date();
 	}
 
-	// TODO: session.getAddressBooks()
 	private Database getAddressBook() throws NotesException {
 		if (m_database == null) {
 			m_database = m_session.getDatabase(m_session.getServerName(), "names.nsf");
@@ -36,6 +33,8 @@ public class DataCollector {
 		if (database == null) {
 			return false;
 		}
+		
+		Date dateStart = new Date();
 		
 		View view = database.getView("($People)");
 		long count = view.getAllEntries().getCount();
@@ -51,23 +50,27 @@ public class DataCollector {
 		
 		StringBuffer url = new StringBuffer(m_endpoint);
 		url.append("/config?openagent");
-		url.append("&server=" + m_server);	// key
 		
-		url.append("&addinVersion=" + m_version);
-		url.append("&addinStartDate=" + Long.toString(m_startDate.getTime()));
+		StringBuffer urlParameters = new StringBuffer("&server=" + m_server);
+		
+		urlParameters.append("&addinVersion=" + m_version);
 
-		// names.nsf data
-		url.append("&usercount=" + Long.toString(count));
-		url.append("&da=" + da);
+		urlParameters.append("&usercount=" + Long.toString(count));
+		urlParameters.append("&da=" + da);
 		
 		// system data
-		url.append("&os=" + RESTClient.encodeValue(statOS));
-		url.append("&java=" + RESTClient.encodeValue(statJavaVersion));
+		urlParameters.append("&os=" + RESTClient.encodeValue(statOS));
+		urlParameters.append("&java=" + RESTClient.encodeValue(statJavaVersion));
+
+		// to measure how long it takes to calculate needed data
+		urlParameters.append("&timeStart=" + dateStart.getTime());
+		urlParameters.append("&timeEnd=" + new Date().getTime());
 		
 		try {
-			return RESTClient.sendPOST(url.toString());
+			RESTClient.sendPOST(url.toString(), urlParameters.toString());
+			return true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("POST failed " + url);
 			return false;
 		}
 	}

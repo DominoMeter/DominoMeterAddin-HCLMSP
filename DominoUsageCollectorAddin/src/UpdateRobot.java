@@ -17,7 +17,7 @@ public class UpdateRobot {
 		try {
 			res = RESTClient.sendGET(url);
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("GET failed " + url);
 			return false;
 		}
 
