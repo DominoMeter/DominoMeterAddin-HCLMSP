@@ -37,8 +37,6 @@ public class UpdateRobot {
 		// 2. check if current
 		String fileName = "DominoUsageCollectorAddin-" + configVersion + ".jar";
 		String filePath = "ProminicAddin" + File.separator + fileName;
-		log("fileName = " + fileName);
-		log("filePath = " + filePath);
 
 		// 3. download new version if not already
 		File tempFile = new File(filePath);

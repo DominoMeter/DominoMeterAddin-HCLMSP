@@ -6,9 +6,9 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "73";
+	final String			JADDIN_VERSION			= "75";
 	final String			JADDIN_DATE				= "2020-09-07";
-	final long				JADDIN_TIMER			= 30000;	// 30 seconds; 3600000 - 1 hour
+	final long				JADDIN_TIMER			= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
 
 	// Instance variables
 	private String[] 		args 					= null;
