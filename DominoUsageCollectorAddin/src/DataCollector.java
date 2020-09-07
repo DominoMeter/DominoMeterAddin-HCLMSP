@@ -29,16 +29,29 @@ public class DataCollector {
 	}
 	
 	public boolean send() throws NotesException {
+		Date dateStart = new Date();
+		
 		Database database = getAddressBook();
 		if (database == null) {
 			return false;
 		}
 		
-		Date dateStart = new Date();
+		StringBuffer urlParameters = new StringBuffer("&server=" + m_server);
 		
+		// counters: nsf, ntf, mail, app
+		DatabaseCounter dbCounter = new DatabaseCounter(m_session);
+		if (dbCounter.count()) {
+			urlParameters.append("&numNTF=" + Long.toString(dbCounter.getNTF()));
+			urlParameters.append("&numNSF=" + Long.toString(dbCounter.getNSF()));
+			urlParameters.append("&numMail=" + Long.toString(dbCounter.getMail()));
+			urlParameters.append("&numApp=" + Long.toString(dbCounter.getApp()));
+		}
+		
+		// user license
 		View view = database.getView("($People)");
 		long count = view.getAllEntries().getCount();
 
+		// dir assistance
 		String da = "";
 		Document serverDoc = database.getView("($ServersLookup)").getDocumentByKey(m_server, true);
 		if (serverDoc != null) {
@@ -50,8 +63,6 @@ public class DataCollector {
 		
 		StringBuffer url = new StringBuffer(m_endpoint);
 		url.append("/config?openagent");
-		
-		StringBuffer urlParameters = new StringBuffer("&server=" + m_server);
 		
 		urlParameters.append("&addinVersion=" + m_version);
 
