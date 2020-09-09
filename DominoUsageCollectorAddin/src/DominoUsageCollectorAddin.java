@@ -79,6 +79,9 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 			
 			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
+				setAddinState("Idle ");
+				JavaServerAddin.sleep(JADDIN_TIMER);
+				
 				if (timerReport >= JADDIN_TIMER_REPORT) {
 					timerReport = 0;
 					this.logMessage("Sending data to " + endpoint);
@@ -101,9 +104,6 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 								
 				timerVersion += JADDIN_TIMER;
 				timerReport += JADDIN_TIMER;
-
-				setAddinState("Idle ");
-				JavaServerAddin.sleep(JADDIN_TIMER);
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);
