@@ -74,15 +74,12 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 
 			DataCollector dc = new DataCollector(session, endpoint, server, JADDIN_VERSION);
 			
-			long timerReport = 0;
-			long timerVersion = 0;
+			long timerReport = JADDIN_TIMER_REPORT;
+			long timerVersion = JADDIN_TIMER_VERSION;
 			
 			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
-				setAddinState("Idle ");
-				JavaServerAddin.sleep(JADDIN_TIMER);
-
-				if (timerReport > JADDIN_TIMER_REPORT) {
+				if (timerReport >= JADDIN_TIMER_REPORT) {
 					timerReport = 0;
 					this.logMessage("Sending data to " + endpoint);
 					setAddinState("Sending data to prominic");
@@ -104,6 +101,9 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 								
 				timerVersion += JADDIN_TIMER;
 				timerReport += JADDIN_TIMER;
+
+				setAddinState("Idle ");
+				JavaServerAddin.sleep(JADDIN_TIMER);
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);
