@@ -6,10 +6,12 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "77";
+	final String			JADDIN_VERSION			= "78";
 	final String			JADDIN_DATE				= "2020-09-07";
-	final long				JADDIN_TIMER			= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
-
+	final long				JADDIN_TIMER			= 10000;	// 60000 - 60 seconds; 3600000 - 1 hour
+	final long				JADDIN_TIMER_REPORT		= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
+	final long				JADDIN_TIMER_VERSION	= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
+	
 	// Instance variables
 	private String[] 		args 					= null;
 	private int 			dominoTaskID			= 0;
@@ -72,24 +74,36 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 
 			DataCollector dc = new DataCollector(session, endpoint, server, JADDIN_VERSION);
 			
+			long timerReport = 0;
+			long timerVersion = 0;
+			
 			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
 				setAddinState("Idle ");
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
-				setAddinState("Sending data to prominic");
-				if (!dc.send()) {
-					this.logMessage("Data has not been sent to prominic");
+				if (timerReport > JADDIN_TIMER_REPORT) {
+					timerReport = 0;
+					this.logMessage("Sending data to " + endpoint);
+					setAddinState("Sending data to prominic");
+					if (!dc.send()) {
+						this.logMessage("Data has not been sent to prominic");
+					}	
 				}
 
-				setAddinState("Checking for a new version of DominoUsageCollectorAddin");
-				boolean res = ur.applyNewVersion(session, endpoint, server, JADDIN_VERSION);
-				if (res) {
-					pc.setupRunOnce(true);	// create/enable one-time run program. It's critical task.
-					this.stopAddin();
+				if (timerVersion > JADDIN_TIMER_VERSION) {
+					timerVersion = 0;
+					this.logMessage("Checking for a new version of DominoUsageCollectorAddin");
+					setAddinState("Checking for a new version of DominoUsageCollectorAddin");
+					boolean res = ur.applyNewVersion(session, endpoint, server, JADDIN_VERSION);
+					if (res) {
+						pc.setupRunOnce(true);
+						this.stopAddin();
+					}
 				}
-				
-				logMessage(JADDIN_NAME + " " + this.JADDIN_VERSION);
+								
+				timerVersion += JADDIN_TIMER;
+				timerReport += JADDIN_TIMER;
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);
