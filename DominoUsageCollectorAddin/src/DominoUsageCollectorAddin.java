@@ -91,6 +91,7 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 					setAddinState("Sending data to prominic");
 					if (!dc.send()) {
 						this.logMessage("Data has not been sent to prominic");
+						Log.send(endpoint, "New Report (failed)", "Detailed report has been not provided (faield)", 4);
 					}	
 				}
 
