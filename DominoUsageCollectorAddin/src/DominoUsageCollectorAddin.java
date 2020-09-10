@@ -1,3 +1,4 @@
+import java.util.Date;
 import java.util.StringJoiner;
 
 import lotus.domino.NotesFactory;
@@ -6,7 +7,7 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "86";
+	final String			JADDIN_VERSION			= "87";
 	final String			JADDIN_DATE				= "2020-09-10";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 3600000 - 1 hour
 	final long				JADDIN_TIMER_REPORT		= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
@@ -79,7 +80,9 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 			
 			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
-				setAddinState("Idle ");
+				Date startRun = new Date();
+
+				setAddinState("Idle");
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
 				timerVersion += JADDIN_TIMER;
@@ -95,7 +98,7 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 					}	
 				}
 
-				if (timerVersion > JADDIN_TIMER_VERSION) {
+				if (timerVersion >= JADDIN_TIMER_VERSION) {
 					timerVersion = 0;
 					this.logMessage("Checking for a new version of DominoUsageCollectorAddin");
 					setAddinState("Checking for a new version of DominoUsageCollectorAddin");
@@ -105,6 +108,10 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 						this.stopAddin();
 					}
 				}
+
+				long timeSpent = new Date().getTime() - startRun.getTime();
+				timerVersion += timeSpent;
+				timerReport += timeSpent;
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);
