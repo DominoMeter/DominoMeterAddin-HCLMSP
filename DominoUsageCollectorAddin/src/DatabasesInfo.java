@@ -1,16 +1,19 @@
+import java.util.HashMap;
+
 import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
 import lotus.domino.View;
 
-public class DatabaseCounter {
+public class DatabasesInfo {
 	private Session m_session;
 	private int m_ntf;
 	private int m_app;
 	private int m_mail;
+	private HashMap<String, Integer> m_templatesUsage;
 
-	public DatabaseCounter(Session session) {
+	public DatabasesInfo(Session session) {
 		m_session = session;
 	}
 
@@ -18,12 +21,13 @@ public class DatabaseCounter {
 		m_ntf = 0;
 		m_app = 0;
 		m_mail = 0;
+		m_templatesUsage = new HashMap<String, Integer>();
 	}
 
 	/*
 	 * count NSF, NTF, Mail and App for defined Application server
 	 */
-	public boolean count(String serverName) throws NotesException {
+	public boolean process(String serverName) throws NotesException {
 		Database catalogDb = m_session.getDatabase(serverName, "catalog.nsf");
 		View replicaId = catalogDb.getView("($ReplicaId)");
 
@@ -33,13 +37,14 @@ public class DatabaseCounter {
 		Document doc = replicaId.getFirstDocument();
 		while (doc != null) {
 			String server = doc.getItemValueString("Server").toLowerCase();
+			String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName").toLowerCase();
+			
 			if (serverName.equalsIgnoreCase(server)) {
 				String pathName = doc.getItemValueString("PathName").toLowerCase();
 				if (pathName.endsWith(".ntf")) {
 					m_ntf++;
 				}
 				else {
-					String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName").toLowerCase();
 					if (dbInheritTemplateName.startsWith("std") && dbInheritTemplateName.endsWith("mail")) {
 						m_mail++;
 					}
@@ -48,6 +53,9 @@ public class DatabaseCounter {
 					}
 				}
 			}
+
+			Integer count = m_templatesUsage.containsKey(dbInheritTemplateName) ? m_templatesUsage.get(dbInheritTemplateName) : 0;
+			m_templatesUsage.put(dbInheritTemplateName, Integer.valueOf(count + 1));
 
 			doc = replicaId.getNextDocument(doc);
 		}
@@ -69,5 +77,9 @@ public class DatabaseCounter {
 
 	public int getApp() {
 		return m_app;
+	}
+	
+	public HashMap<String, Integer> getTemplateUsage() {
+		return m_templatesUsage;
 	}
 }

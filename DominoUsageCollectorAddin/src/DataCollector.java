@@ -62,13 +62,14 @@ public class DataCollector {
 		Name nameServer = m_session.createName(m_server);
 		StringBuffer urlParameters = new StringBuffer("&server=" + nameServer.getAbbreviated());
 		
-		// counters: nsf, ntf, mail, app
-		DatabaseCounter dbCounter = new DatabaseCounter(m_session);
-		if (dbCounter.count(m_server)) {
-			urlParameters.append("&numNTF=" + Long.toString(dbCounter.getNTF()));
-			urlParameters.append("&numNSF=" + Long.toString(dbCounter.getNSF()));
-			urlParameters.append("&numMail=" + Long.toString(dbCounter.getMail()));
-			urlParameters.append("&numApp=" + Long.toString(dbCounter.getApp()));
+		// info about databases setup
+		DatabasesInfo dbInfo = new DatabasesInfo(m_session);
+		if (dbInfo.process(m_server)) {
+			urlParameters.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
+			urlParameters.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
+			urlParameters.append("&numMail=" + Long.toString(dbInfo.getMail()));
+			urlParameters.append("&numApp=" + Long.toString(dbInfo.getApp()));
+			urlParameters.append("&templateUsage=" + dbInfo.getTemplateUsage().toString());
 		}
 		
 		// user license
