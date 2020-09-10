@@ -54,8 +54,10 @@ public class DatabasesInfo {
 				}
 			}
 
-			Integer count = m_templatesUsage.containsKey(dbInheritTemplateName) ? m_templatesUsage.get(dbInheritTemplateName) : 0;
-			m_templatesUsage.put(dbInheritTemplateName, Integer.valueOf(count + 1));
+			if (!dbInheritTemplateName.isEmpty()) {
+				Integer count = m_templatesUsage.containsKey(dbInheritTemplateName) ? m_templatesUsage.get(dbInheritTemplateName) : 0;
+				m_templatesUsage.put(dbInheritTemplateName, Integer.valueOf(count + 1));	
+			}
 
 			doc = replicaId.getNextDocument(doc);
 		}

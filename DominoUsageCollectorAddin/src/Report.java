@@ -7,14 +7,14 @@ import lotus.domino.NotesException;
 import lotus.domino.Session;
 import lotus.domino.View;
 
-public class DataCollector {
+public class Report {
 	private Session m_session = null;
 	private Database m_database = null;
 	private String m_endpoint = null;
 	private String m_server = "";
 	private String m_version = "";
 	
-	public DataCollector(Session session, String endpoint, String server, String version) {
+	public Report(Session session, String endpoint, String server, String version) {
 		m_session = session;
 		m_endpoint = endpoint;
 		m_server = server;
@@ -69,7 +69,7 @@ public class DataCollector {
 			urlParameters.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
 			urlParameters.append("&numMail=" + Long.toString(dbInfo.getMail()));
 			urlParameters.append("&numApp=" + Long.toString(dbInfo.getApp()));
-			urlParameters.append("&templateUsage=" + dbInfo.getTemplateUsage().toString());
+			urlParameters.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
 		}
 		
 		// user license

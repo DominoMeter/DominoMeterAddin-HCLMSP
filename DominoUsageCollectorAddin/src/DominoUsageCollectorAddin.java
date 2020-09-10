@@ -6,7 +6,7 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "81";
+	final String			JADDIN_VERSION			= "84";
 	final String			JADDIN_DATE				= "2020-09-10";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 3600000 - 1 hour
 	final long				JADDIN_TIMER_REPORT		= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
@@ -72,7 +72,7 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 			pc.setupServerStartUp();	// create server-startup run program
 			pc.setupRunOnce(false);		// disable one-time run program
 
-			DataCollector dc = new DataCollector(session, endpoint, server, JADDIN_VERSION);
+			Report dc = new Report(session, endpoint, server, JADDIN_VERSION);
 			
 			long timerReport = JADDIN_TIMER_REPORT;
 			long timerVersion = JADDIN_TIMER_VERSION;
