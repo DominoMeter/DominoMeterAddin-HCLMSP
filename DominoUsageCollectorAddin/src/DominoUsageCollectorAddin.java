@@ -98,7 +98,7 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 					timerVersion = 0;
 					this.logMessage("Checking for a new version of DominoUsageCollectorAddin");
 					setAddinState("Checking for a new version of DominoUsageCollectorAddin");
-					boolean res = ur.applyNewVersion(session, endpoint, server, JADDIN_VERSION);
+					boolean res = ur.applyNewVersion(session, endpoint, JADDIN_VERSION);
 					if (res) {
 						pc.setupRunOnce(true);
 						this.stopAddin();

@@ -5,16 +5,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 
-import lotus.domino.Name;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
 
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
 
-	public boolean applyNewVersion(Session session, String endpoint, String server, String activeVersion) throws NotesException {
-		Name nameServer = session.createName(server);
-		String url = endpoint + "/version?openagent&server=" + nameServer.getAbbreviated();
+	public boolean applyNewVersion(Session session, String endpoint, String activeVersion) throws NotesException {
+		String url = endpoint + "/version?openagent";
 		StringBuffer res = null;
 		try {
 			res = RESTClient.sendGET(url);
