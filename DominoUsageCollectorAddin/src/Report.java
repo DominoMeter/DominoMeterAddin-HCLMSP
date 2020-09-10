@@ -60,7 +60,7 @@ public class Report {
 		}
 		
 		Name nameServer = m_session.createName(m_server);
-		StringBuffer urlParameters = new StringBuffer("&server=" + nameServer.getAbbreviated());
+		StringBuffer urlParameters = new StringBuffer("server=" + nameServer.getAbbreviated());
 		
 		// info about databases setup
 		DatabasesInfo dbInfo = new DatabasesInfo(m_session);
