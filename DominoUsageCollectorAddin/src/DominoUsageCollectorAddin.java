@@ -6,9 +6,9 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "78";
-	final String			JADDIN_DATE				= "2020-09-07";
-	final long				JADDIN_TIMER			= 10000;	// 60000 - 60 seconds; 3600000 - 1 hour
+	final String			JADDIN_VERSION			= "81";
+	final String			JADDIN_DATE				= "2020-09-10";
+	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 3600000 - 1 hour
 	final long				JADDIN_TIMER_REPORT		= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
 	final long				JADDIN_TIMER_VERSION	= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
 	
@@ -61,7 +61,7 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 		
 		try {
 			Session session = NotesFactory.createSession();
-			String server = session.createName(session.getServerName()).getAbbreviated();
+			String server = session.getServerName();
 			String endpoint = args[0];
 			
 			logMessage(" version " + this.JADDIN_VERSION);
@@ -81,7 +81,10 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 			while (this.addInRunning()) {
 				setAddinState("Idle ");
 				JavaServerAddin.sleep(JADDIN_TIMER);
-				
+
+				timerVersion += JADDIN_TIMER;
+				timerReport += JADDIN_TIMER;
+
 				if (timerReport >= JADDIN_TIMER_REPORT) {
 					timerReport = 0;
 					this.logMessage("Sending data to " + endpoint);
@@ -101,9 +104,6 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 						this.stopAddin();
 					}
 				}
-								
-				timerVersion += JADDIN_TIMER;
-				timerReport += JADDIN_TIMER;
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);

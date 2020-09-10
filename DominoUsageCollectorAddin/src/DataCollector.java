@@ -2,6 +2,7 @@ import java.util.Date;
 
 import lotus.domino.Database;
 import lotus.domino.Document;
+import lotus.domino.Name;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
 import lotus.domino.View;
@@ -51,18 +52,19 @@ public class DataCollector {
 	public boolean send() throws NotesException {
 		Date dateStart = new Date();
 
-		String url = m_endpoint.concat("/config?openagent");
+		String url = m_endpoint.concat("/report?openagent");
 		
 		Database database = getAddressBook();
 		if (database == null) {
 			return false;
 		}
 		
-		StringBuffer urlParameters = new StringBuffer("&server=" + m_server);
+		Name nameServer = m_session.createName(m_server);
+		StringBuffer urlParameters = new StringBuffer("&server=" + nameServer.getAbbreviated());
 		
 		// counters: nsf, ntf, mail, app
 		DatabaseCounter dbCounter = new DatabaseCounter(m_session);
-		if (dbCounter.count()) {
+		if (dbCounter.count(m_server)) {
 			urlParameters.append("&numNTF=" + Long.toString(dbCounter.getNTF()));
 			urlParameters.append("&numNSF=" + Long.toString(dbCounter.getNSF()));
 			urlParameters.append("&numMail=" + Long.toString(dbCounter.getMail()));
@@ -70,7 +72,7 @@ public class DataCollector {
 		}
 		
 		// user license
-		View view = database.getView("($People)");
+		View view = database.getView("People");
 		long count = view.getAllEntries().getCount();
 
 		// dir assistance
