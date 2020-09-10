@@ -37,7 +37,7 @@ public class DatabasesInfo {
 		Document doc = replicaId.getFirstDocument();
 		while (doc != null) {
 			String server = doc.getItemValueString("Server").toLowerCase();
-			String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName").toLowerCase();
+			String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
 			
 			if (serverName.equalsIgnoreCase(server)) {
 				String pathName = doc.getItemValueString("PathName").toLowerCase();
@@ -45,7 +45,8 @@ public class DatabasesInfo {
 					m_ntf++;
 				}
 				else {
-					if (dbInheritTemplateName.startsWith("std") && dbInheritTemplateName.endsWith("mail")) {
+					String dbInheritTemplateNameLower = dbInheritTemplateName.toLowerCase();
+					if (dbInheritTemplateNameLower.startsWith("std") && dbInheritTemplateNameLower.endsWith("mail")) {
 						m_mail++;
 					}
 					else {
