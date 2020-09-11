@@ -157,7 +157,7 @@ public class ProgramConfig {
 	 * Check if Program document is DominoUsageCollector
 	 */
 	private boolean isDominoUsageCollector(Document doc) throws NotesException {
-		return doc.getItemValueString("CmdLine").toLowerCase().contains("DominoUsageCollector");
+		return doc.getItemValueString("CmdLine").toLowerCase().contains("dominousagecollector");
 	}
 	
 	/*
