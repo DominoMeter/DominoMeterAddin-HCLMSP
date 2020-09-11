@@ -5,9 +5,9 @@ import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.notes.addins.JavaServerAddin;
 
-public class DominoUsageCollectorAddin extends JavaServerAddin {
-	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "91";
+public class DominoUsageCollector extends JavaServerAddin {
+	final String			JADDIN_NAME				= "DominoUsageCollector";
+	final String			JADDIN_VERSION			= "92";
 	final String			JADDIN_DATE				= "2020-09-11";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 	
@@ -16,12 +16,12 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 	private int 			dominoTaskID			= 0;
 	
 	// constructor if parameters are provided
-	public DominoUsageCollectorAddin(String[] args) {
+	public DominoUsageCollector(String[] args) {
 		this.args = args;
 	}
 
 	// constructor if no parameters
-	public DominoUsageCollectorAddin() {
+	public DominoUsageCollector() {
 	}
 
 	public void runNotes() {

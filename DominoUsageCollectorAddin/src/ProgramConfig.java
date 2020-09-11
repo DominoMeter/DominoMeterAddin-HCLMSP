@@ -8,7 +8,7 @@ import lotus.domino.Session;
 import lotus.domino.View;
 
 public class ProgramConfig {
-	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoUsageCollectorAddin (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
+	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoUsageCollector (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
 
 	private Session m_session = null;
 	private Database m_database = null;
@@ -49,7 +49,7 @@ public class ProgramConfig {
 		while (doc != null) {
 			nextDoc = col.getNextDocument(doc);
 
-			if (isDominoUsageCollectorAddin(doc) && isProgramAtStartupOnly(doc)) {
+			if (isDominoUsageCollector(doc) && isProgramAtStartupOnly(doc)) {
 				if (program == null) {
 					program = doc;
 				}
@@ -73,7 +73,7 @@ public class ProgramConfig {
 
 	/*
 	 * Enable/Disable program document "Run once at specific time"
-	 * Used to run a new version of DominoUsageCollectorAddin
+	 * Used to run a new version of DominoUsageCollector
 	 */
 	public boolean setupRunOnce(boolean enable) throws NotesException {
 		int adjustMinutes = enable ? 20 : 0;
@@ -96,7 +96,7 @@ public class ProgramConfig {
 		while (doc != null) {
 			nextDoc = col.getNextDocument(doc);
 
-			if (isDominoUsageCollectorAddin(doc) && !isProgramAtStartupOnly(doc)) {
+			if (isDominoUsageCollector(doc) && !isProgramAtStartupOnly(doc)) {
 				if (program == null) {
 					program = doc;
 				}
@@ -147,17 +147,17 @@ public class ProgramConfig {
 		doc.replaceItemValue("Program", "runjava");
 		doc.replaceItemValue("Enabled", enabled);
 		doc.replaceItemValue("Comments", COMMENT_PROMINIC);
-		doc.replaceItemValue("CmdLine", "DominoUsageCollectorAddin " + m_endpoint);
+		doc.replaceItemValue("CmdLine", "DominoUsageCollector " + m_endpoint);
 		doc.computeWithForm(true, false);
 
 		return doc;
 	}
 
 	/*
-	 * Check if Program document is DominoUsageCollectorAddin
+	 * Check if Program document is DominoUsageCollector
 	 */
-	private boolean isDominoUsageCollectorAddin(Document doc) throws NotesException {
-		return doc.getItemValueString("CmdLine").toLowerCase().contains("dominousagecollectoraddin");
+	private boolean isDominoUsageCollector(Document doc) throws NotesException {
+		return doc.getItemValueString("CmdLine").toLowerCase().contains("DominoUsageCollector");
 	}
 	
 	/*

@@ -37,7 +37,7 @@ public class UpdateRobot {
 		log("New version has been detected: " + configVersion);
 
 		// 2. check if current
-		String fileName = "DominoUsageCollectorAddin-" + configVersion + ".jar";
+		String fileName = "DominoUsageCollector-" + configVersion + ".jar";
 		String filePath = "ProminicAddin" + File.separator + fileName;
 
 		// 3. download new version if not already
@@ -58,7 +58,7 @@ public class UpdateRobot {
 		}
 
 		// 4. register new JAR in notes.ini
-		// Example: JAVAUSERCLASSESEXT=.\ProminicAddin\DominoUsageCollectorAddin5.jar
+		// Example: JAVAUSERCLASSESEXT=.\ProminicAddin\DominoUsageCollector-5.jar
 		String userClasses = session.getEnvironmentString(JAVA_USER_CLASSES, true);
 		log(JAVA_USER_CLASSES + " (current) = " + userClasses);
 		String NotesIniLine = "." + File.separator + filePath;
@@ -70,10 +70,10 @@ public class UpdateRobot {
 			userClasses = NotesIniLine;
 		}
 		else {
-			if (userClasses.indexOf("DominoUsageCollectorAddin") > 0) {
+			if (userClasses.indexOf("DominoUsageCollector") > 0) {
 				String[] userClassesArr = userClasses.split("\\" + notesIniSep);
 				for (int i = 0; i < userClassesArr.length; i++) {
-					if (userClassesArr[i].contains("DominoUsageCollectorAddin")) {
+					if (userClassesArr[i].contains("DominoUsageCollector")) {
 						userClassesArr[i] = NotesIniLine;
 						userClasses = String.join(notesIniSep, userClassesArr);
 						i = userClassesArr.length;
