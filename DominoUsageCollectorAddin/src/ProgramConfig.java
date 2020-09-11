@@ -129,6 +129,8 @@ public class ProgramConfig {
 			program.replaceItemValue("Schedule", dt);
 			log("program document (run at specific time) - updated. Schedule: " + dt.getLocalTime());
 		}
+		
+		program.replaceItemValue("CmdLine", "DominoUsageCollector " + m_endpoint);
 
 		program.save();
 
