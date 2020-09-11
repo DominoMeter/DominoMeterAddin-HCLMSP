@@ -7,7 +7,7 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "88";
+	final String			JADDIN_VERSION			= "90";
 	final String			JADDIN_DATE				= "2020-09-11";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 	
@@ -72,9 +72,9 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 			pc.setupRunOnce(false);		// disable one-time run program
 
 			Report dc = new Report(session, endpoint, server, JADDIN_VERSION);
-			
-			int hourEvent = ZonedDateTime.now().getHour();
-			int curHour = hourEvent - 1;
+
+			int curHour = ZonedDateTime.now().getHour();
+			int hourEvent = curHour - 1;
 
 			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
@@ -82,7 +82,6 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
 				if (hourEvent != curHour) {
-					hourEvent = curHour;
 					this.logMessage("Sending data to " + endpoint);
 					setAddinState("Sending data to prominic");
 					if (!dc.send()) {
@@ -92,7 +91,6 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 				}
 
 				if (hourEvent != curHour) {
-					hourEvent = curHour;
 					this.logMessage("Checking for a new version of DominoUsageCollectorAddin");
 					setAddinState("Checking for a new version of DominoUsageCollectorAddin");
 					boolean res = ur.applyNewVersion(session, endpoint, JADDIN_VERSION);
@@ -100,6 +98,10 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 						pc.setupRunOnce(true);
 						this.stopAddin();
 					}
+				}
+				
+				if (hourEvent != curHour) {
+					hourEvent = curHour;
 				}
 				
 				curHour = ZonedDateTime.now().getHour();
