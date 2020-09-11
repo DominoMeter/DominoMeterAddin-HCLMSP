@@ -1,7 +1,7 @@
 import java.util.Date;
-
 import lotus.domino.Database;
 import lotus.domino.Document;
+import lotus.domino.DocumentCollection;
 import lotus.domino.DateTime;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
@@ -19,7 +19,6 @@ public class ProgramConfig {
 		m_endpoint = endpoint;
 	}
 
-	// TODO: session.getAddressBooks()
 	private Database getAddressBook() throws NotesException {
 		if (m_database == null) {
 			m_database = m_session.getDatabase(m_session.getServerName(), "names.nsf");
@@ -41,12 +40,14 @@ public class ProgramConfig {
 	 * Delete if find duplicates (in case of some error etc).
 	 */
 	private Document updateServerStartUp(Database database) throws NotesException {
+		String server = m_session.getServerName();
 		View view = database.getView("($Programs)");
-		Document doc = view.getFirstDocument();
+		DocumentCollection col = view.getAllDocumentsByKey(server, true);
+		Document doc = col.getFirstDocument();
 		Document nextDoc = null;
 		Document program = null;
 		while (doc != null) {
-			nextDoc = view.getNextDocument(doc);
+			nextDoc = col.getNextDocument(doc);
 
 			if (isDominoUsageCollectorAddin(doc) && isProgramAtStartupOnly(doc)) {
 				if (program == null) {
@@ -86,12 +87,14 @@ public class ProgramConfig {
 	 * Used when we want to load a new version of DominoUsageCollectoAddin.
 	 */
 	private Document updateOnce(Database database, int adjustMinutes, boolean enabled) throws NotesException {
+		String server = m_session.getServerName();
 		View view = database.getView("($Programs)");
-		Document doc = view.getFirstDocument();
+		DocumentCollection col = view.getAllDocumentsByKey(server, true);
+		Document doc = col.getFirstDocument();
 		Document nextDoc = null;
 		Document program = null;
 		while (doc != null) {
-			nextDoc = view.getNextDocument(doc);
+			nextDoc = col.getNextDocument(doc);
 
 			if (isDominoUsageCollectorAddin(doc) && !isProgramAtStartupOnly(doc)) {
 				if (program == null) {
