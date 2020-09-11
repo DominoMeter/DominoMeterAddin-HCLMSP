@@ -73,12 +73,11 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 
 			Report dc = new Report(session, endpoint, server, JADDIN_VERSION);
 			
-			long hourEvent = ZonedDateTime.now().getHour();
-			
+			int hourEvent = ZonedDateTime.now().getHour();
+			int curHour = hourEvent - 1;
+
 			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
-				int curHour = ZonedDateTime.now().getHour();
-
 				setAddinState("Idle");
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
@@ -102,6 +101,8 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 						this.stopAddin();
 					}
 				}
+				
+				curHour = ZonedDateTime.now().getHour();
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);

@@ -81,7 +81,8 @@ public class Report {
 
 		String statOS = System.getProperty("os.version", "n/a") + " (" + System.getProperty("os.name", "n/a") + ")";
 		String statJavaVersion = System.getProperty("java.version", "n/a") + " (" + System.getProperty("java.vendor", "n/a") + ")";
-		
+		String statDomino = m_session.getNotesVersion();
+
 		urlParameters.append("&addinVersion=" + m_version);
 
 		urlParameters.append("&usercount=" + Long.toString(count));
@@ -92,7 +93,8 @@ public class Report {
 		// system data
 		urlParameters.append("&os=" + RESTClient.encodeValue(statOS));
 		urlParameters.append("&java=" + RESTClient.encodeValue(statJavaVersion));
-
+		urlParameters.append("&domino=" + RESTClient.encodeValue(statDomino));
+		
 		// to measure how long it takes to calculate needed data
 		urlParameters.append("&timeStart=" + dateStart.getTime());
 		urlParameters.append("&timeEnd=" + new Date().getTime());
