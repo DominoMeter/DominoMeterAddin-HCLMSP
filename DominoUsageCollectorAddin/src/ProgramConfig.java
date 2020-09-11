@@ -62,9 +62,18 @@ public class ProgramConfig {
 			doc = nextDoc;
 		}
 
+		boolean toSave = false;
 		if (program == null) {
 			log("program document (at server start up only) - created");
 			program = createProgram(database, "2");
+			toSave = true;
+		}
+		else if (!program.getItemValueString("CmdLine").equalsIgnoreCase("DominoUsageCollector " + m_endpoint)) {
+			program.replaceItemValue("CmdLine", "DominoUsageCollector " + m_endpoint);
+			toSave = true;
+		}
+
+		if (toSave) {
 			program.save();
 		}
 
@@ -109,15 +118,18 @@ public class ProgramConfig {
 			doc = nextDoc;
 		}
 
+		boolean toSave = true;
 		String sEnabled = enabled ? "1" : "0";
 		if (program == null) {
-			log("program document (run at specific time) - created. Enabled: " + sEnabled);
 			program = createProgram(database, sEnabled);
+			log("program document (run at specific time) - created. Enabled: " + sEnabled);
+			toSave = true;
 		}
 		else {
 			if (!sEnabled.equalsIgnoreCase(program.getItemValueString("Enabled"))) {
 				program.replaceItemValue("Enabled", sEnabled);
 				log("program document (run at specific time) - updated. Enabled: " + sEnabled);
+				toSave = true;
 			}
 		}
 
@@ -128,11 +140,17 @@ public class ProgramConfig {
 			dt.adjustMinute(adjustMinutes);
 			program.replaceItemValue("Schedule", dt);
 			log("program document (run at specific time) - updated. Schedule: " + dt.getLocalTime());
+			toSave = true;
 		}
 		
-		program.replaceItemValue("CmdLine", "DominoUsageCollector " + m_endpoint);
+		if (!program.getItemValueString("CmdLine").equalsIgnoreCase("DominoUsageCollector " + m_endpoint)) {
+			program.replaceItemValue("CmdLine", "DominoUsageCollector " + m_endpoint);
+			toSave = true;
+		}
 
-		program.save();
+		if (toSave) {
+			program.save();
+		}
 
 		return program;
 	}
