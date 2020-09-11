@@ -103,6 +103,7 @@ public class Report {
 			RESTClient.sendPOST(url, urlParameters.toString());
 			return true;
 		} catch (Exception e) {
+			Log.sendError(m_session, m_endpoint, e);
 			log("POST failed " + url);
 			return false;
 		}

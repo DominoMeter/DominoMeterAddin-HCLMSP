@@ -86,7 +86,7 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 					setAddinState("Sending data to prominic");
 					if (!dc.send()) {
 						this.logMessage("Data has not been sent to prominic");
-						Log.send(endpoint, "New Report (failed)", "Detailed report has been not provided (faield)", 4);
+						Log.send(session, endpoint, "New Report (failed)", "Detailed report has been not provided (faield)", 4);
 					}	
 				}
 
@@ -95,6 +95,7 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 					setAddinState("Checking for a new version of DominoUsageCollectorAddin");
 					boolean res = ur.applyNewVersion(session, endpoint, JADDIN_VERSION);
 					if (res) {
+						Log.send(session, endpoint, JADDIN_NAME + " - will be unloaded for upgrade", "New version has been downloaded and will start shortly (~20 mins)", 2);
 						pc.setupRunOnce(true);
 						this.stopAddin();
 					}
