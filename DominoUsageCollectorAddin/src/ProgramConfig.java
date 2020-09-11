@@ -10,9 +10,9 @@ import lotus.domino.View;
 public class ProgramConfig {
 	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoUsageCollector (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
 
-	private Session m_session = null;
+	private Session m_session;
 	private Database m_database = null;
-	private String m_endpoint = null;
+	private String m_endpoint;
 
 	public ProgramConfig(Session session, String endpoint) {
 		m_session = session;
@@ -31,23 +31,23 @@ public class ProgramConfig {
 	 * Must be run once when Addin loads
 	 */
 	public boolean setupServerStartUp() throws NotesException {
-		updateServerStartUp(this.getAddressBook());
-		return true;
+		Document doc = updateServerStartUp();
+		return doc != null;
 	}
 
 	/*
 	 * Create "At server startup only" if it does not exist in database
 	 * Delete if find duplicates (in case of some error etc).
 	 */
-	private Document updateServerStartUp(Database database) throws NotesException {
+	private Document updateServerStartUp() throws NotesException {
+		Database database = this.getAddressBook();
 		String server = m_session.getServerName();
 		View view = database.getView("($Programs)");
 		DocumentCollection col = view.getAllDocumentsByKey(server, true);
-		Document doc = col.getFirstDocument();
-		Document nextDoc = null;
 		Document program = null;
+		Document doc = col.getFirstDocument();
 		while (doc != null) {
-			nextDoc = col.getNextDocument(doc);
+			Document nextDoc = col.getNextDocument(doc);
 
 			if (isDominoUsageCollector(doc) && isProgramAtStartupOnly(doc)) {
 				if (program == null) {
@@ -55,7 +55,7 @@ public class ProgramConfig {
 				}
 				else {
 					doc.remove(true);
-					log("duplicate program document detected (at server start up only) - deleted");
+					log("program document (at server start up only) - deleted (duplicate)");
 				}
 			}
 
@@ -86,7 +86,7 @@ public class ProgramConfig {
 	 */
 	public boolean setupRunOnce(boolean enable) throws NotesException {
 		int adjustMinutes = enable ? 20 : 0;
-		Document doc = updateOnce(this.getAddressBook(), adjustMinutes, enable);
+		Document doc = updateOnce(adjustMinutes, enable);
 
 		return doc != null;
 	}
@@ -95,15 +95,15 @@ public class ProgramConfig {
 	 * Create/Update/Enable/Disable "Run once at specific time"
 	 * Used when we want to load a new version of DominoUsageCollectoAddin.
 	 */
-	private Document updateOnce(Database database, int adjustMinutes, boolean enabled) throws NotesException {
+	private Document updateOnce(int adjustMinutes, boolean enabled) throws NotesException {
+		Database database = this.getAddressBook();
 		String server = m_session.getServerName();
 		View view = database.getView("($Programs)");
 		DocumentCollection col = view.getAllDocumentsByKey(server, true);
-		Document doc = col.getFirstDocument();
-		Document nextDoc = null;
 		Document program = null;
+		Document doc = col.getFirstDocument();
 		while (doc != null) {
-			nextDoc = col.getNextDocument(doc);
+			Document nextDoc = col.getNextDocument(doc);
 
 			if (isDominoUsageCollector(doc) && !isProgramAtStartupOnly(doc)) {
 				if (program == null) {
@@ -111,26 +111,24 @@ public class ProgramConfig {
 				}
 				else {
 					doc.remove(true);
-					log("duplicate program document detected (run at specific time) - deleted");
+					log("program document (run at specific time) - deleted (duplicate)");
 				}
 			}
 
 			doc = nextDoc;
 		}
 
-		boolean toSave = true;
+		boolean toSave = false;
 		String sEnabled = enabled ? "1" : "0";
 		if (program == null) {
 			program = createProgram(database, sEnabled);
 			log("program document (run at specific time) - created. Enabled: " + sEnabled);
 			toSave = true;
 		}
-		else {
-			if (!sEnabled.equalsIgnoreCase(program.getItemValueString("Enabled"))) {
-				program.replaceItemValue("Enabled", sEnabled);
-				log("program document (run at specific time) - updated. Enabled: " + sEnabled);
-				toSave = true;
-			}
+		else if (!sEnabled.equals(program.getItemValueString("Enabled"))) {
+			program.replaceItemValue("Enabled", sEnabled);
+			log("program document (run at specific time) - updated. Enabled: " + sEnabled);
+			toSave = true;
 		}
 
 		// this is only value we need to modify
@@ -142,7 +140,7 @@ public class ProgramConfig {
 			log("program document (run at specific time) - updated. Schedule: " + dt.getLocalTime());
 			toSave = true;
 		}
-		
+
 		if (!program.getItemValueString("CmdLine").equalsIgnoreCase("DominoUsageCollector " + m_endpoint)) {
 			program.replaceItemValue("CmdLine", "DominoUsageCollector " + m_endpoint);
 			toSave = true;
@@ -179,7 +177,7 @@ public class ProgramConfig {
 	private boolean isDominoUsageCollector(Document doc) throws NotesException {
 		return doc.getItemValueString("CmdLine").toLowerCase().contains("dominousagecollector");
 	}
-	
+
 	/*
 	 * Check if Program document is set to be scheduled
 	 */
