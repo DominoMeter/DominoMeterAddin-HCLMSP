@@ -40,7 +40,7 @@ public class DominoUsageCollector extends JavaServerAddin {
 		
 		if (this.args == null || this.args.length < 1) {
 			logMessage("Missing required parameter: Endpoints (string)");
-			logMessage("Usage: 'Load RunJava DominoUsageCollectorAddin <endpoint>'");
+			logMessage("Usage: 'Load RunJava DominoUsageCollector <endpoint>'");
 			return;
 		}
 
@@ -91,8 +91,8 @@ public class DominoUsageCollector extends JavaServerAddin {
 				}
 
 				if (hourEvent != curHour) {
-					this.logMessage("Checking for a new version of DominoUsageCollectorAddin");
-					setAddinState("Checking for a new version of DominoUsageCollectorAddin");
+					this.logMessage("Checking for a new version of DominoUsageCollector");
+					setAddinState("Checking for a new version of DominoUsageCollector");
 					boolean res = ur.applyNewVersion(session, endpoint, JADDIN_VERSION);
 					if (res) {
 						Log.send(session, endpoint, JADDIN_NAME + " - will be unloaded for upgrade", "New version has been downloaded and will start shortly (~20 mins)", 2);
