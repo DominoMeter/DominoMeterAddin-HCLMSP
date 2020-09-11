@@ -1,4 +1,4 @@
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.StringJoiner;
 
 import lotus.domino.NotesFactory;
@@ -7,11 +7,9 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollectorAddin extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollectorAddin";
-	final String			JADDIN_VERSION			= "87";
-	final String			JADDIN_DATE				= "2020-09-10";
-	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 3600000 - 1 hour
-	final long				JADDIN_TIMER_REPORT		= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
-	final long				JADDIN_TIMER_VERSION	= 3600000;	// 60000 - 60 seconds; 3600000 - 1 hour
+	final String			JADDIN_VERSION			= "88";
+	final String			JADDIN_DATE				= "2020-09-11";
+	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 	
 	// Instance variables
 	private String[] 		args 					= null;
@@ -75,21 +73,17 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 
 			Report dc = new Report(session, endpoint, server, JADDIN_VERSION);
 			
-			long timerReport = JADDIN_TIMER_REPORT;
-			long timerVersion = JADDIN_TIMER_VERSION;
+			long hourEvent = ZonedDateTime.now().getHour();
 			
 			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
-				Date startRun = new Date();
+				int curHour = ZonedDateTime.now().getHour();
 
 				setAddinState("Idle");
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
-				timerVersion += JADDIN_TIMER;
-				timerReport += JADDIN_TIMER;
-
-				if (timerReport >= JADDIN_TIMER_REPORT) {
-					timerReport = 0;
+				if (hourEvent != curHour) {
+					hourEvent = curHour;
 					this.logMessage("Sending data to " + endpoint);
 					setAddinState("Sending data to prominic");
 					if (!dc.send()) {
@@ -98,8 +92,8 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 					}	
 				}
 
-				if (timerVersion >= JADDIN_TIMER_VERSION) {
-					timerVersion = 0;
+				if (hourEvent != curHour) {
+					hourEvent = curHour;
 					this.logMessage("Checking for a new version of DominoUsageCollectorAddin");
 					setAddinState("Checking for a new version of DominoUsageCollectorAddin");
 					boolean res = ur.applyNewVersion(session, endpoint, JADDIN_VERSION);
@@ -108,10 +102,6 @@ public class DominoUsageCollectorAddin extends JavaServerAddin {
 						this.stopAddin();
 					}
 				}
-
-				long timeSpent = new Date().getTime() - startRun.getTime();
-				timerVersion += timeSpent;
-				timerReport += timeSpent;
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);
