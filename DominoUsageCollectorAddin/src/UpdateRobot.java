@@ -22,7 +22,7 @@ public class UpdateRobot {
 			String fileURL = arr[1];
 
 			if (activeVersion.equals(configVersion)) {
-				log("Version is up to date");
+				log("Version is up to date: " + activeVersion);
 				return false;
 			}
 
