@@ -1,4 +1,5 @@
 import java.time.ZonedDateTime;
+
 import java.util.StringJoiner;
 
 import lotus.domino.NotesFactory;
@@ -7,8 +8,8 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoUsageCollector extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollector";
-	final String			JADDIN_VERSION			= "93";
-	final String			JADDIN_DATE				= "2020-09-11";
+	final String			JADDIN_VERSION			= "95";
+	final String			JADDIN_DATE				= "2020-09-12";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 	
 	// Instance variables
@@ -60,7 +61,6 @@ public class DominoUsageCollector extends JavaServerAddin {
 		
 		try {
 			Session session = NotesFactory.createSession();
-			String server = session.getServerName();
 			String endpoint = args[0];
 			
 			logMessage(" version " + this.JADDIN_VERSION);
@@ -71,7 +71,7 @@ public class DominoUsageCollector extends JavaServerAddin {
 			pc.setupServerStartUp();	// create server-startup run program
 			pc.setupRunOnce(false);		// disable one-time run program
 
-			Report dc = new Report(session, endpoint, server, JADDIN_VERSION);
+			Report dc = new Report(session, endpoint, JADDIN_VERSION);
 
 			int curHour = ZonedDateTime.now().getHour();
 			int hourEvent = curHour - 1;
