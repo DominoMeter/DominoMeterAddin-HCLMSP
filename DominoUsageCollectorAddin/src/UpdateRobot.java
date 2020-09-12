@@ -11,82 +11,84 @@ import lotus.domino.Session;
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
 
-	public boolean applyNewVersion(Session session, String endpoint, String activeVersion) throws NotesException {
-		String url = endpoint + "/version?openagent&server=" + RESTClient.encodeValue(session.getServerName());
-		StringBuffer res = null;
+	public boolean applyNewVersion(Session session, String endpoint, String activeVersion) {
 		try {
-			res = RESTClient.sendGET(url);
-		} catch (Exception e) {
-			log("GET failed " + url);
-			return false;
-		}
+			String url = endpoint + "/version?openagent&server=" + RESTClient.encodeValue(session.getServerName());
+			StringBuffer res = RESTClient.sendGET(url);
 
-		// 1. read config
-		String[] arr = res.toString().split("\\|");
-		String configVersion = arr[0];
-		String fileURL = arr[1];
+			// 1. read config
+			String[] arr = res.toString().split("\\|");
+			String configVersion = arr[0];
+			String fileURL = arr[1];
 
-		if (activeVersion.equals(configVersion)) {
-			log("Version is up to date");
-			return false;
-		}
-
-		log("activeVersion = " + activeVersion + " | " + "configVersion = " + configVersion);
-		log("New version has been detected: " + configVersion);
-
-		// 2. check if current
-		String fileName = "DominoUsageCollector-" + configVersion + ".jar";
-		String filePath = "ProminicAddin" + File.separator + fileName;
-
-		// 3. download new version if not already
-		File tempFile = new File(filePath);
-		if (tempFile.exists()) {
-			log("File with same name already exists (download is not needed): " + filePath);
-		}
-		else {
-			String fileUrl = endpoint + fileURL;
-			log("Attempt to download file: " + fileUrl);
-			log("New version will be downloaded to: " + filePath);
-			boolean upload = saveURLTo(fileUrl, filePath);
-			if (!upload) {
-				log("File was NOT downloaded due to some error. Update aborted.");
+			if (activeVersion.equals(configVersion)) {
+				log("Version is up to date");
 				return false;
-			};
-			log("File was downloaded to: " + filePath);
-		}
+			}
 
-		// 4. register new JAR in notes.ini
-		// Example: JAVAUSERCLASSESEXT=.\ProminicAddin\DominoUsageCollector-5.jar
-		String userClasses = session.getEnvironmentString(JAVA_USER_CLASSES, true);
-		log(JAVA_USER_CLASSES + " (current) = " + userClasses);
-		String NotesIniLine = "." + File.separator + filePath;
+			log("activeVersion = " + activeVersion + " | " + "configVersion = " + configVersion);
+			log("New version has been detected: " + configVersion);
 
-		String platform = session.getPlatform();
-		String notesIniSep = platform.contains("Windows") ? ";" : ":";
+			// 2. check if current
+			String fileName = "DominoUsageCollector-" + configVersion + ".jar";
+			String filePath = "ProminicAddin" + File.separator + fileName;
 
-		if (userClasses.isEmpty()) {
-			userClasses = NotesIniLine;
-		}
-		else {
-			if (userClasses.indexOf("DominoUsageCollector") > 0) {
-				String[] userClassesArr = userClasses.split("\\" + notesIniSep);
-				for (int i = 0; i < userClassesArr.length; i++) {
-					if (userClassesArr[i].contains("DominoUsageCollector")) {
-						userClassesArr[i] = NotesIniLine;
-						userClasses = String.join(notesIniSep, userClassesArr);
-						i = userClassesArr.length;
-					}
-				}
+			// 3. download new version if not already
+			File tempFile = new File(filePath);
+			if (tempFile.exists()) {
+				log("File with same name already exists (download is not needed): " + filePath);
 			}
 			else {
-				userClasses = userClasses + notesIniSep + NotesIniLine;
+				String fileUrl = endpoint + fileURL;
+				log("Attempt to download file: " + fileUrl);
+				log("New version will be downloaded to: " + filePath);
+				boolean upload = saveURLTo(fileUrl, filePath);
+				if (!upload) {
+					log("File was NOT downloaded due to some error. Update aborted.");
+					return false;
+				};
+				log("File was downloaded to: " + filePath);
 			}
+
+			// 4. register new JAR in notes.ini
+			// Example: JAVAUSERCLASSESEXT=.\ProminicAddin\DominoUsageCollector-5.jar
+			String userClasses = session.getEnvironmentString(JAVA_USER_CLASSES, true);
+			log(JAVA_USER_CLASSES + " (current) = " + userClasses);
+			String NotesIniLine = "." + File.separator + filePath;
+
+			String platform = session.getPlatform();
+			String notesIniSep = platform.contains("Windows") ? ";" : ":";
+
+			if (userClasses.isEmpty()) {
+				userClasses = NotesIniLine;
+			}
+			else {
+				if (userClasses.indexOf("DominoUsageCollector") > 0) {
+					String[] userClassesArr = userClasses.split("\\" + notesIniSep);
+					for (int i = 0; i < userClassesArr.length; i++) {
+						if (userClassesArr[i].contains("DominoUsageCollector")) {
+							userClassesArr[i] = NotesIniLine;
+							userClasses = String.join(notesIniSep, userClassesArr);
+							i = userClassesArr.length;
+						}
+					}
+				}
+				else {
+					userClasses = userClasses + notesIniSep + NotesIniLine;
+				}
+			}
+
+			log(JAVA_USER_CLASSES + " (new) set to " + userClasses);
+			session.setEnvironmentVar(JAVA_USER_CLASSES, userClasses, true);
+
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (NotesException e) {
+			e.printStackTrace();
 		}
 
-		log(JAVA_USER_CLASSES + " (new) set to " + userClasses);
-		session.setEnvironmentVar(JAVA_USER_CLASSES, userClasses, true);
-
-		return true;
+		return false;
 	}
 
 	private boolean saveURLTo(String url, String filePath) {
@@ -104,7 +106,7 @@ public class UpdateRobot {
 
 		return true;
 	}
-	
+
 	private void log(Object msg) {
 		System.out.println("[UpdateRobot] " + msg.toString());
 	}

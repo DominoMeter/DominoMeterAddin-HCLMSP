@@ -9,7 +9,7 @@ import lotus.notes.addins.JavaServerAddin;
 public class DominoUsageCollector extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoUsageCollector";
 	final String			JADDIN_VERSION			= "95";
-	final String			JADDIN_DATE				= "2020-09-12";
+	final String			JADDIN_DATE				= "2020-09-12 13:36";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 	
 	// Instance variables
@@ -91,7 +91,7 @@ public class DominoUsageCollector extends JavaServerAddin {
 						this.stopAddin();
 					}
 				}
-				
+		
 				if (hourEvent != curHour) {
 					this.logMessage("Sending data to " + endpoint);
 					setAddinState("Sending data to prominic");
