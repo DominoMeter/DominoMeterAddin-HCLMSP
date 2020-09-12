@@ -1,29 +1,10 @@
-import java.util.Vector;
-
-import lotus.domino.Database;
-import lotus.domino.Document;
-import lotus.domino.NotesException;
-import lotus.domino.View;
-
 public class Keyword {
-	private Database m_database;
-		
-	public Keyword(Database database) {
-		m_database = database;
-	}
-	
-	@SuppressWarnings("unchecked")
-	public Vector<String> getValue(String key) {
+	public static StringBuffer getValue(String endpoint, String server, String id) {
+		String url = endpoint + "/keyword?openagent&server=" + RESTClient.encodeValue(server) + "&id=" + id;
 		try {
-			View view = m_database.getView("Keyword");
-			Document doc = view.getDocumentByKey(key, true);
-			if (doc == null) {
-				return null;
-			}
-			return doc.getItemValue("Data");
-		} catch (NotesException e) {
-			e.printStackTrace();
+			return RESTClient.sendGET(url);
+		} catch (Exception e) {
+			return null;
 		}
-		return null;
 	}
 }

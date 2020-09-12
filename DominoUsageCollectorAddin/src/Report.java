@@ -95,31 +95,25 @@ public class Report {
 			urlParameters.append("&domino=" + RESTClient.encodeValue(statDomino));
 
 			// notes.ini
-			Keyword kw = new Keyword(m_session.getCurrentDatabase());
-			Vector<String> iniVariables = kw.getValue("Notes.ini");
-			if (iniVariables != null && iniVariables.size() > 0) {
-				for(int i = 0; i < iniVariables.size(); i++) {
-					String variable = iniVariables.get(i);
+			StringBuffer keyword = Keyword.getValue(m_endpoint, server, "Notes.ini");
+			if (keyword != null && !keyword.toString().isEmpty()) {
+				String[] iniVariables = keyword.toString().split(";");
+				for(int i = 0; i < iniVariables.length; i++) {
+					String variable = iniVariables[i];
 					String iniValue = m_session.getEnvironmentString(variable, true);
 					urlParameters.append("&" + variable + "=" + RESTClient.encodeValue(iniValue));
 				}
-			}
+			}	
 
 			// to measure how long it takes to calculate needed data
 			urlParameters.append("&timeStart=" + dateStart.getTime());
 			urlParameters.append("&timeEnd=" + new Date().getTime());
 
-			RESTClient.sendPOST(url, urlParameters.toString());
-			return true;
+			StringBuffer res = RESTClient.sendPOST(url, urlParameters.toString());
+			return res.toString().equals("OK");
 		} catch (Exception e) {
-			Log.sendError(m_session, m_endpoint, e);
-			log("POST failed: report ");
 			return false;
 		}
-	}
-
-	private void log(Object msg) {
-		System.out.println("[DataCollector] " + msg.toString());
 	}
 
 }

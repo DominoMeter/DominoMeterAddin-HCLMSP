@@ -5,12 +5,12 @@ import lotus.domino.NotesException;
 import lotus.domino.Session;
 
 public class Log {
-	public static boolean sendError(Session session, String endpoint, Exception e) {
+	public static boolean sendError(Session session, String endpoint, String subject, String body) {
 		try {
-			Name nameServer = session.createName(session.getServerName());
-			String subject = RESTClient.encodeValue(e.getLocalizedMessage());
-			String body = RESTClient.encodeValue(e.getMessage());
-			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + nameServer.getAbbreviated(), "Subject=" + subject + "&body" + body + "&LogLevel=4");
+			String server = RESTClient.encodeValue(session.getServerName());
+			subject = RESTClient.encodeValue(subject);
+			body = RESTClient.encodeValue(body);
+			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + server, "Subject=" + subject + "&body" + body + "&LogLevel=4");
 			return res.toString().equalsIgnoreCase("OK");
 		} catch (IOException e1) {
 			e1.printStackTrace();

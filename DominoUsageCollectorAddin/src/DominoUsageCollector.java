@@ -82,15 +82,6 @@ public class DominoUsageCollector extends JavaServerAddin {
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
 				if (hourEvent != curHour) {
-					this.logMessage("Sending data to " + endpoint);
-					setAddinState("Sending data to prominic");
-					if (!dc.send()) {
-						this.logMessage("Data has not been sent to prominic");
-						Log.send(session, endpoint, "New Report (failed)", "Detailed report has been not provided (faield)", 4);
-					}	
-				}
-
-				if (hourEvent != curHour) {
 					this.logMessage("Checking for a new version of DominoUsageCollector");
 					setAddinState("Checking for a new version of DominoUsageCollector");
 					boolean res = ur.applyNewVersion(session, endpoint, JADDIN_VERSION);
@@ -99,6 +90,15 @@ public class DominoUsageCollector extends JavaServerAddin {
 						pc.setupRunOnce(true);
 						this.stopAddin();
 					}
+				}
+				
+				if (hourEvent != curHour) {
+					this.logMessage("Sending data to " + endpoint);
+					setAddinState("Sending data to prominic");
+					if (!dc.send()) {
+						this.logMessage("Data has not been sent to prominic");
+						Log.send(session, endpoint, "New Report (failed)", "Detailed report has been not provided (faield)", 4);
+					}	
 				}
 				
 				if (hourEvent != curHour) {
