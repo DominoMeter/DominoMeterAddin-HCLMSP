@@ -62,20 +62,14 @@ public class UpdateRobot {
 				userClasses = NotesIniLine;
 			}
 			else {
-				if (userClasses.indexOf("DominoUsageCollector") > 0 || userClasses.indexOf("DominoMeter") > 0) {
+				if (userClasses.indexOf("DominoMeter") > 0) {
 					String[] userClassesArr = userClasses.split("\\" + notesIniSep);
 					for (int i = 0; i < userClassesArr.length; i++) {
-						if (userClassesArr[i].contains("DominoUsageCollector")) {
+						if (userClassesArr[i].contains("DominoMeter")) {
 							userClassesArr[i] = NotesIniLine;
 							userClasses = String.join(notesIniSep, userClassesArr);
 							i = userClassesArr.length;
 						}
-						else if (userClassesArr[i].contains("DominoMeter")) {
-							userClassesArr[i] = NotesIniLine;
-							userClasses = String.join(notesIniSep, userClassesArr);
-							i = userClassesArr.length;
-						}
-
 					}
 				}
 				else {

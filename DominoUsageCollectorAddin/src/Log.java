@@ -33,4 +33,5 @@ public class Log {
 		}
 		return false;
 	}
+	
 }

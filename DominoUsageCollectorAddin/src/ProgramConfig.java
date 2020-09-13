@@ -184,14 +184,14 @@ public class ProgramConfig {
 	 */
 	private boolean isDominoMeter(Document doc) throws NotesException {
 		String cmdLine = doc.getItemValueString("CmdLine");
-		return cmdLine.contains("DominoUsageCollector") || cmdLine.contains("DominoMeter");
+		return cmdLine.toLowerCase().contains("DominoMeter".toLowerCase());
 	}
 
 	/*
 	 * Check if Program document is set to be scheduled
 	 */
 	private boolean isProgramAtStartupOnly(Document doc) throws NotesException {
-		return "2".equalsIgnoreCase(doc.getItemValueString("Enabled"));
+		return "2".equals(doc.getItemValueString("Enabled"));
 	}
 
 	private void log(Object msg) {
