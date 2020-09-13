@@ -6,10 +6,10 @@ import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.notes.addins.JavaServerAddin;
 
-public class DominoUsageCollector extends JavaServerAddin {
-	final String			JADDIN_NAME				= "DominoUsageCollector";
-	final String			JADDIN_VERSION			= "96";
-	final String			JADDIN_DATE				= "2020-09-12 14:06 CET";
+public class DominoMeter extends JavaServerAddin {
+	final String			JADDIN_NAME				= "DominoMeter";
+	final String			JADDIN_VERSION			= "1";
+	final String			JADDIN_DATE				= "2020-09-13 22:39 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 	
 	// Instance variables
@@ -17,12 +17,12 @@ public class DominoUsageCollector extends JavaServerAddin {
 	private int 			dominoTaskID			= 0;
 	
 	// constructor if parameters are provided
-	public DominoUsageCollector(String[] args) {
+	public DominoMeter(String[] args) {
 		this.args = args;
 	}
 
 	// constructor if no parameters
-	public DominoUsageCollector() {
+	public DominoMeter() {
 	}
 
 	public void runNotes() {
@@ -41,7 +41,7 @@ public class DominoUsageCollector extends JavaServerAddin {
 		
 		if (this.args == null || this.args.length < 1) {
 			logMessage("Missing required parameter: Endpoints (string)");
-			logMessage("Usage: 'Load RunJava DominoUsageCollector <endpoint>'");
+			logMessage("Usage: 'Load RunJava DominoMeter <endpoint>'");
 			return;
 		}
 
@@ -68,8 +68,8 @@ public class DominoUsageCollector extends JavaServerAddin {
 			logMessage(" timer: " + JADDIN_TIMER);
 
 			ProgramConfig pc = new ProgramConfig(session, endpoint);
-			pc.setupServerStartUp();	// create server-startup run program
-			pc.setupRunOnce(false);		// disable one-time run program
+			pc.setupServerStartUp(JADDIN_NAME);			// create server-startup run program
+			pc.setupRunOnce(JADDIN_NAME, false);		// disable one-time run program
 
 			Report dc = new Report(session, endpoint, JADDIN_VERSION);
 
@@ -82,12 +82,16 @@ public class DominoUsageCollector extends JavaServerAddin {
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
 				if (hourEvent != curHour) {
-					this.logMessage("Checking for a new version of DominoUsageCollector");
-					setAddinState("Checking for a new version of DominoUsageCollector");
-					boolean res = ur.applyNewVersion(session, endpoint, JADDIN_VERSION);
-					if (res) {
-						Log.send(session, endpoint, JADDIN_NAME + " - will be unloaded for upgrade", "New version has been downloaded and will start shortly (~20 mins)", 2);
-						pc.setupRunOnce(true);
+					this.logMessage("Checking for a new version");
+					setAddinState(this.JADDIN_NAME + " - checking for a new version");
+					String version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
+					String newAddinFile = ur.applyNewVersion(session, endpoint, version);
+					if (!newAddinFile.isEmpty()) {
+						Log.send(session, endpoint, JADDIN_NAME + " - will be unloaded for upgrade", "New version " + newAddinFile + " will start shortly (~20 mins)", 2);
+						int pos = newAddinFile.indexOf("-");
+						String newAddinName = newAddinFile.substring(0, pos);
+						pc.setupRunOnce(newAddinName, true);
+						pc.setupServerStartUp(newAddinName);							
 						this.stopAddin();
 					}
 				}

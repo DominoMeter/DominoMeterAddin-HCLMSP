@@ -8,7 +8,7 @@ import lotus.domino.Session;
 import lotus.domino.View;
 
 public class ProgramConfig {
-	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoUsageCollector (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
+	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoMeter (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
 
 	private Session m_session;
 	private Database m_database = null;
@@ -30,8 +30,8 @@ public class ProgramConfig {
 	 * Create/Update program document "At server startup only"
 	 * Must be run once when Addin loads
 	 */
-	public boolean setupServerStartUp() throws NotesException {
-		Document doc = updateServerStartUp();
+	public boolean setupServerStartUp(String addinName) throws NotesException {
+		Document doc = updateServerStartUp(addinName);
 		return doc != null;
 	}
 
@@ -39,7 +39,7 @@ public class ProgramConfig {
 	 * Create "At server startup only" if it does not exist in database
 	 * Delete if find duplicates (in case of some error etc).
 	 */
-	private Document updateServerStartUp() throws NotesException {
+	private Document updateServerStartUp(String addinName) throws NotesException {
 		Database database = this.getAddressBook();
 		String server = m_session.getServerName();
 		View view = database.getView("($Programs)");
@@ -49,7 +49,7 @@ public class ProgramConfig {
 		while (doc != null) {
 			Document nextDoc = col.getNextDocument(doc);
 
-			if (isDominoUsageCollector(doc) && isProgramAtStartupOnly(doc)) {
+			if (isDominoMeter(doc) && isProgramAtStartupOnly(doc)) {
 				if (program == null) {
 					program = doc;
 				}
@@ -65,12 +65,16 @@ public class ProgramConfig {
 		boolean toSave = false;
 		if (program == null) {
 			log("program document (at server start up only) - created");
-			program = createProgram(database, "2");
+			program = createProgram(database, addinName, "2");
 			toSave = true;
 		}
-		else if (!program.getItemValueString("CmdLine").equalsIgnoreCase("DominoUsageCollector " + m_endpoint)) {
-			program.replaceItemValue("CmdLine", "DominoUsageCollector " + m_endpoint);
-			toSave = true;
+		else {
+			String val = addinName + " " + m_endpoint;
+			if (!val.equalsIgnoreCase(program.getItemValueString("CmdLine"))) {
+				program.replaceItemValue("CmdLine", val);
+				toSave = true;
+				log("program document (at server start up only) - updated. CmdLine: " + val);
+			}
 		}
 
 		if (toSave) {
@@ -79,14 +83,14 @@ public class ProgramConfig {
 
 		return program;
 	}
-
+	
 	/*
 	 * Enable/Disable program document "Run once at specific time"
-	 * Used to run a new version of DominoUsageCollector
+	 * Used to run a new version of DominoMeter
 	 */
-	public boolean setupRunOnce(boolean enable) throws NotesException {
+	public boolean setupRunOnce(String addinName, boolean enable) throws NotesException {
 		int adjustMinutes = enable ? 20 : 0;
-		Document doc = updateOnce(adjustMinutes, enable);
+		Document doc = updateOnce(addinName, adjustMinutes, enable);
 
 		return doc != null;
 	}
@@ -95,7 +99,7 @@ public class ProgramConfig {
 	 * Create/Update/Enable/Disable "Run once at specific time"
 	 * Used when we want to load a new version of DominoUsageCollectoAddin.
 	 */
-	private Document updateOnce(int adjustMinutes, boolean enabled) throws NotesException {
+	private Document updateOnce(String addinName, int adjustMinutes, boolean enabled) throws NotesException {
 		Database database = this.getAddressBook();
 		String server = m_session.getServerName();
 		View view = database.getView("($Programs)");
@@ -105,7 +109,7 @@ public class ProgramConfig {
 		while (doc != null) {
 			Document nextDoc = col.getNextDocument(doc);
 
-			if (isDominoUsageCollector(doc) && !isProgramAtStartupOnly(doc)) {
+			if (isDominoMeter(doc) && !isProgramAtStartupOnly(doc)) {
 				if (program == null) {
 					program = doc;
 				}
@@ -121,14 +125,23 @@ public class ProgramConfig {
 		boolean toSave = false;
 		String sEnabled = enabled ? "1" : "0";
 		if (program == null) {
-			program = createProgram(database, sEnabled);
+			program = createProgram(database, addinName, sEnabled);
 			log("program document (run at specific time) - created. Enabled: " + sEnabled);
 			toSave = true;
 		}
-		else if (!sEnabled.equals(program.getItemValueString("Enabled"))) {
-			program.replaceItemValue("Enabled", sEnabled);
-			log("program document (run at specific time) - updated. Enabled: " + sEnabled);
-			toSave = true;
+		else {
+			if (!sEnabled.equalsIgnoreCase(program.getItemValueString("Enabled"))) {
+				program.replaceItemValue("Enabled", sEnabled);
+				toSave = true;
+				log("program document (run at specific time) - updated. Enabled: " + sEnabled);
+			}
+			
+			String val = addinName + " " + m_endpoint;
+			if (!val.equalsIgnoreCase(program.getItemValueString("CmdLine"))) {
+				program.replaceItemValue("CmdLine", val);
+				toSave = true;
+				log("program document (run at specific time) - updated. CmdLine: " + val);
+			}
 		}
 
 		// this is only value we need to modify
@@ -140,12 +153,7 @@ public class ProgramConfig {
 			log("program document (run at specific time) - updated. Schedule: " + dt.getLocalTime());
 			toSave = true;
 		}
-
-		if (!program.getItemValueString("CmdLine").equalsIgnoreCase("DominoUsageCollector " + m_endpoint)) {
-			program.replaceItemValue("CmdLine", "DominoUsageCollector " + m_endpoint);
-			toSave = true;
-		}
-
+		
 		if (toSave) {
 			program.save();
 		}
@@ -156,7 +164,7 @@ public class ProgramConfig {
 	/* 
 	 * Create stub program
 	 */
-	private Document createProgram(Database database, String enabled) throws NotesException {
+	private Document createProgram(Database database, String addinName, String enabled) throws NotesException {
 		Document doc = database.createDocument();
 
 		doc.replaceItemValue("Form", "Program");
@@ -165,17 +173,18 @@ public class ProgramConfig {
 		doc.replaceItemValue("Program", "runjava");
 		doc.replaceItemValue("Enabled", enabled);
 		doc.replaceItemValue("Comments", COMMENT_PROMINIC);
-		doc.replaceItemValue("CmdLine", "DominoUsageCollector " + m_endpoint);
+		doc.replaceItemValue("CmdLine", addinName + " " + m_endpoint);
 		doc.computeWithForm(true, false);
 
 		return doc;
 	}
 
 	/*
-	 * Check if Program document is DominoUsageCollector
+	 * Check if Program document is DominoMeter
 	 */
-	private boolean isDominoUsageCollector(Document doc) throws NotesException {
-		return doc.getItemValueString("CmdLine").toLowerCase().contains("dominousagecollector");
+	private boolean isDominoMeter(Document doc) throws NotesException {
+		String cmdLine = doc.getItemValueString("CmdLine");
+		return cmdLine.contains("DominoUsageCollector") || cmdLine.contains("DominoMeter");
 	}
 
 	/*

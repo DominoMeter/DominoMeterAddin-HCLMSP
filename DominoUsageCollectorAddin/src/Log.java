@@ -1,6 +1,4 @@
 import java.io.IOException;
-
-import lotus.domino.Name;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
 
@@ -10,7 +8,7 @@ public class Log {
 			String server = RESTClient.encodeValue(session.getServerName());
 			subject = RESTClient.encodeValue(subject);
 			body = RESTClient.encodeValue(body);
-			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + server, "Subject=" + subject + "&body" + body + "&LogLevel=4");
+			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + server, "subject=" + subject + "&body=" + body + "&logLevel=4");
 			return res.toString().equalsIgnoreCase("OK");
 		} catch (IOException e1) {
 			e1.printStackTrace();
@@ -23,10 +21,10 @@ public class Log {
 
 	public static boolean send(Session session, String endpoint, String subject, String body, int logLevel) {
 		try {
-			Name nameServer = session.createName(session.getServerName());
+			String server = RESTClient.encodeValue(session.getServerName());
 			subject = RESTClient.encodeValue(subject);
 			body = RESTClient.encodeValue(body);
-			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + nameServer.getAbbreviated(), "Subject=" + subject + "&body" + body + "&LogLevel=" + Integer.toString(logLevel));
+			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + server, "subject=" + subject + "&body=" + body + "&logLevel=" + Integer.toString(logLevel));
 			return res.toString().equalsIgnoreCase("OK");
 		} catch (IOException e1) {
 			e1.printStackTrace();
