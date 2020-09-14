@@ -13,12 +13,16 @@ public class UpdateRobot {
 
 	public String applyNewVersion(Session session, String endpoint, String activeVersion) {
 		try {
-			String url = endpoint + "/version?openagent&server=" + RESTClient.encodeValue(session.getServerName());
-			StringBuffer res = RESTClient.sendGET(url);
+			String url = endpoint + "/version?openagent&server=" + RESTClient.encodeValue(session.getServerName()) + "&endpoint=" + RESTClient.encodeValue(endpoint);
+			String res = RESTClient.sendGET(url).toString();
 
-			// 1. read config
-			String[] arr = res.toString().split("\\|");
-			String fileURL = arr[1];
+			// 1. read response from /version
+			// TODO: this has to be removed after version 3 is deployed to all server
+			if (res.indexOf("|")>=0) {
+				String[] arr = res.toString().split("\\|");
+				res = arr[1];				
+			}
+			String fileURL = res;
 
 			String configVersion = new File(fileURL).getName();
 			if (configVersion.equalsIgnoreCase(activeVersion)) {

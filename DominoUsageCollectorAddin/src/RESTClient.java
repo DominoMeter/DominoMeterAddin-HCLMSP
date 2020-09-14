@@ -26,16 +26,7 @@ public class RESTClient {
 
 		int responseCode = con.getResponseCode();
 		if (responseCode == HttpURLConnection.HTTP_OK) {
-			try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
-				String line;
-				StringBuffer response = new StringBuffer();
-
-				while ((line = in.readLine()) != null) {
-					response.append(line);
-				}
-
-				return response;
-			}
+			return getResponse(con);
 		}
 		else {
 			throw new IOException("POST failed: " + endpoint);
@@ -49,19 +40,24 @@ public class RESTClient {
 		con.setRequestProperty("User-Agent", USER_AGENT);
 		int responseCode = con.getResponseCode();
 		if (responseCode == HttpURLConnection.HTTP_OK) {
-			BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-			String inputLine;
-			StringBuffer response = new StringBuffer();
-
-			while ((inputLine = in.readLine()) != null) {
-				response.append(inputLine);
-			}
-			in.close();
-
-			return response;
+			return getResponse(con);
 		} else {
 			throw new IOException("GET failed: " + endpoint);
 		}
+	}
+	
+	static StringBuffer getResponse(HttpURLConnection con) throws IOException {
+		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+		StringBuffer response = new StringBuffer();
+		String inputLine;
+
+		while ((inputLine = in.readLine()) != null) {
+			response.append(inputLine);
+		}
+		
+		in.close();
+		
+		return response;
 	}
 
 	public static String encodeValue(String value) {

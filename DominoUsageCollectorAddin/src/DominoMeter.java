@@ -1,15 +1,12 @@
 import java.time.ZonedDateTime;
-
-import java.util.StringJoiner;
-
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.notes.addins.JavaServerAddin;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "2";
-	final String			JADDIN_DATE				= "2020-09-13 22:39 CET";
+	final String			JADDIN_VERSION			= "3";
+	final String			JADDIN_DATE				= "2020-09-14 21:30 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 	
 	// Instance variables
@@ -54,17 +51,12 @@ public class DominoMeter extends JavaServerAddin {
 		// Set the initial state
 		setAddinState("Initialization in progress...");
 		
-		StringJoiner joiner = new StringJoiner("; ");
-		for(int i = 0; i < this.args.length; i++) {
-			joiner.add(this.args[i]);
-		}
-		
 		try {
 			Session session = NotesFactory.createSession();
 			String endpoint = args[0];
 			
 			logMessage(" version " + this.JADDIN_VERSION);
-			logMessage(" will be called with parameters: " + joiner.toString());
+			logMessage(" will be called with parameters: " + String.join(", ", this.args));
 			logMessage(" timer: " + JADDIN_TIMER);
 
 			ProgramConfig pc = new ProgramConfig(session, endpoint);
@@ -82,7 +74,6 @@ public class DominoMeter extends JavaServerAddin {
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
 				if (hourEvent != curHour) {
-					this.logMessage("Checking for a new version");
 					setAddinState(this.JADDIN_NAME + " - checking for a new version");
 					String version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
 					String newAddinFile = ur.applyNewVersion(session, endpoint, version);
