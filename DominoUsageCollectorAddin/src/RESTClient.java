@@ -19,7 +19,7 @@ public class RESTClient {
 		con.setRequestMethod("POST");
 		con.setRequestProperty("User-Agent", USER_AGENT);
 		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		con.setRequestProperty("DominoMeterToken", ACCESS_TOKEN);
+		con.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
 
 		try (DataOutputStream wr = new DataOutputStream(con.getOutputStream())) {
 			wr.writeBytes(urlParameters);
