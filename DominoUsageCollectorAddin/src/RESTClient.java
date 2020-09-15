@@ -10,7 +10,8 @@ import java.nio.charset.StandardCharsets;
 
 public class RESTClient {
 	private static final String USER_AGENT = "Mozilla/5.0";
-
+	private static final String ACCESS_TOKEN = "f21f20afae6b4d99c1258551002002fa";
+	
 	static StringBuffer sendPOST(String endpoint, String urlParameters) throws IOException {
 		URL url = new URL(endpoint);
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -18,6 +19,7 @@ public class RESTClient {
 		con.setRequestMethod("POST");
 		con.setRequestProperty("User-Agent", USER_AGENT);
 		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		con.setRequestProperty("DominoMeterToken", ACCESS_TOKEN);
 
 		try (DataOutputStream wr = new DataOutputStream(con.getOutputStream())) {
 			wr.writeBytes(urlParameters);
@@ -38,6 +40,7 @@ public class RESTClient {
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.setRequestMethod("GET");
 		con.setRequestProperty("User-Agent", USER_AGENT);
+		con.setRequestProperty("DominoMeterToken", ACCESS_TOKEN);
 		int responseCode = con.getResponseCode();
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			return getResponse(con);
