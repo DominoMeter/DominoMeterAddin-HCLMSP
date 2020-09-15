@@ -40,7 +40,8 @@ public class RESTClient {
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.setRequestMethod("GET");
 		con.setRequestProperty("User-Agent", USER_AGENT);
-		con.setRequestProperty("DominoMeterToken", ACCESS_TOKEN);
+		con.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
+		
 		int responseCode = con.getResponseCode();
 		if (responseCode == HttpURLConnection.HTTP_OK) {
 			return getResponse(con);
