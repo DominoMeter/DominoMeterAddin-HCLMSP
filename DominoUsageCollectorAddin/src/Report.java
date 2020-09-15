@@ -49,7 +49,6 @@ public class Report {
 		return false;
 	}
 
-	@SuppressWarnings("unchecked")
 	public boolean send() {
 		try {
 			Date dateStart = new Date();
@@ -69,7 +68,7 @@ public class Report {
 			View view = database.getView("People");
 			long count = view.getAllEntries().getCount();
 			urlParameters.append("&usercount=" + Long.toString(count));
-			
+
 			// 3. databases 
 			DatabasesInfo dbInfo = new DatabasesInfo(m_session);
 			if (dbInfo.process(server)) {
@@ -95,7 +94,7 @@ public class Report {
 			urlParameters.append("&java=" + RESTClient.encodeValue(statJavaVersion));
 			urlParameters.append("&domino=" + RESTClient.encodeValue(statDomino));
 			urlParameters.append("&addinVersion=" + m_version);
-			
+
 			// 6. notes.ini
 			StringBuffer keyword = Keyword.getValue(m_endpoint, server, "Notes.ini");
 			if (keyword != null && !keyword.toString().isEmpty()) {
@@ -106,30 +105,10 @@ public class Report {
 					urlParameters.append("&ni_" + variable + "=" + RESTClient.encodeValue(iniValue));
 				}
 			}	
-			
+
 			// 7. program documents
-			StringBuffer bufPrograms = new StringBuffer();
-			View viewPrograms = database.getView("($Programs)");
-			bufPrograms.append(String.join("|", viewPrograms.getColumnNames()));
-			
-			ViewEntryCollection programs = viewPrograms.getAllEntriesByKey(server, true);
-			ViewEntry program = programs.getFirstEntry();
-			while (program != null) {
-				@SuppressWarnings("rawtypes")
-				Vector v = program.getColumnValues();
-				String s = "";
-				for(int i = 0; i < v.size(); i++) {
-					if (i > 0) {
-						s = s + "|";
-					}
-					s = s + v.get(i).toString();
-				}
-				bufPrograms.append("~").append(s);
-				
-				program = programs.getNextEntry();
-			}
-			urlParameters.append("&programs=" + RESTClient.encodeValue(bufPrograms.toString()));
-			
+			urlParameters.append("&programs=" + RESTClient.encodeValue(getProgram(database, server)));
+
 			// 10. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			urlParameters.append("&numDuration=" + numDuration);
@@ -139,5 +118,31 @@ public class Report {
 		} catch (Exception e) {
 			return false;
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private String getProgram(Database database, String server) throws NotesException {
+		StringBuffer buf = new StringBuffer();
+		View viewPrograms = database.getView("($Programs)");
+		buf.append(String.join("|", viewPrograms.getColumnNames()));
+
+		ViewEntryCollection programs = viewPrograms.getAllEntriesByKey(server, true);
+		ViewEntry program = programs.getFirstEntry();
+		while (program != null) {
+			@SuppressWarnings("rawtypes")
+			Vector v = program.getColumnValues();
+			String s = "";
+			for(int i = 0; i < v.size(); i++) {
+				if (i > 0) {
+					s = s + "|";
+				}
+				s = s + v.get(i).toString();
+			}
+			buf.append("~").append(s);
+
+			program = programs.getNextEntry();
+		}
+
+		return buf.toString();
 	}
 }
