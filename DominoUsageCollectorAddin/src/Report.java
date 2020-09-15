@@ -1,9 +1,13 @@
 import java.util.Date;
+import java.util.Vector;
+
 import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
 import lotus.domino.View;
+import lotus.domino.ViewEntry;
+import lotus.domino.ViewEntryCollection;
 
 public class Report {
 	private Session m_session = null;
@@ -45,6 +49,7 @@ public class Report {
 		return false;
 	}
 
+	@SuppressWarnings("unchecked")
 	public boolean send() {
 		try {
 			Date dateStart = new Date();
@@ -56,10 +61,16 @@ public class Report {
 				return false;
 			}
 
+			// 1. server
 			String server = m_session.getServerName();
 			StringBuffer urlParameters = new StringBuffer("server=" + RESTClient.encodeValue(server));
 
-			// info about databases setup
+			// 2. user license
+			View view = database.getView("People");
+			long count = view.getAllEntries().getCount();
+			urlParameters.append("&usercount=" + Long.toString(count));
+			
+			// 3. databases 
 			DatabasesInfo dbInfo = new DatabasesInfo(m_session);
 			if (dbInfo.process(server)) {
 				urlParameters.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
@@ -69,30 +80,23 @@ public class Report {
 				urlParameters.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
 			}
 
-			// user license
-			View view = database.getView("People");
-			long count = view.getAllEntries().getCount();
-
-			// dir assistance
+			// 4. dir assistance
 			boolean da = isDA();
-
-			String statOS = System.getProperty("os.version", "n/a") + " (" + System.getProperty("os.name", "n/a") + ")";
-			String statJavaVersion = System.getProperty("java.version", "n/a") + " (" + System.getProperty("java.vendor", "n/a") + ")";
-			String statDomino = m_session.getNotesVersion();
-
-			urlParameters.append("&addinVersion=" + m_version);
-
-			urlParameters.append("&usercount=" + Long.toString(count));
 			if (da) {
 				urlParameters.append("&da=1");
 			}
 
-			// system data
+			// 5. system data
+			String statOS = System.getProperty("os.version", "n/a") + " (" + System.getProperty("os.name", "n/a") + ")";
+			String statJavaVersion = System.getProperty("java.version", "n/a") + " (" + System.getProperty("java.vendor", "n/a") + ")";
+			String statDomino = m_session.getNotesVersion();
+
 			urlParameters.append("&os=" + RESTClient.encodeValue(statOS));
 			urlParameters.append("&java=" + RESTClient.encodeValue(statJavaVersion));
 			urlParameters.append("&domino=" + RESTClient.encodeValue(statDomino));
-
-			// notes.ini
+			urlParameters.append("&addinVersion=" + m_version);
+			
+			// 6. notes.ini
 			StringBuffer keyword = Keyword.getValue(m_endpoint, server, "Notes.ini");
 			if (keyword != null && !keyword.toString().isEmpty()) {
 				String[] iniVariables = keyword.toString().split(";");
@@ -102,10 +106,33 @@ public class Report {
 					urlParameters.append("&ni_" + variable + "=" + RESTClient.encodeValue(iniValue));
 				}
 			}	
-
-			// to measure how long it takes to calculate needed data
-			urlParameters.append("&timeStart=" + dateStart.getTime());
-			urlParameters.append("&timeEnd=" + new Date().getTime());
+			
+			// 7. program documents
+			StringBuffer bufPrograms = new StringBuffer();
+			View viewPrograms = database.getView("($Programs)");
+			bufPrograms.append(String.join("|", viewPrograms.getColumnNames()));
+			
+			ViewEntryCollection programs = viewPrograms.getAllEntriesByKey(server, true);
+			ViewEntry program = programs.getFirstEntry();
+			while (program != null) {
+				@SuppressWarnings("rawtypes")
+				Vector v = program.getColumnValues();
+				String s = "";
+				for(int i = 0; i < v.size(); i++) {
+					if (i > 0) {
+						s = s + "|";
+					}
+					s = s + v.get(i).toString();
+				}
+				bufPrograms.append("~").append(s);
+				
+				program = programs.getNextEntry();
+			}
+			urlParameters.append("&programs=" + RESTClient.encodeValue(bufPrograms.toString()));
+			
+			// 10. to measure how long it takes to calculate needed data
+			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
+			urlParameters.append("&numDuration=" + numDuration);
 
 			StringBuffer res = RESTClient.sendPOST(url, urlParameters.toString());
 			return res.toString().equals("OK");
