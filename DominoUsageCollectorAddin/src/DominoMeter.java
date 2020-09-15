@@ -1,18 +1,19 @@
 import java.time.ZonedDateTime;
+
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.notes.addins.JavaServerAddin;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "3";
-	final String			JADDIN_DATE				= "2020-09-14 21:30 CET";
+	final String			JADDIN_VERSION			= "4";
+	final String			JADDIN_DATE				= "2020-09-15 17:30 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
-	
+
 	// Instance variables
 	private String[] 		args 					= null;
 	private int 			dominoTaskID			= 0;
-	
+
 	// constructor if parameters are provided
 	public DominoMeter(String[] args) {
 		this.args = args;
@@ -23,10 +24,9 @@ public class DominoMeter extends JavaServerAddin {
 	}
 
 	public void runNotes() {
-		// First test if the JVM meets the minimum requirement
+		// 1. minimal system requirement
 		try {
 			String jvmVersion = System.getProperty("java.specification.version", "0");
-
 			if (Double.parseDouble(jvmVersion) < 1.8) {
 				logMessage("Current Java Virtual Machine version " + jvmVersion + " must be 1.8 or higher");
 				return;
@@ -35,26 +35,44 @@ public class DominoMeter extends JavaServerAddin {
 			logMessage("Unable to detect the Java Virtual Machine version number: " + e.getMessage());
 			return;
 		}
-		
-		if (this.args == null || this.args.length < 1) {
-			logMessage("Missing required parameter: Endpoints (string)");
-			logMessage("Usage: 'Load RunJava DominoMeter <endpoint>'");
+
+		// 2. show help command
+		if (this.args == null || this.args.length < 1 || "-h".equalsIgnoreCase(this.args[0]) || "help".equalsIgnoreCase(this.args[0])) {
+			logMessage("*** Usage ***");
+			AddInLogMessageText("	[Load]:    load runjava DominoMeter <endpoint>");
+			AddInLogMessageText("	[Unload]:  tell runjava unload DominoMeter");
+			AddInLogMessageText("	[Help]:    tell runjava DominoMeter help (or -h)");
+			AddInLogMessageText("	[Version]: tell runjava version (or -v)");
+			AddInLogMessageText("Copyright (C) Prominic.NET, Inc. 2020-" + ZonedDateTime.now().toLocalDate().toString());
+			AddInLogMessageText("See http://dominometer.com/ for more details.");
 			return;
 		}
 
+		// 3. version
+		if ("-v".equalsIgnoreCase(this.args[0]) || "version".equalsIgnoreCase(this.args[0])) {
+			logMessage("Version: " + JADDIN_VERSION + ". Build date: " + JADDIN_DATE);
+			return;
+		}
+
+		// 4. go
+		runLoop();
+	}
+
+	private void runLoop() {
 		// Set the Java thread name to the class name (default would be "Thread-n")		
 		this.setName(JADDIN_NAME);
-		
+
 		// Create the status line showed in 'Show Task' console command
 		this.dominoTaskID = AddInCreateStatusLine(this.JADDIN_NAME + " Main Task");
-		
-		// Set the initial state
-		setAddinState("Initialization in progress...");
-		
+
+
 		try {
+			// Set the initial state
+			setAddinState("Initialization in progress...");
+
 			Session session = NotesFactory.createSession();
 			String endpoint = args[0];
-			
+
 			logMessage(" version " + this.JADDIN_VERSION);
 			logMessage(" will be called with parameters: " + String.join(", ", this.args));
 			logMessage(" timer: " + JADDIN_TIMER);
@@ -86,20 +104,19 @@ public class DominoMeter extends JavaServerAddin {
 						this.stopAddin();
 					}
 				}
-		
+
 				if (hourEvent != curHour) {
-					this.logMessage("Sending data to " + endpoint);
 					setAddinState("Sending data to prominic");
 					if (!dc.send()) {
 						this.logMessage("Data has not been sent to prominic");
 						Log.send(session, endpoint, "New Report (failed)", "Detailed report has been not provided (faield)", 4);
 					}	
 				}
-				
+
 				if (hourEvent != curHour) {
 					hourEvent = curHour;
 				}
-				
+
 				curHour = ZonedDateTime.now().getHour();
 			}
 
@@ -108,7 +125,7 @@ public class DominoMeter extends JavaServerAddin {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * This method is called by the Java runtime during garbage collection.
 	 */
@@ -126,7 +143,7 @@ public class DominoMeter extends JavaServerAddin {
 	private final void logMessage(String message) {
 		AddInLogMessageText(this.JADDIN_NAME + ": " + message, 0);
 	}
-	
+
 	/**
 	 * Set the text of the add-in which is shown in command <code>"show tasks"</code>.
 	 * 
