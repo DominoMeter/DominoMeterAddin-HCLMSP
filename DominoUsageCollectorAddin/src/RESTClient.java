@@ -1,18 +1,17 @@
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 public class RESTClient {
 	private static final String USER_AGENT = "Mozilla/5.0";
 	private static final String ACCESS_TOKEN = "f21f20afae6b4d99c1258551002002fa";
 	
-	static StringBuffer sendPOST(String endpoint, String urlParameters) throws IOException {
+	static StringBuffer sendPOST(String endpoint, String data) throws IOException {
 		URL url = new URL(endpoint);
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.setDoOutput(true);
@@ -21,10 +20,7 @@ public class RESTClient {
 		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 		con.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
 
-		try (DataOutputStream wr = new DataOutputStream(con.getOutputStream())) {
-			wr.writeBytes(urlParameters);
-			wr.flush();
-		}
+		con.getOutputStream().write(data.getBytes(), 0, data.length());;
 
 		int responseCode = con.getResponseCode();
 		if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -66,7 +62,7 @@ public class RESTClient {
 
 	public static String encodeValue(String value) {
 		try {
-			return URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
+			return URLEncoder.encode(value, "UTF-8");
 		} catch (UnsupportedEncodingException ex) {
 			throw new RuntimeException(ex.getCause());
 		}

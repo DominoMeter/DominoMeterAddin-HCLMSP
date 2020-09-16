@@ -1,4 +1,5 @@
-import java.time.ZonedDateTime;
+import java.util.Calendar;
+import java.util.Date;
 
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
@@ -6,8 +7,8 @@ import lotus.notes.addins.JavaServerAddin;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "7";
-	final String			JADDIN_DATE				= "2020-09-16 14:28 CET";
+	final String			JADDIN_VERSION			= "8";
+	final String			JADDIN_DATE				= "2020-09-16 23:28 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables
@@ -27,8 +28,8 @@ public class DominoMeter extends JavaServerAddin {
 		// 1. minimal system requirement
 		try {
 			String jvmVersion = System.getProperty("java.specification.version", "0");
-			if (Double.parseDouble(jvmVersion) < 1.8) {
-				logMessage("Current Java Virtual Machine version " + jvmVersion + " must be 1.8 or higher");
+			if (Double.parseDouble(jvmVersion) < 1.6) {
+				logMessage("Current Java Virtual Machine version " + jvmVersion + " must be 1.6 or higher");
 				return;
 			}
 		} catch (Exception e) {
@@ -38,12 +39,13 @@ public class DominoMeter extends JavaServerAddin {
 
 		// 2. show help command
 		if (this.args == null || this.args.length < 1 || "-h".equalsIgnoreCase(this.args[0]) || "help".equalsIgnoreCase(this.args[0])) {
+			int year = Calendar.getInstance().get(Calendar.YEAR);
 			logMessage("*** Usage ***");
 			AddInLogMessageText("	[Load]:    load runjava DominoMeter <endpoint>");
 			AddInLogMessageText("	[Unload]:  tell runjava unload DominoMeter");
 			AddInLogMessageText("	[Help]:    tell runjava DominoMeter help (or -h)");
 			AddInLogMessageText("	[Version]: tell runjava version (or -v)");
-			AddInLogMessageText("Copyright (C) Prominic.NET, Inc. 2020-" + ZonedDateTime.now().toLocalDate().toString());
+			AddInLogMessageText("Copyright (C) Prominic.NET, Inc. 2020" + (year > 2020 ? " - " + Integer.toString(year) : ""));
 			AddInLogMessageText("See http://dominometer.com/ for more details.");
 			return;
 		}
@@ -74,7 +76,7 @@ public class DominoMeter extends JavaServerAddin {
 			String endpoint = args[0];
 
 			logMessage(" version " + this.JADDIN_VERSION);
-			logMessage(" will be called with parameters: " + String.join(", ", this.args));
+			logMessage(" endpoint: " + this.args[0]);
 			logMessage(" timer: " + JADDIN_TIMER);
 
 			ProgramConfig pc = new ProgramConfig(session, endpoint);
@@ -83,7 +85,7 @@ public class DominoMeter extends JavaServerAddin {
 
 			Report dc = new Report(session, endpoint, JADDIN_VERSION);
 
-			int curHour = ZonedDateTime.now().getHour();
+			int curHour = (int)(new Date().getTime() % 86400000) / 3600000;
 			int hourEvent = curHour - 1;
 
 			UpdateRobot ur = new UpdateRobot();
@@ -117,7 +119,7 @@ public class DominoMeter extends JavaServerAddin {
 					hourEvent = curHour;
 				}
 
-				curHour = ZonedDateTime.now().getHour();
+				curHour = (int)(new Date().getTime() % 86400000) / 3600000;
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);

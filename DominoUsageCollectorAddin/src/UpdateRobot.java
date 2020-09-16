@@ -1,7 +1,8 @@
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 
 import lotus.domino.NotesException;
@@ -61,7 +62,7 @@ public class UpdateRobot {
 					for (int i = 0; i < userClassesArr.length; i++) {
 						if (userClassesArr[i].contains("DominoMeter")) {
 							userClassesArr[i] = NotesIniLine;
-							userClasses = String.join(notesIniSep, userClassesArr);
+							userClasses = StringUtils.join(userClassesArr, notesIniSep);
 							i = userClassesArr.length;
 						}
 					}
@@ -84,20 +85,31 @@ public class UpdateRobot {
 		return "";
 	}
 
-	private boolean saveURLTo(String url, String filePath) {
-		try (BufferedInputStream inputStream = new BufferedInputStream(new URL(url).openStream());
-				FileOutputStream fileOS = new FileOutputStream(filePath)) {
-			byte data[] = new byte[1024];
-			int byteContent;
-			while ((byteContent = inputStream.read(data, 0, 1024)) != -1) {
-				fileOS.write(data, 0, byteContent);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
+	private boolean saveURLTo(String fileURL, String filePath) throws IOException {
+		boolean res = false;
+		URL url = new URL(fileURL);
+		HttpURLConnection con = (HttpURLConnection) url.openConnection();
+		int responseCode = con.getResponseCode();
 
-		return true;
+		if (responseCode == HttpURLConnection.HTTP_OK) {
+			InputStream is = con.getInputStream();
+
+			FileOutputStream os = new FileOutputStream(filePath);
+
+			int bytesRead = -1;
+			byte[] buffer = new byte[4096];
+			while ((bytesRead = is.read(buffer)) != -1) {
+				os.write(buffer, 0, bytesRead);
+			}
+
+			os.close();
+			is.close();
+
+			res = true;
+		}
+		con.disconnect();
+
+		return res;
 	}
 
 	private void log(Object msg) {

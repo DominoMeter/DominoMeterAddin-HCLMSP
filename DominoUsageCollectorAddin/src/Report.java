@@ -117,11 +117,10 @@ public class Report {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private String getProgram(Database database, String server) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 		View viewPrograms = database.getView("($Programs)");
-		buf.append(String.join("|", viewPrograms.getColumnNames()));
+		buf.append(StringUtils.join(viewPrograms.getColumnNames(), "|"));
 
 		ViewEntryCollection programs = viewPrograms.getAllEntriesByKey(server, true);
 		ViewEntry program = programs.getFirstEntry();
