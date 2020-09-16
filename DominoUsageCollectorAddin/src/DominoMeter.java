@@ -1,5 +1,4 @@
 import java.util.Calendar;
-import java.util.Date;
 
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
@@ -85,7 +84,7 @@ public class DominoMeter extends JavaServerAddin {
 
 			Report dc = new Report(session, endpoint, JADDIN_VERSION);
 
-			int curHour = (int)(new Date().getTime() % 86400000) / 3600000;
+			int curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			int hourEvent = curHour - 1;
 
 			UpdateRobot ur = new UpdateRobot();
@@ -119,7 +118,7 @@ public class DominoMeter extends JavaServerAddin {
 					hourEvent = curHour;
 				}
 
-				curHour = (int)(new Date().getTime() % 86400000) / 3600000;
+				curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			}
 
 			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);
