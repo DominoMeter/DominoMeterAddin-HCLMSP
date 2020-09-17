@@ -124,13 +124,10 @@ public class Report {
 				urlParameters.append("&idfiles=" + idFiles);	
 			}
 
-			// 50. to measure how long it takes to calculate needed data
+			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			urlParameters.append("&numDuration=" + numDuration);
-			
-			// 51. checksum (check if data has changed since last time) 
-			urlParameters.append("&md5stamp=" + MD5Checksum.getMD5Checksum(urlParameters.toString()));
-			
+
 			StringBuffer res = RESTClient.sendPOST(url, urlParameters.toString());
 			return res.toString().equals("OK");
 		} catch (Exception e) {

@@ -31,10 +31,10 @@ public class UpdateRobot {
 			// 2. check if current
 			String folder = "DominoMeterAddin";
 			
-		    boolean exists = new File(folder).mkdir();
-		    if (!exists) {
-		    	folder = "ProminicAddin";
-		    }
+			File f = new File(folder);
+			if (!f.exists()) {
+			    f.mkdir();				
+			}
 
 			String filePath = folder + File.separator + configVersion;
 
@@ -56,7 +56,7 @@ public class UpdateRobot {
 			}
 
 			// 4. register new JAR in notes.ini
-			// Example: JAVAUSERCLASSESEXT=.\ProminicAddin\DominoMeter-5.jar
+			// Example: JAVAUSERCLASSESEXT=.\DominoMeterAddin\DominoMeter-5.jar
 			String userClasses = session.getEnvironmentString(JAVA_USER_CLASSES, true);
 			log(JAVA_USER_CLASSES + " (current) = " + userClasses);
 			String NotesIniLine = "." + File.separator + filePath;
