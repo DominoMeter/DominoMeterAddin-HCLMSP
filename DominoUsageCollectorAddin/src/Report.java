@@ -8,6 +8,8 @@ import lotus.domino.Session;
 import lotus.domino.View;
 import lotus.domino.ViewEntry;
 import lotus.domino.ViewEntryCollection;
+import prominic.io.RESTClient;
+import prominic.util.StringUtils;
 
 public class Report {
 	private Session m_session = null;

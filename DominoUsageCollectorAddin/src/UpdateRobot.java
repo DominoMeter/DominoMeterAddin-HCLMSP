@@ -7,6 +7,8 @@ import java.net.URL;
 
 import lotus.domino.NotesException;
 import lotus.domino.Session;
+import prominic.io.RESTClient;
+import prominic.util.StringUtils;
 
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";

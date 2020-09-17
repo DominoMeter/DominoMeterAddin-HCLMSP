@@ -1,3 +1,5 @@
+package prominic.util;
+
 import java.util.Vector;
 
 public class StringUtils {

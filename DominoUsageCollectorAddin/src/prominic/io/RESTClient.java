@@ -1,5 +1,6 @@
-import java.io.BufferedReader;
+package prominic.io;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
@@ -11,7 +12,7 @@ public class RESTClient {
 	private static final String USER_AGENT = "Mozilla/5.0";
 	private static final String ACCESS_TOKEN = "f21f20afae6b4d99c1258551002002fa";
 	
-	static StringBuffer sendPOST(String endpoint, String data) throws IOException {
+	public static StringBuffer sendPOST(String endpoint, String data) throws IOException {
 		URL url = new URL(endpoint);
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.setDoOutput(true);
@@ -31,7 +32,7 @@ public class RESTClient {
 		}
 	}
 
-	static StringBuffer sendGET(String endpoint) throws IOException {
+	public static StringBuffer sendGET(String endpoint) throws IOException {
 		URL url = new URL(endpoint);
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.setRequestMethod("GET");

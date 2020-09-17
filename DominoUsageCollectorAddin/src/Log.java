@@ -1,6 +1,7 @@
 import java.io.IOException;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
+import prominic.io.RESTClient;
 
 public class Log {
 	public static boolean sendError(Session session, String endpoint, String subject, String body) {
