@@ -3,11 +3,15 @@ import java.util.Calendar;
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.notes.addins.JavaServerAddin;
+import prominic.dm.api.Log;
+import prominic.dm.report.Report;
+import prominic.dm.update.ProgramConfig;
+import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "10";
-	final String			JADDIN_DATE				= "2020-09-17 00:01 CET";
+	final String			JADDIN_VERSION			= "11";
+	final String			JADDIN_DATE				= "2020-09-17 23:01 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables
