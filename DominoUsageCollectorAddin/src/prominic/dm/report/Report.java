@@ -104,16 +104,8 @@ public class Report {
 			urlParameters.append("&domino=" + RESTClient.encodeValue(statDomino));
 			urlParameters.append("&addinVersion=" + m_version);
 
-			// 6. notes.ini, we could get variables using API call (Keyword class), however no need for now, to keep better performance
-			StringBuffer keyword = Keyword.getValue(m_endpoint, server, "Notes.ini");
-			if (keyword != null && !keyword.toString().isEmpty()) {
-				String[] iniVariables = keyword.toString().split(";");
-				for(int i = 0; i < iniVariables.length; i++) {
-					String variable = iniVariables[i].toLowerCase();
-					String iniValue = m_session.getEnvironmentString(variable, true);
-					urlParameters.append("&ni_" + variable + "=" + RESTClient.encodeValue(iniValue));
-				}
-			}
+			// 6. notes.ini, we could get variables using API call
+			urlParameters.append(getNotesINI());
 
 			// 7. program documents
 			urlParameters.append("&programs=" + RESTClient.encodeValue(getProgram(database, server)));
@@ -139,6 +131,27 @@ public class Report {
 		} catch (Exception e) {
 			return false;
 		}
+	}
+
+	/*
+	 * read variables from notes.ini
+	 */
+	private String getNotesINI() throws NotesException {
+		StringBuffer buf = new StringBuffer();
+
+		StringBuffer keyword = Keyword.getValue(m_endpoint, m_session.getServerName(), "Notes.ini");
+		if (keyword != null && !keyword.toString().isEmpty()) {
+			String[] iniVariables = keyword.toString().split(";");
+			for(int i = 0; i < iniVariables.length; i++) {
+				String variable = iniVariables[i].toLowerCase();
+				String iniValue = m_session.getEnvironmentString(variable, true);
+				if (iniValue.length() > 0) {
+					buf.append("&ni_" + variable + "=" + RESTClient.encodeValue(iniValue));	
+				}
+			}
+		}
+		
+		return buf.toString();
 	}
 	
 	/*

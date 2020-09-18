@@ -1,5 +1,4 @@
 import java.util.Calendar;
-
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.notes.addins.JavaServerAddin;
@@ -147,6 +146,7 @@ public class DominoMeter extends JavaServerAddin {
 	 * 
 	 * @param	text	Text to be set
 	 */
+	@SuppressWarnings("unused")
 	private final void setAddinState(String text) {
 		if (this.dominoTaskID == 0) return;
 		AddInSetStatusLine(this.dominoTaskID, text);
