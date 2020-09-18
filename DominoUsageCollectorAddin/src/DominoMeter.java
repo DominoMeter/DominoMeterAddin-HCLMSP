@@ -10,8 +10,8 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "16";
-	final String			JADDIN_DATE				= "2020-09-17 23:01 CET";
+	final String			JADDIN_VERSION			= "17";
+	final String			JADDIN_DATE				= "2020-09-18 23:01 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables
@@ -68,13 +68,9 @@ public class DominoMeter extends JavaServerAddin {
 		this.setName(JADDIN_NAME);
 
 		// Create the status line showed in 'Show Task' console command
-		this.dominoTaskID = AddInCreateStatusLine(this.JADDIN_NAME + " Main Task");
-
+		this.dominoTaskID = AddInCreateStatusLine(this.JADDIN_NAME + " loaded");
 
 		try {
-			// Set the initial state
-			setAddinState("Initialization in progress...");
-
 			Session session = NotesFactory.createSession();
 			String endpoint = args[0];
 
@@ -93,11 +89,9 @@ public class DominoMeter extends JavaServerAddin {
 
 			UpdateRobot ur = new UpdateRobot();
 			while (this.addInRunning()) {
-				setAddinState("Idle");
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
 				if (hourEvent != curHour) {
-					setAddinState(this.JADDIN_NAME + " - checking for a new version");
 					String version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
 					String newAddinFile = ur.applyNewVersion(session, endpoint, version);
 					if (!newAddinFile.isEmpty()) {
@@ -111,7 +105,6 @@ public class DominoMeter extends JavaServerAddin {
 				}
 
 				if (hourEvent != curHour) {
-					setAddinState("Sending data to prominic");
 					if (!dc.send()) {
 						this.logMessage("Data has not been sent to prominic");
 						Log.send(session, endpoint, "New Report (failed)", "Detailed report has been not provided (faield)", 4);

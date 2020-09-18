@@ -123,6 +123,12 @@ public class Report {
 			if (!idFiles.isEmpty()) {
 				urlParameters.append("&idfiles=" + idFiles);	
 			}
+			
+			// 9. services
+			String services = this.getServices();
+			if (!services.isEmpty()) {
+				urlParameters.append(services);
+			}
 
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
@@ -133,6 +139,27 @@ public class Report {
 		} catch (Exception e) {
 			return false;
 		}
+	}
+	
+	/*
+	 * Check if Traveler, Sametime etc are running
+	 */
+	private String getServices() throws NotesException {
+		String console = m_session.sendConsoleCommand("", "show tasks");
+		
+		StringBuffer buf = new StringBuffer();
+		
+		if (console.contentEquals("Traveler")) {
+			buf.append("&traveler=1");
+		}		
+		if (console.contentEquals("Sametime")) {
+			buf.append("&sametime=1");
+		}
+		if (console.contentEquals("IMSMO")) {
+			buf.append("&imsmo=1");
+		}
+		
+		return buf.toString();
 	}
 
 	/*
