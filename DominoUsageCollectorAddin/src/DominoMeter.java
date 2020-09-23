@@ -9,8 +9,8 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "17";
-	final String			JADDIN_DATE				= "2020-09-18 23:01 CET";
+	final String			JADDIN_VERSION			= "19";
+	final String			JADDIN_DATE				= "2020-09-23 16:58 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables
@@ -81,7 +81,8 @@ public class DominoMeter extends JavaServerAddin {
 			pc.setupServerStartUp(JADDIN_NAME);			// create server-startup run program
 			pc.setupRunOnce(JADDIN_NAME, false);		// disable one-time run program
 
-			Report dc = new Report(session, endpoint, JADDIN_VERSION);
+			String version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
+			Report dc = new Report(session, endpoint, version);
 
 			int curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			int hourEvent = curHour - 1;
@@ -91,23 +92,24 @@ public class DominoMeter extends JavaServerAddin {
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
 				if (hourEvent != curHour) {
-					String version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
 					String newAddinFile = ur.applyNewVersion(session, endpoint, version);
 					if (!newAddinFile.isEmpty()) {
-						Log.send(session, endpoint, JADDIN_NAME + " - will be unloaded for upgrade", "New version " + newAddinFile + " will start shortly (~20 mins)", 2);
+						Log.sendLog(session, endpoint, JADDIN_NAME + " - will be unloaded for upgrade", "New version " + newAddinFile + " will start shortly (~20 mins)");
 						int pos = newAddinFile.indexOf("-");
 						String newAddinName = newAddinFile.substring(0, pos);
 						pc.setupRunOnce(newAddinName, true);
 						pc.setupServerStartUp(newAddinName);							
 						this.stopAddin();
 					}
+					else {
+						Log.sendError(session, endpoint, "Update failed", "Addin could not udpate itself, please check what happened and update version manually if needed.");
+					}
 				}
 
 				if (hourEvent != curHour) {
-					if (!dc.send()) {
-						this.logMessage("Data has not been sent to prominic");
-						Log.send(session, endpoint, "New Report (failed)", "Detailed report has been not provided (faield)", 4);
-					}	
+					if (this.addInRunning() && !dc.send()) {
+						Log.sendError(session, endpoint, "Report failed", "Detailed report has been not created, please check what happened");
+					}
 				}
 
 				if (hourEvent != curHour) {
@@ -117,7 +119,7 @@ public class DominoMeter extends JavaServerAddin {
 				curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			}
 
-			logMessage("UNLOADED (OK) " + JADDIN_NAME + " " + this.JADDIN_VERSION);
+			logMessage("UNLOADED (OK) " + version);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}

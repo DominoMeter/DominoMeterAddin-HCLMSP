@@ -71,68 +71,89 @@ public class Report {
 
 			// 1. server
 			String server = m_session.getServerName();
-			StringBuffer urlParameters = new StringBuffer("server=" + RESTClient.encodeValue(server));
+			StringBuffer data = new StringBuffer("server=" + RESTClient.encodeValue(server));
 
 			// 2. user license
 			View view = database.getView("People");
 			long count = view.getAllEntries().getCount();
-			urlParameters.append("&usercount=" + Long.toString(count));
+			data.append("&usercount=" + Long.toString(count));
 
 			// 3. databases 
-			DatabasesInfo dbInfo = new DatabasesInfo(m_session);
-			if (dbInfo.process(server)) {
-				urlParameters.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
-				urlParameters.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
-				urlParameters.append("&numMail=" + Long.toString(dbInfo.getMail()));
-				urlParameters.append("&numApp=" + Long.toString(dbInfo.getApp()));
-				urlParameters.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
-			}
+			data.append(getDatabaseInfo(server));
 
 			// 4. dir assistance
 			boolean da = isDA();
 			if (da) {
-				urlParameters.append("&da=1");
+				data.append("&da=1");
 			}
 
 			// 5. system data
-			String statOS = System.getProperty("os.version", "n/a") + " (" + System.getProperty("os.name", "n/a") + ")";
-			String statJavaVersion = System.getProperty("java.version", "n/a") + " (" + System.getProperty("java.vendor", "n/a") + ")";
-			String statDomino = m_session.getNotesVersion();
-
-			urlParameters.append("&os=" + RESTClient.encodeValue(statOS));
-			urlParameters.append("&java=" + RESTClient.encodeValue(statJavaVersion));
-			urlParameters.append("&domino=" + RESTClient.encodeValue(statDomino));
-			urlParameters.append("&addinVersion=" + m_version);
-
+			data.append(getSystemInfo());
+			
 			// 6. notes.ini, we could get variables using API call
-			urlParameters.append(getNotesINI());
+			data.append(getNotesINI());
 
 			// 7. program documents
-			urlParameters.append("&programs=" + RESTClient.encodeValue(getProgram(database, server)));
+			data.append("&programs=" + RESTClient.encodeValue(getProgram(database, server)));
 
 			// 8. id files on server
 			String idFiles = getIdFiles();
 			if (!idFiles.isEmpty()) {
-				urlParameters.append("&idfiles=" + idFiles);	
+				data.append("&idfiles=" + idFiles);	
 			}
 			
 			// 9. services
 			String services = this.getServices();
 			if (!services.isEmpty()) {
-				urlParameters.append(services);
+				data.append(services);
 			}
 
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
-			urlParameters.append("&numDuration=" + numDuration);
+			data.append("&numDuration=" + numDuration);
 
-			StringBuffer res = RESTClient.sendPOST(url, urlParameters.toString());
+			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
 		} catch (Exception e) {
 			return false;
 		}
 	}
+	
+	/*
+	 * OS data
+	 */
+	private String getSystemInfo() throws NotesException {
+		StringBuffer buf = new StringBuffer();
 
+		String statOS = System.getProperty("os.version", "n/a") + " (" + System.getProperty("os.name", "n/a") + ")";
+		String statJavaVersion = System.getProperty("java.version", "n/a") + " (" + System.getProperty("java.vendor", "n/a") + ")";
+		String statDomino = m_session.getNotesVersion();
+
+		buf.append("&os=" + RESTClient.encodeValue(statOS));
+		buf.append("&java=" + RESTClient.encodeValue(statJavaVersion));
+		buf.append("&domino=" + RESTClient.encodeValue(statDomino));
+		buf.append("&version=" + m_version);
+		buf.append("&endpoint=" + RESTClient.encodeValue(m_endpoint));
+		
+		return buf.toString();
+	}
+
+	/*
+	 * read database info
+	 */
+	private String getDatabaseInfo(String server) throws NotesException {
+		StringBuffer buf = new StringBuffer();
+		DatabasesInfo dbInfo = new DatabasesInfo(m_session);
+		if (dbInfo.process(server)) {
+			buf.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
+			buf.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
+			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));
+			buf.append("&numApp=" + Long.toString(dbInfo.getApp()));
+			buf.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
+		}
+		return buf.toString();
+	}
+	
 	/*
 	 * read variables from notes.ini
 	 */
