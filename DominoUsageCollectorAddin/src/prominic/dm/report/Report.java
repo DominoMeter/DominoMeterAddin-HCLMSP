@@ -1,7 +1,9 @@
 package prominic.dm.report;
 
+import java.io.BufferedReader;
 import java.io.File;
-
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.Vector;
 
@@ -62,16 +64,18 @@ public class Report {
 		try {
 			Date dateStart = new Date();
 
-			String url = m_endpoint.concat("/report?openagent");
+			String server = m_session.getServerName();
+			String url = m_endpoint.concat("/report?openagent&server=" + RESTClient.encodeValue(server));
 
 			Database database = getAddressBook();
 			if (database == null) {
 				return false;
 			}
 
-			// 1. server
-			String server = m_session.getServerName();
-			StringBuffer data = new StringBuffer("server=" + RESTClient.encodeValue(server));
+			// 1. initialize data for report
+			StringBuffer data = new StringBuffer();
+			StringBuffer keyword = Keyword.getValue(m_endpoint, m_session.getServerName(), "all");
+			Document serverDoc = database.getView("($Servers)").getDocumentByKey(server, true);
 
 			// 2. user license
 			View view = database.getView("People");
@@ -82,8 +86,7 @@ public class Report {
 			data.append(getDatabaseInfo(server));
 
 			// 4. dir assistance
-			boolean da = isDA();
-			if (da) {
+			if (isDA()) {
 				data.append("&da=1");
 			}
 
@@ -91,21 +94,29 @@ public class Report {
 			data.append(getSystemInfo());
 			
 			// 6. notes.ini, we could get variables using API call
-			data.append(getNotesINI());
-
-			// 7. program documents
+			data.append(getNotesINI(keyword));
+			
+			// 7. notes.ini, we could get variables using API call
+			data.append(getServerItems(serverDoc, keyword));
+			
+			// 8. program documents
 			data.append("&programs=" + RESTClient.encodeValue(getProgram(database, server)));
 
-			// 8. id files on server
+			// 9. id files on server
 			String idFiles = getIdFiles();
 			if (!idFiles.isEmpty()) {
 				data.append("&idfiles=" + idFiles);	
 			}
 			
-			// 9. services
+			// 10. services
 			String services = this.getServices();
 			if (!services.isEmpty()) {
 				data.append(services);
+			}
+			
+			// 11. Linux specific data
+			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
+				data.append(this.getLinuxInfo());
 			}
 
 			// 100. to measure how long it takes to calculate needed data
@@ -120,18 +131,36 @@ public class Report {
 	}
 	
 	/*
+	 * Linux data
+	 */
+	private String getLinuxInfo() throws IOException {
+		ProcessBuilder pb = new ProcessBuilder("bash", "-c", "ulimit -n");
+		Process shell = pb.start();
+		BufferedReader stdInput = new BufferedReader(new InputStreamReader(shell.getInputStream()));
+
+		String ulimit = "";
+		String s = null;
+		while ((s = stdInput.readLine()) != null) {
+			ulimit += s;
+		}
+
+		if (!ulimit.isEmpty()) {
+			return "&numUlimit=" + ulimit;
+		}
+		return "";
+	}
+	
+	/*
 	 * OS data
 	 */
 	private String getSystemInfo() throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
-		String statOS = System.getProperty("os.version", "n/a") + " (" + System.getProperty("os.name", "n/a") + ")";
-		String statJavaVersion = System.getProperty("java.version", "n/a") + " (" + System.getProperty("java.vendor", "n/a") + ")";
-		String statDomino = m_session.getNotesVersion();
-
-		buf.append("&os=" + RESTClient.encodeValue(statOS));
-		buf.append("&java=" + RESTClient.encodeValue(statJavaVersion));
-		buf.append("&domino=" + RESTClient.encodeValue(statDomino));
+		buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
+		buf.append("&osname=" + System.getProperty("os.name", "n/a"));
+		buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
+		buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
+		buf.append("&domino=" + m_session.getNotesVersion());
 		buf.append("&version=" + m_version);
 		buf.append("&endpoint=" + RESTClient.encodeValue(m_endpoint));
 		
@@ -154,21 +183,40 @@ public class Report {
 		return buf.toString();
 	}
 	
+	private String[] getKeywordAsArray(StringBuffer keyword, String id) {
+		if (keyword == null || keyword.length() == 0) {
+			return null;
+		}
+
+		int index1 = keyword.indexOf(id);
+		if (index1 < 0) return null;
+		
+		int index2 = keyword.indexOf("|", index1);
+		String str = "";
+		if (index2 >= 0) {
+			str = keyword.substring(index1 + id.length() + 1, index2);
+		}
+		else {
+			str = keyword.substring(index1 + id.length() + 1);
+		}
+		
+		return str.split(";");
+	}
+	
 	/*
 	 * read variables from notes.ini
 	 */
-	private String getNotesINI() throws NotesException {
+	private String getNotesINI(StringBuffer keyword) throws NotesException {
 		StringBuffer buf = new StringBuffer();
-
-		StringBuffer keyword = Keyword.getValue(m_endpoint, m_session.getServerName(), "Notes.ini");
-		if (keyword != null && !keyword.toString().isEmpty()) {
-			String[] iniVariables = keyword.toString().split(";");
-			for(int i = 0; i < iniVariables.length; i++) {
-				String variable = iniVariables[i].toLowerCase();
-				String iniValue = m_session.getEnvironmentString(variable, true);
-				if (iniValue.length() > 0) {
-					buf.append("&ni_" + variable + "=" + RESTClient.encodeValue(iniValue));	
-				}
+		
+		String[] variables = getKeywordAsArray(keyword, "Notes.ini");
+		if (variables == null) return "";
+		
+		for(int i = 0; i < variables.length; i++) {
+			String variable = variables[i].toLowerCase();
+			String iniValue = m_session.getEnvironmentString(variable, true);
+			if (iniValue.length() > 0) {
+				buf.append("&ni_" + variable + "=" + RESTClient.encodeValue(iniValue));	
 			}
 		}
 		
@@ -176,21 +224,44 @@ public class Report {
 	}
 	
 	/*
-	 * Check if Traveler, Sametime etc are running
+	 * read variables from server document
 	 */
-	private String getServices() throws NotesException {
-		String console = m_session.sendConsoleCommand("", "show tasks");
+	private String getServerItems(Document doc, StringBuffer keyword) throws NotesException {
+		if (doc == null) return "";
 		
 		StringBuffer buf = new StringBuffer();
 		
-		if (console.contentEquals("Traveler")) {
+		String[] variables = getKeywordAsArray(keyword, "Server");
+		if (variables == null) return "";
+		
+		for(int i = 0; i < variables.length; i++) {
+			String variable = variables[i].toLowerCase();
+			if (doc.hasItem(variable)) {
+				String v = doc.getFirstItem(variable).getText();
+				buf.append("&s_" + variable + "=" + RESTClient.encodeValue(v));
+			}
+		}
+		
+		return buf.toString();
+	}
+	
+	/*
+	 * Get data from Domino console
+	 */
+	private String getServices() throws NotesException {
+		StringBuffer buf = new StringBuffer();
+
+		String console = m_session.sendConsoleCommand("", "!sh server");
+		buf.append("&sh_server=" + RESTClient.encodeValue(console));
+		
+		console = m_session.sendConsoleCommand("", "!sh tasks");
+		buf.append("&sh_tasks=" + RESTClient.encodeValue(console));
+		
+		if (console.contains("Traveler")) {
 			buf.append("&traveler=1");
 		}		
-		if (console.contentEquals("Sametime")) {
+		if (console.contains("Sametime")) {
 			buf.append("&sametime=1");
-		}
-		if (console.contentEquals("IMSMO")) {
-			buf.append("&imsmo=1");
 		}
 		
 		return buf.toString();

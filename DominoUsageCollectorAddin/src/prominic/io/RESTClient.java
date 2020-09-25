@@ -7,47 +7,54 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import javax.net.ssl.HttpsURLConnection;
 
 public class RESTClient {
-	private static final String USER_AGENT = "Mozilla/5.0";
+	private static final String USER_AGENT = "DominoMeter";
 	private static final String ACCESS_TOKEN = "f21f20afae6b4d99c1258551002002fa";
-	
+
 	public static StringBuffer sendPOST(String endpoint, String data) throws IOException {
-		URL url = new URL(endpoint);
-		HttpURLConnection con = (HttpURLConnection) url.openConnection();
+		HttpURLConnection con = open(endpoint);
 		con.setDoOutput(true);
 		con.setRequestMethod("POST");
-		con.setRequestProperty("User-Agent", USER_AGENT);
 		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		con.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
-
 		con.getOutputStream().write(data.getBytes(), 0, data.length());;
 
-		int responseCode = con.getResponseCode();
-		if (responseCode == HttpURLConnection.HTTP_OK) {
-			return getResponse(con);
-		}
-		else {
-			throw new IOException("POST failed: " + endpoint);
-		}
+		return response(con);
 	}
 
 	public static StringBuffer sendGET(String endpoint) throws IOException {
-		URL url = new URL(endpoint);
-		HttpURLConnection con = (HttpURLConnection) url.openConnection();
+		HttpURLConnection con = open(endpoint);
 		con.setRequestMethod("GET");
+		return response(con);
+	}
+
+	private static HttpURLConnection open(String endpoint) throws IOException {
+		URL url = new URL(endpoint);
+
+		HttpURLConnection con = null;
+		String protocol = url.getProtocol();
+		if (protocol.equals("https"))
+			con = (HttpsURLConnection) url.openConnection();
+		else if(protocol.equals("http"))
+			con = (HttpURLConnection) url.openConnection();
+
+		if (con == null) {
+			throw new IllegalArgumentException("Unexpected protocol: " + protocol);
+		}
+		
 		con.setRequestProperty("User-Agent", USER_AGENT);
 		con.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
-		
-		int responseCode = con.getResponseCode();
-		if (responseCode == HttpURLConnection.HTTP_OK) {
-			return getResponse(con);
-		} else {
-			throw new IOException("GET failed: " + endpoint);
-		}
+
+		return con;
 	}
-	
-	static StringBuffer getResponse(HttpURLConnection con) throws IOException {
+
+	private static StringBuffer response(HttpURLConnection con) throws IOException {
+		int responseCode = con.getResponseCode();
+		if (responseCode != HttpURLConnection.HTTP_OK) {
+			throw new IOException("GET failed: " + con.getURL());
+		}
+
 		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
 		StringBuffer response = new StringBuffer();
 		String inputLine;
@@ -55,9 +62,9 @@ public class RESTClient {
 		while ((inputLine = in.readLine()) != null) {
 			response.append(inputLine);
 		}
-		
+
 		in.close();
-		
+
 		return response;
 	}
 

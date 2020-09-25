@@ -11,4 +11,8 @@ public class Keyword {
 			return null;
 		}
 	}
+	
+	public static StringBuffer getAll(String endpoint, String server) {
+		return getValue(endpoint, server, "all");
+	}
 }

@@ -1,16 +1,19 @@
+import java.io.IOException;
 import java.util.Calendar;
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.notes.addins.JavaServerAddin;
 import prominic.dm.api.Log;
+import prominic.dm.api.Ping;
 import prominic.dm.report.Report;
 import prominic.dm.update.ProgramConfig;
 import prominic.dm.update.UpdateRobot;
+import prominic.io.RESTClient;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "19";
-	final String			JADDIN_DATE				= "2020-09-23 16:58 CET";
+	final String			JADDIN_VERSION			= "28";
+	final String			JADDIN_DATE				= "2020-09-25 15:20 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables
@@ -58,10 +61,9 @@ public class DominoMeter extends JavaServerAddin {
 			return;
 		}
 
-		// 4. go
 		runLoop();
 	}
-
+	
 	private void runLoop() {
 		// Set the Java thread name to the class name (default would be "Thread-n")		
 		this.setName(JADDIN_NAME);
@@ -72,7 +74,29 @@ public class DominoMeter extends JavaServerAddin {
 		try {
 			Session session = NotesFactory.createSession();
 			String endpoint = args[0];
+			
+			// check if connection could be established
+			if (!Ping.isLive(endpoint, session.getServerName())) {
+				this.logMessage("Failed to establish connection with: " + args[0]);
+				return;
+			}
+			this.logMessage("Connection has been established: " + args[0]);
+			
+			// 5. test connection with https
+			try {
+				String url = "https://postman-echo.com/get?foo1=bar1&foo2=bar2&server=" + RESTClient.encodeValue(session.getServerName());
+				this.logMessage("GET: " + url);
+				StringBuffer buf = RESTClient.sendGET(url);
+				this.logMessage(buf.toString());
 
+				url = "https://postman-echo.com/post?server=" + RESTClient.encodeValue(session.getServerName());
+				this.logMessage("POST: " + url + ". Data: " + "param1=hello&param2=200");
+				buf = RESTClient.sendPOST(url, "param1=hello&param2=200");
+				this.logMessage(buf.toString());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
 			logMessage(" version " + this.JADDIN_VERSION);
 			logMessage(" endpoint: " + this.args[0]);
 			logMessage(" timer: " + JADDIN_TIMER);
@@ -100,9 +124,6 @@ public class DominoMeter extends JavaServerAddin {
 						pc.setupRunOnce(newAddinName, true);
 						pc.setupServerStartUp(newAddinName);							
 						this.stopAddin();
-					}
-					else {
-						Log.sendError(session, endpoint, "Update failed", "Addin could not udpate itself, please check what happened and update version manually if needed.");
 					}
 				}
 
@@ -153,5 +174,4 @@ public class DominoMeter extends JavaServerAddin {
 		if (this.dominoTaskID == 0) return;
 		AddInSetStatusLine(this.dominoTaskID, text);
 	}
-
 }
