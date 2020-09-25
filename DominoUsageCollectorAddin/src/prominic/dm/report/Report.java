@@ -75,7 +75,7 @@ public class Report {
 			// 1. initialize data for report
 			StringBuffer data = new StringBuffer();
 			StringBuffer keyword = Keyword.getValue(m_endpoint, m_session.getServerName(), "all");
-			Document serverDoc = database.getView("($Servers)").getDocumentByKey(server, true);
+			Document serverDoc = database.getView("($ServersLookup)").getDocumentByKey(server, true);
 
 			// 2. user license
 			View view = database.getView("People");
@@ -194,10 +194,10 @@ public class Report {
 		int index2 = keyword.indexOf("|", index1);
 		String str = "";
 		if (index2 >= 0) {
-			str = keyword.substring(index1 + id.length() + 1, index2);
+			str = keyword.substring(index1 + id.length(), index2);
 		}
 		else {
-			str = keyword.substring(index1 + id.length() + 1);
+			str = keyword.substring(index1 + id.length());
 		}
 		
 		return str.split(";");
@@ -209,7 +209,7 @@ public class Report {
 	private String getNotesINI(StringBuffer keyword) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 		
-		String[] variables = getKeywordAsArray(keyword, "Notes.ini");
+		String[] variables = getKeywordAsArray(keyword, "Notes.ini=");
 		if (variables == null) return "";
 		
 		for(int i = 0; i < variables.length; i++) {
@@ -230,10 +230,8 @@ public class Report {
 		if (doc == null) return "";
 		
 		StringBuffer buf = new StringBuffer();
-		
-		String[] variables = getKeywordAsArray(keyword, "Server");
+		String[] variables = getKeywordAsArray(keyword, "Server=");
 		if (variables == null) return "";
-		
 		for(int i = 0; i < variables.length; i++) {
 			String variable = variables[i].toLowerCase();
 			if (doc.hasItem(variable)) {
@@ -251,17 +249,44 @@ public class Report {
 	private String getServices() throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
+		// SHOW SERVER
 		String console = m_session.sendConsoleCommand("", "!sh server");
 		buf.append("&sh_server=" + RESTClient.encodeValue(console));
+
+		int index1 = buf.indexOf("DAOS");
+		if (index1 >= 0) {
+			index1 += "DAOS".length();
+			int index2 = buf.indexOf("Not", index1);
+			int index3 = buf.indexOf("Enabled", index1);	
+			String flag = index2 < index3 ? "0" : "1";
+			buf.append("&daos=" + flag);
+		}
 		
+		index1 = buf.indexOf("Transactional");
+		if (index1 >= 0) {
+			index1 += "Transactional".length();
+			int index2 = buf.indexOf("Not", index1);
+			int index3 = buf.indexOf("Enabled", index1);	
+			String flag = index2 < index3 ? "0" : "1";
+			buf.append("&transactional_logging=" + flag);
+		}
+		
+		// SHOW TASKS
 		console = m_session.sendConsoleCommand("", "!sh tasks");
-		buf.append("&sh_tasks=" + RESTClient.encodeValue(console));
-		
+		buf.append("&sh_tasks=" + RESTClient.encodeValue(console));		
 		if (console.contains("Traveler")) {
 			buf.append("&traveler=1");
 		}		
 		if (console.contains("Sametime")) {
 			buf.append("&sametime=1");
+		}
+		
+		// SHOW HEARTBEAT
+		console = m_session.sendConsoleCommand("", "!sh heartbeat");
+		buf.append("&sh_heartbeat=" + RESTClient.encodeValue(console));		
+		if (console.contains("seconds")) {
+			String elapsed_time = console.substring(console.lastIndexOf(":") + 2, console.lastIndexOf("seconds") - 1);
+			buf.append("&numElapsed_time=" + elapsed_time);
 		}
 		
 		return buf.toString();

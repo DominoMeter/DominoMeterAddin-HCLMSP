@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.util.Calendar;
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
@@ -8,12 +7,11 @@ import prominic.dm.api.Ping;
 import prominic.dm.report.Report;
 import prominic.dm.update.ProgramConfig;
 import prominic.dm.update.UpdateRobot;
-import prominic.io.RESTClient;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "28";
-	final String			JADDIN_DATE				= "2020-09-25 15:20 CET";
+	final String			JADDIN_VERSION			= "32";
+	final String			JADDIN_DATE				= "2020-09-25 23:50 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables
@@ -41,7 +39,6 @@ public class DominoMeter extends JavaServerAddin {
 			logMessage("Unable to detect the Java Virtual Machine version number: " + e.getMessage());
 			return;
 		}
-
 		// 2. show help command
 		if (this.args == null || this.args.length < 1 || "-h".equalsIgnoreCase(this.args[0]) || "help".equalsIgnoreCase(this.args[0])) {
 			int year = Calendar.getInstance().get(Calendar.YEAR);
@@ -60,7 +57,6 @@ public class DominoMeter extends JavaServerAddin {
 			logMessage("Version: " + JADDIN_VERSION + ". Build date: " + JADDIN_DATE);
 			return;
 		}
-
 		runLoop();
 	}
 	
@@ -70,33 +66,17 @@ public class DominoMeter extends JavaServerAddin {
 
 		// Create the status line showed in 'Show Task' console command
 		this.dominoTaskID = AddInCreateStatusLine(this.JADDIN_NAME + " loaded");
-
 		try {
 			Session session = NotesFactory.createSession();
 			String endpoint = args[0];
-			
+
 			// check if connection could be established
 			if (!Ping.isLive(endpoint, session.getServerName())) {
 				this.logMessage("Failed to establish connection with: " + args[0]);
 				return;
 			}
 			this.logMessage("Connection has been established: " + args[0]);
-			
-			// 5. test connection with https
-			try {
-				String url = "https://postman-echo.com/get?foo1=bar1&foo2=bar2&server=" + RESTClient.encodeValue(session.getServerName());
-				this.logMessage("GET: " + url);
-				StringBuffer buf = RESTClient.sendGET(url);
-				this.logMessage(buf.toString());
 
-				url = "https://postman-echo.com/post?server=" + RESTClient.encodeValue(session.getServerName());
-				this.logMessage("POST: " + url + ". Data: " + "param1=hello&param2=200");
-				buf = RESTClient.sendPOST(url, "param1=hello&param2=200");
-				this.logMessage(buf.toString());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
 			logMessage(" version " + this.JADDIN_VERSION);
 			logMessage(" endpoint: " + this.args[0]);
 			logMessage(" timer: " + JADDIN_TIMER);
