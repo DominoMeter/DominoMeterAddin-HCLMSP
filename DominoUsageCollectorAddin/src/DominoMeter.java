@@ -11,8 +11,8 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "35";
-	final String			JADDIN_DATE				= "2020-09-27 23:50 CET";
+	final String			JADDIN_VERSION			= "39";
+	final String			JADDIN_DATE				= "2020-09-28 23:55 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables

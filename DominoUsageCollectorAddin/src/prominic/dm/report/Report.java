@@ -117,19 +117,67 @@ public class Report {
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(this.getLinuxInfo());
 			}
+			
+			// 12. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
+			String nsd = getNSD();
+			if (!nsd.isEmpty()) {
+				data.append(nsd);
+			}
 
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
 
 			serverDoc.recycle();
-			database.recycle();
 			
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
 		} catch (Exception e) {
 			return false;
 		}
+	}
+
+	/*
+	 * Get N latest NSD file names
+	 */
+	private String getNSD() throws NotesException {
+		String notesDataDir = m_session.getEnvironmentString("Directory", true);
+		File dir = new File(notesDataDir + File.separator + "IBM_TECHNICAL_SUPPORT");
+		if (!dir.isDirectory()) return "";
+		File files[] = SearchFiles.startsWith(dir, "nsd");
+		if (files.length == 0) return "";
+
+		// get 10 recent nsd
+		StringBuffer recentNSD = new StringBuffer();
+		files = SearchFiles.sortFilesByNewest(files);
+		for (int i = 0; i < files.length && i < 10; i++) {
+			File file = files[i];
+			if (i > 0) {
+				recentNSD.append(";");
+			}
+			recentNSD.append(file.getName());
+		}
+		
+		Date date = new Date();
+		long time = date.getTime();
+		int nsd1Day = 0;
+		int nsd7Day = 0;
+		for (int i = 0; i < files.length; i++) {
+			File file = files[i];
+
+			long diff = time - file.lastModified();
+			if (diff <= 86400000) {
+				nsd1Day++;
+			}
+			if (diff <= 604800000) {
+				nsd7Day++;
+			}
+			else {
+				i = files.length;	// since files are sorted we only need to read to first 'false'
+			}
+		}
+		
+		return "&nsdName10Days="+recentNSD.toString() + "&numNsdCount1Day=" + Integer.toString(nsd1Day) + "&numNsdCount7Day=" + Integer.toString(nsd7Day);
 	}
 
 	/*
@@ -300,7 +348,8 @@ public class Report {
 	 */
 	private String getIdFiles() throws Exception {
 		String notesDataDir = m_session.getEnvironmentString("Directory", true);
-		File[] idFiles = SearchFiles.endsWith(notesDataDir, ".id");
+		File dir = new File(notesDataDir);
+		File[] idFiles = SearchFiles.endsWith(dir, ".id");
 		if (idFiles.length == 0) return "";
 
 		StringBuffer buf = new StringBuffer();
