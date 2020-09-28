@@ -18,7 +18,7 @@ public class RESTClient {
 		con.setDoOutput(true);
 		con.setRequestMethod("POST");
 		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		con.getOutputStream().write(data.getBytes(), 0, data.length());;
+		con.getOutputStream().write(data.getBytes(), 0, data.length());
 
 		return response(con);
 	}
@@ -34,11 +34,13 @@ public class RESTClient {
 
 		HttpURLConnection con = null;
 		String protocol = url.getProtocol();
-		if (protocol.equals("https"))
+		if (protocol.equals("https")) {
 			con = (HttpsURLConnection) url.openConnection();
-		else if(protocol.equals("http"))
+		}
+		else if(protocol.equals("http")) {
 			con = (HttpURLConnection) url.openConnection();
-
+		}
+		
 		if (con == null) {
 			throw new IllegalArgumentException("Unexpected protocol: " + protocol);
 		}
@@ -52,6 +54,7 @@ public class RESTClient {
 	private static StringBuffer response(HttpURLConnection con) throws IOException {
 		int responseCode = con.getResponseCode();
 		if (responseCode != HttpURLConnection.HTTP_OK) {
+			con.disconnect();
 			throw new IOException("GET failed: " + con.getURL());
 		}
 
@@ -64,7 +67,8 @@ public class RESTClient {
 		}
 
 		in.close();
-
+		con.disconnect();
+		
 		return response;
 	}
 

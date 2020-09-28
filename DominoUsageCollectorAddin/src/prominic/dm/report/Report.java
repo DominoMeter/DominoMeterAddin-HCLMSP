@@ -1,6 +1,7 @@
 package prominic.dm.report;
 
 import java.io.BufferedReader;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -42,14 +43,13 @@ public class Report {
 	/*
 	 * Detects if DA is configured
 	 */
-	private boolean isDA() throws NotesException {
+	private boolean isDA(Document serverDoc) throws NotesException {
 		// Names=Names1 [, Names2 [, Names3]]
 		String names = m_session.getEnvironmentString("Names", true);
 		if (names.length() > 5) {
 			return true;
 		}
 
-		Document serverDoc = m_database.getView("($ServersLookup)").getDocumentByKey(m_session.getServerName(), true);
 		if (serverDoc != null) {
 			String da = serverDoc.getItemValueString("MasterAddressBook");
 			if (!da.isEmpty()) {
@@ -78,27 +78,26 @@ public class Report {
 			Document serverDoc = database.getView("($ServersLookup)").getDocumentByKey(server, true);
 
 			// 2. user license
-			View view = database.getView("People");
-			long count = view.getAllEntries().getCount();
+			long count = database.getView("People").getAllEntries().getCount();
 			data.append("&usercount=" + Long.toString(count));
 
 			// 3. databases 
 			data.append(getDatabaseInfo(server));
 
 			// 4. dir assistance
-			if (isDA()) {
+			if (isDA(serverDoc)) {
 				data.append("&da=1");
 			}
 
 			// 5. system data
 			data.append(getSystemInfo());
-			
+
 			// 6. notes.ini, we could get variables using API call
 			data.append(getNotesINI(keyword));
-			
+
 			// 7. notes.ini, we could get variables using API call
 			data.append(getServerItems(serverDoc, keyword));
-			
+
 			// 8. program documents
 			data.append("&programs=" + RESTClient.encodeValue(getProgram(database, server)));
 
@@ -107,13 +106,13 @@ public class Report {
 			if (!idFiles.isEmpty()) {
 				data.append("&idfiles=" + idFiles);	
 			}
-			
+
 			// 10. services
 			String services = this.getServices();
 			if (!services.isEmpty()) {
 				data.append(services);
 			}
-			
+
 			// 11. Linux specific data
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(this.getLinuxInfo());
@@ -123,13 +122,16 @@ public class Report {
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
 
+			serverDoc.recycle();
+			database.recycle();
+			
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
 		} catch (Exception e) {
 			return false;
 		}
 	}
-	
+
 	/*
 	 * Linux data
 	 */
@@ -149,7 +151,7 @@ public class Report {
 		}
 		return "";
 	}
-	
+
 	/*
 	 * OS data
 	 */
@@ -163,7 +165,7 @@ public class Report {
 		buf.append("&domino=" + m_session.getNotesVersion());
 		buf.append("&version=" + m_version);
 		buf.append("&endpoint=" + RESTClient.encodeValue(m_endpoint));
-		
+
 		return buf.toString();
 	}
 
@@ -182,7 +184,7 @@ public class Report {
 		}
 		return buf.toString();
 	}
-	
+
 	private String[] getKeywordAsArray(StringBuffer keyword, String id) {
 		if (keyword == null || keyword.length() == 0) {
 			return null;
@@ -190,7 +192,7 @@ public class Report {
 
 		int index1 = keyword.indexOf(id);
 		if (index1 < 0) return null;
-		
+
 		int index2 = keyword.indexOf("|", index1);
 		String str = "";
 		if (index2 >= 0) {
@@ -199,19 +201,19 @@ public class Report {
 		else {
 			str = keyword.substring(index1 + id.length());
 		}
-		
+
 		return str.split(";");
 	}
-	
+
 	/*
 	 * read variables from notes.ini
 	 */
 	private String getNotesINI(StringBuffer keyword) throws NotesException {
 		StringBuffer buf = new StringBuffer();
-		
+
 		String[] variables = getKeywordAsArray(keyword, "Notes.ini=");
 		if (variables == null) return "";
-		
+
 		for(int i = 0; i < variables.length; i++) {
 			String variable = variables[i].toLowerCase();
 			String iniValue = m_session.getEnvironmentString(variable, true);
@@ -219,16 +221,16 @@ public class Report {
 				buf.append("&ni_" + variable + "=" + RESTClient.encodeValue(iniValue));	
 			}
 		}
-		
+
 		return buf.toString();
 	}
-	
+
 	/*
 	 * read variables from server document
 	 */
 	private String getServerItems(Document doc, StringBuffer keyword) throws NotesException {
 		if (doc == null) return "";
-		
+
 		StringBuffer buf = new StringBuffer();
 		String[] variables = getKeywordAsArray(keyword, "Server=");
 		if (variables == null) return "";
@@ -239,10 +241,10 @@ public class Report {
 				buf.append("&s_" + variable + "=" + RESTClient.encodeValue(v));
 			}
 		}
-		
+
 		return buf.toString();
 	}
-	
+
 	/*
 	 * Get data from Domino console
 	 */
@@ -261,7 +263,7 @@ public class Report {
 			String flag = index2 < index3 ? "0" : "1";
 			buf.append("&daos=" + flag);
 		}
-		
+
 		index1 = buf.indexOf("Transactional");
 		if (index1 >= 0) {
 			index1 += "Transactional".length();
@@ -270,7 +272,7 @@ public class Report {
 			String flag = index2 < index3 ? "0" : "1";
 			buf.append("&transactional_logging=" + flag);
 		}
-		
+
 		// SHOW TASKS
 		console = m_session.sendConsoleCommand("", "!sh tasks");
 		buf.append("&sh_tasks=" + RESTClient.encodeValue(console));		
@@ -280,15 +282,15 @@ public class Report {
 		if (console.contains("Sametime")) {
 			buf.append("&sametime=1");
 		}
-		
+
 		// SHOW HEARTBEAT
 		console = m_session.sendConsoleCommand("", "!sh heartbeat");
 		buf.append("&sh_heartbeat=" + RESTClient.encodeValue(console));		
 		if (console.contains("seconds")) {
 			String elapsed_time = console.substring(console.lastIndexOf(":") + 2, console.lastIndexOf("seconds") - 1);
-			buf.append("&numElapsed_time=" + elapsed_time);
+			buf.append("&numElapsedTime=" + elapsed_time);
 		}
-		
+
 		return buf.toString();
 	}
 
@@ -305,7 +307,7 @@ public class Report {
 		for(int i = 0; i < idFiles.length; i++) {
 			if(i > 0) buf.append("~");
 			File file = idFiles[i];
-			
+
 			buf.append(file.getName());
 			buf.append("|");
 
@@ -337,7 +339,10 @@ public class Report {
 
 			program = programs.getNextEntry();
 		}
-
+		
+		programs.recycle();
+		viewPrograms.recycle();
+		
 		return buf.toString();
 	}
 }

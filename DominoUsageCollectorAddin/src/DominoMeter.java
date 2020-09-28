@@ -1,4 +1,5 @@
 import java.util.Calendar;
+
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.notes.addins.JavaServerAddin;
@@ -10,8 +11,8 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "32";
-	final String			JADDIN_DATE				= "2020-09-25 23:50 CET";
+	final String			JADDIN_VERSION			= "35";
+	final String			JADDIN_DATE				= "2020-09-27 23:50 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables
@@ -120,6 +121,7 @@ public class DominoMeter extends JavaServerAddin {
 				curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			}
 
+			session.recycle();
 			logMessage("UNLOADED (OK) " + version);
 		} catch(Exception e) {
 			e.printStackTrace();

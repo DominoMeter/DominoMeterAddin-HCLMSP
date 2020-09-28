@@ -65,6 +65,9 @@ public class DatabasesInfo {
 			doc = replicaId.getNextDocument(doc);
 		}
 
+		replicaId.recycle();
+		catalogDb.recycle();
+		
 		return true;
 	}
 
