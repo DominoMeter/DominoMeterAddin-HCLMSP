@@ -1,13 +1,14 @@
 package prominic.dm.update;
 
 import java.util.Date;
+
+import lotus.domino.Session;
 import lotus.domino.Database;
-import lotus.domino.Document;
+import lotus.domino.View;
 import lotus.domino.DocumentCollection;
+import lotus.domino.Document;
 import lotus.domino.DateTime;
 import lotus.domino.NotesException;
-import lotus.domino.Session;
-import lotus.domino.View;
 
 public class ProgramConfig {
 	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoMeter (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
@@ -82,6 +83,9 @@ public class ProgramConfig {
 		if (toSave) {
 			program.save();
 		}
+		
+		col.recycle();
+		view.recycle();
 
 		return program;
 	}
@@ -153,13 +157,18 @@ public class ProgramConfig {
 			dt.adjustMinute(adjustMinutes);
 			program.replaceItemValue("Schedule", dt);
 			log("program document (run at specific time) - updated. Schedule: " + dt.getLocalTime());
+
+			dt.recycle();
 			toSave = true;
 		}
 		
 		if (toSave) {
 			program.save();
 		}
-
+		
+		col.recycle();
+		view.recycle();
+		
 		return program;
 	}
 

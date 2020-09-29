@@ -2,11 +2,11 @@ package prominic.dm.report;
 
 import java.util.HashMap;
 
+import lotus.domino.Session;
 import lotus.domino.Database;
+import lotus.domino.View;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
-import lotus.domino.Session;
-import lotus.domino.View;
 
 public class DatabasesInfo {
 	private Session m_session;

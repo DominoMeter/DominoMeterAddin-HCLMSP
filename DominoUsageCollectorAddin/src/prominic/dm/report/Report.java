@@ -8,13 +8,14 @@ import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.Vector;
 
+import lotus.domino.Session;
 import lotus.domino.Database;
+import lotus.domino.View;
+import lotus.domino.ViewEntryCollection;
+import lotus.domino.ViewEntry;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
-import lotus.domino.Session;
-import lotus.domino.View;
-import lotus.domino.ViewEntry;
-import lotus.domino.ViewEntryCollection;
+
 import prominic.dm.api.Keyword;
 import prominic.io.RESTClient;
 import prominic.util.MD5Checksum;

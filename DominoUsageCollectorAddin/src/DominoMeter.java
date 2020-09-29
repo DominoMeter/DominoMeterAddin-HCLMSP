@@ -81,7 +81,7 @@ public class DominoMeter extends JavaServerAddin {
 			logMessage(" version " + this.JADDIN_VERSION);
 			logMessage(" endpoint: " + this.args[0]);
 			logMessage(" timer: " + JADDIN_TIMER);
-
+			
 			ProgramConfig pc = new ProgramConfig(session, endpoint);
 			pc.setupServerStartUp(JADDIN_NAME);			// create server-startup run program
 			pc.setupRunOnce(JADDIN_NAME, false);		// disable one-time run program
@@ -105,7 +105,7 @@ public class DominoMeter extends JavaServerAddin {
 						int pos = newAddinFile.indexOf("-");
 						String newAddinName = newAddinFile.substring(0, pos);
 						pc.setupRunOnce(newAddinName, true);
-						pc.setupServerStartUp(newAddinName);							
+						pc.setupServerStartUp(newAddinName);				
 						this.stopAddin();
 					}
 				}
@@ -123,8 +123,10 @@ public class DominoMeter extends JavaServerAddin {
 				curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			}
 
-			session.recycle();
+			Log.sendLog(session, endpoint, "UNLOADED (OK) " + version, "");
 			logMessage("UNLOADED (OK) " + version);
+			
+			session.recycle();
 		} catch(Exception e) {
 			e.printStackTrace();
 		}

@@ -1,14 +1,16 @@
 package prominic.dm.update;
 
 import java.io.File;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import lotus.domino.NotesException;
 import lotus.domino.Session;
+import lotus.domino.NotesException;
+
 import prominic.dm.api.Log;
 import prominic.io.RESTClient;
 import prominic.util.SearchFiles;
