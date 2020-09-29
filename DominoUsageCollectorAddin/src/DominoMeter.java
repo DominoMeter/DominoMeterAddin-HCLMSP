@@ -11,8 +11,8 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "39";
-	final String			JADDIN_DATE				= "2020-09-28 23:55 CET";
+	final String			JADDIN_VERSION			= "41";
+	final String			JADDIN_DATE				= "2020-09-29 10:55 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables
@@ -87,12 +87,14 @@ public class DominoMeter extends JavaServerAddin {
 			pc.setupRunOnce(JADDIN_NAME, false);		// disable one-time run program
 
 			String version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
+			
 			Report dc = new Report(session, endpoint, version);
 
 			int curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			int hourEvent = curHour - 1;
 
 			UpdateRobot ur = new UpdateRobot();
+			
 			while (this.addInRunning()) {
 				JavaServerAddin.sleep(JADDIN_TIMER);
 
@@ -107,8 +109,8 @@ public class DominoMeter extends JavaServerAddin {
 						this.stopAddin();
 					}
 				}
-
-				if (hourEvent != curHour) {
+				
+				if (hourEvent != curHour && curHour % 2 == 0) {
 					if (this.addInRunning() && !dc.send()) {
 						Log.sendError(session, endpoint, "Report failed", "Detailed report has been not created, please check what happened");
 					}

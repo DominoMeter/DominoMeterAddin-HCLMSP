@@ -133,6 +133,7 @@ public class Report {
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
 		} catch (Exception e) {
+			e.printStackTrace();
 			return false;
 		}
 	}

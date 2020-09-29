@@ -9,7 +9,9 @@ import java.net.URL;
 
 import lotus.domino.NotesException;
 import lotus.domino.Session;
+import prominic.dm.api.Log;
 import prominic.io.RESTClient;
+import prominic.util.SearchFiles;
 import prominic.util.StringUtils;
 
 public class UpdateRobot {
@@ -121,6 +123,28 @@ public class UpdateRobot {
 		con.disconnect();
 
 		return res;
+	}
+	
+	/*
+	 * Clean out old versions
+	 */
+	public void cleanOldVersions(Session session, String endpoint, String curVersion) {
+		try {
+			String notesDataDir = session.getEnvironmentString("NotesProgram", true);
+			File dir = new File(notesDataDir + File.separator + "DominoMeterAddin");
+			if (!dir.isDirectory()) return;
+			File files[] = SearchFiles.startsWith(dir, "DominoMeter-");
+			if (files.length == 0) return;
+			for (int i = 0; i < files.length; i++) {
+				File file = files[i];
+				if (!file.getName().equalsIgnoreCase(curVersion)) {
+					file.delete();
+					Log.sendLog(session, endpoint, file.getName() + " - cleaned out", "");
+				}
+			}
+		} catch (NotesException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void log(Object msg) {
