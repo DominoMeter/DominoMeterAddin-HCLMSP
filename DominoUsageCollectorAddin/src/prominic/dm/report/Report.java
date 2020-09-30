@@ -93,7 +93,7 @@ public class Report {
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
 		} catch (Exception e) {
-			Log.sendLog(session, endpoint, "ERROR. Addin stopped to work", e.getLocalizedMessage());	
+			Log.sendError(session, endpoint, "report failed", e.getLocalizedMessage());	
 			e.printStackTrace();
 			return false;
 		}
@@ -165,7 +165,7 @@ public class Report {
 	/*
 	 * OS data
 	 */
-	private String getSystemInfo(Session session, String version, String endpoint) throws NotesException {
+	private String getSystemInfo(Session session, String endpoint, String version) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
 		buf.append("&osversion=" + System.getProperty("os.version", "n/a"));

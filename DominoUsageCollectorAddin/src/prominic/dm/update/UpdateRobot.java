@@ -100,8 +100,7 @@ public class UpdateRobot {
 	 */
 	public void cleanOldVersions(Session session, String endpoint, String curVersion) {
 		try {
-			String notesDataDir = session.getEnvironmentString("NotesProgram", true);
-			File dir = new File(notesDataDir + File.separator + "DominoMeterAddin");
+			File dir = new File("DominoMeterAddin");
 			if (!dir.isDirectory()) return;
 
 			File files[] = FileUtils.startsWith(dir, "DominoMeter");
@@ -109,7 +108,7 @@ public class UpdateRobot {
 
 			int count = 0;
 			StringBuffer deletedFiles = new StringBuffer();
-			files = FileUtils.sortFilesByModified(files, true);
+			files = FileUtils.sortFilesByModified(files, false);
 			for (int i = 5; i < files.length; i++) {
 				File file = files[i];
 				if (!file.getName().equalsIgnoreCase(curVersion)) {
@@ -121,9 +120,12 @@ public class UpdateRobot {
 					count++;
 				}
 			}
-			Log.sendLog(session, endpoint, "Removed outdates versions " + Integer.toString(count), "List of deleted files: " + deletedFiles.toString());
 			
-		} catch (NotesException e) {
+			if (count>0)
+				Log.sendLog(session, endpoint, "removed outdates versions (" + Integer.toString(count) + ")", deletedFiles.toString());
+			
+		} catch (Exception e) {
+			Log.sendError(session, endpoint, "error during deleting files", e.getLocalizedMessage());
 			e.printStackTrace();
 		}
 	}
