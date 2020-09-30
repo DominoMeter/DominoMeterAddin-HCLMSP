@@ -1,7 +1,6 @@
 package prominic.dm.report;
 
 import java.io.BufferedReader;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -17,65 +16,25 @@ import lotus.domino.Document;
 import lotus.domino.NotesException;
 
 import prominic.dm.api.Keyword;
+import prominic.dm.api.Log;
 import prominic.io.RESTClient;
 import prominic.util.MD5Checksum;
-import prominic.util.SearchFiles;
+import prominic.util.FileUtils;
 import prominic.util.StringUtils;
 
 public class Report {
-	private Session m_session = null;
-	private Database m_database = null;
-	private String m_endpoint = null;
-	private String m_version = "";
-
-	public Report(Session session, String endpoint, String version) {
-		m_session = session;
-		m_endpoint = endpoint;
-		m_version = version;
-	}
-
-	private Database getAddressBook() throws NotesException {
-		if (m_database == null) {
-			m_database = m_session.getDatabase(m_session.getServerName(), "names.nsf");
-		}
-		return m_database;
-	}
-
-	/*
-	 * Detects if DA is configured
-	 */
-	private boolean isDA(Document serverDoc) throws NotesException {
-		// Names=Names1 [, Names2 [, Names3]]
-		String names = m_session.getEnvironmentString("Names", true);
-		if (names.length() > 5) {
-			return true;
-		}
-
-		if (serverDoc != null) {
-			String da = serverDoc.getItemValueString("MasterAddressBook");
-			if (!da.isEmpty()) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	public boolean send() {
+	public boolean send(Session session, String endpoint, String version) {
 		try {
 			Date dateStart = new Date();
 
-			String server = m_session.getServerName();
-			String url = m_endpoint.concat("/report?openagent&server=" + RESTClient.encodeValue(server));
+			String server = session.getServerName();
+			String url = endpoint.concat("/report?openagent&server=" + RESTClient.encodeValue(server));
 
-			Database database = getAddressBook();
-			if (database == null) {
-				return false;
-			}
+			Database database = session.getDatabase(session.getServerName(), "names.nsf");
 
 			// 1. initialize data for report
 			StringBuffer data = new StringBuffer();
-			StringBuffer keyword = Keyword.getValue(m_endpoint, m_session.getServerName(), "all");
+			StringBuffer keyword = Keyword.getValue(endpoint, session.getServerName(), "all");
 			Document serverDoc = database.getView("($ServersLookup)").getDocumentByKey(server, true);
 
 			// 2. user license
@@ -83,18 +42,18 @@ public class Report {
 			data.append("&usercount=" + Long.toString(count));
 
 			// 3. databases 
-			data.append(getDatabaseInfo(server));
+			data.append(getDatabaseInfo(session, server));
 
 			// 4. dir assistance
-			if (isDA(serverDoc)) {
+			if (isDA(session, serverDoc)) {
 				data.append("&da=1");
 			}
 
 			// 5. system data
-			data.append(getSystemInfo());
+			data.append(getSystemInfo(session, endpoint, version));
 
 			// 6. notes.ini, we could get variables using API call
-			data.append(getNotesINI(keyword));
+			data.append(getNotesINI(session, keyword));
 
 			// 7. notes.ini, we could get variables using API call
 			data.append(getServerItems(serverDoc, keyword));
@@ -103,13 +62,13 @@ public class Report {
 			data.append("&programs=" + RESTClient.encodeValue(getProgram(database, server)));
 
 			// 9. id files on server
-			String idFiles = getIdFiles();
+			String idFiles = getIdFiles(session);
 			if (!idFiles.isEmpty()) {
 				data.append("&idfiles=" + idFiles);	
 			}
 
 			// 10. services
-			String services = this.getServices();
+			String services = this.getServices(session);
 			if (!services.isEmpty()) {
 				data.append(services);
 			}
@@ -120,7 +79,7 @@ public class Report {
 			}
 			
 			// 12. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
-			String nsd = getNSD();
+			String nsd = getNSD(session);
 			if (!nsd.isEmpty()) {
 				data.append(nsd);
 			}
@@ -134,6 +93,7 @@ public class Report {
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
 		} catch (Exception e) {
+			Log.sendLog(session, endpoint, "ERROR. Addin stopped to work", e.getLocalizedMessage());	
 			e.printStackTrace();
 			return false;
 		}
@@ -142,16 +102,16 @@ public class Report {
 	/*
 	 * Get N latest NSD file names
 	 */
-	private String getNSD() throws NotesException {
-		String notesDataDir = m_session.getEnvironmentString("Directory", true);
+	private String getNSD(Session session) throws NotesException {
+		String notesDataDir = session.getEnvironmentString("Directory", true);
 		File dir = new File(notesDataDir + File.separator + "IBM_TECHNICAL_SUPPORT");
 		if (!dir.isDirectory()) return "";
-		File files[] = SearchFiles.startsWith(dir, "nsd");
+		File files[] = FileUtils.startsWith(dir, "nsd");
 		if (files.length == 0) return "";
 
 		// get 10 recent nsd
 		StringBuffer recentNSD = new StringBuffer();
-		files = SearchFiles.sortFilesByNewest(files);
+		files = FileUtils.sortFilesByModified(files, false);
 		for (int i = 0; i < files.length && i < 10; i++) {
 			File file = files[i];
 			if (i > 0) {
@@ -205,16 +165,16 @@ public class Report {
 	/*
 	 * OS data
 	 */
-	private String getSystemInfo() throws NotesException {
+	private String getSystemInfo(Session session, String version, String endpoint) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
 		buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
 		buf.append("&osname=" + System.getProperty("os.name", "n/a"));
 		buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
 		buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
-		buf.append("&domino=" + m_session.getNotesVersion());
-		buf.append("&version=" + m_version);
-		buf.append("&endpoint=" + RESTClient.encodeValue(m_endpoint));
+		buf.append("&domino=" + session.getNotesVersion());
+		buf.append("&version=" + version);
+		buf.append("&endpoint=" + RESTClient.encodeValue(endpoint));
 
 		return buf.toString();
 	}
@@ -222,9 +182,9 @@ public class Report {
 	/*
 	 * read database info
 	 */
-	private String getDatabaseInfo(String server) throws NotesException {
+	private String getDatabaseInfo(Session session, String server) throws NotesException {
 		StringBuffer buf = new StringBuffer();
-		DatabasesInfo dbInfo = new DatabasesInfo(m_session);
+		DatabasesInfo dbInfo = new DatabasesInfo(session);
 		if (dbInfo.process(server)) {
 			buf.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
 			buf.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
@@ -258,7 +218,7 @@ public class Report {
 	/*
 	 * read variables from notes.ini
 	 */
-	private String getNotesINI(StringBuffer keyword) throws NotesException {
+	private String getNotesINI(Session session, StringBuffer keyword) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
 		String[] variables = getKeywordAsArray(keyword, "Notes.ini=");
@@ -266,7 +226,7 @@ public class Report {
 
 		for(int i = 0; i < variables.length; i++) {
 			String variable = variables[i].toLowerCase();
-			String iniValue = m_session.getEnvironmentString(variable, true);
+			String iniValue = session.getEnvironmentString(variable, true);
 			if (iniValue.length() > 0) {
 				buf.append("&ni_" + variable + "=" + RESTClient.encodeValue(iniValue));	
 			}
@@ -298,11 +258,11 @@ public class Report {
 	/*
 	 * Get data from Domino console
 	 */
-	private String getServices() throws NotesException {
+	private String getServices(Session session) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
 		// SHOW SERVER
-		String console = m_session.sendConsoleCommand("", "!sh server");
+		String console = session.sendConsoleCommand("", "!sh server");
 		buf.append("&sh_server=" + RESTClient.encodeValue(console));
 
 		int index1 = buf.indexOf("DAOS");
@@ -324,7 +284,7 @@ public class Report {
 		}
 
 		// SHOW TASKS
-		console = m_session.sendConsoleCommand("", "!sh tasks");
+		console = session.sendConsoleCommand("", "!sh tasks");
 		buf.append("&sh_tasks=" + RESTClient.encodeValue(console));		
 		if (console.contains("Traveler")) {
 			buf.append("&traveler=1");
@@ -334,7 +294,7 @@ public class Report {
 		}
 
 		// SHOW HEARTBEAT
-		console = m_session.sendConsoleCommand("", "!sh heartbeat");
+		console = session.sendConsoleCommand("", "!sh heartbeat");
 		buf.append("&sh_heartbeat=" + RESTClient.encodeValue(console));		
 		if (console.contains("seconds")) {
 			String elapsed_time = console.substring(console.lastIndexOf(":") + 2, console.lastIndexOf("seconds") - 1);
@@ -348,10 +308,10 @@ public class Report {
 	 * Search all .id files in Domino Data directory
 	 * Build file-md5hash list form the result.
 	 */
-	private String getIdFiles() throws Exception {
-		String notesDataDir = m_session.getEnvironmentString("Directory", true);
+	private String getIdFiles(Session session) throws Exception {
+		String notesDataDir = session.getEnvironmentString("Directory", true);
 		File dir = new File(notesDataDir);
-		File[] idFiles = SearchFiles.endsWith(dir, ".id");
+		File[] idFiles = FileUtils.endsWith(dir, ".id");
 		if (idFiles.length == 0) return "";
 
 		StringBuffer buf = new StringBuffer();
@@ -368,6 +328,27 @@ public class Report {
 
 		return buf.toString();
 	}
+	
+	/*
+	 * Detects if DA is configured
+	 */
+	private boolean isDA(Session session, Document serverDoc) throws NotesException {
+		// Names=Names1 [, Names2 [, Names3]]
+		String names = session.getEnvironmentString("Names", true);
+		if (names.length() > 5) {
+			return true;
+		}
+
+		if (serverDoc != null) {
+			String da = serverDoc.getItemValueString("MasterAddressBook");
+			if (!da.isEmpty()) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 
 	private String getProgram(Database database, String server) throws NotesException {
 		StringBuffer buf = new StringBuffer();

@@ -1,19 +1,14 @@
 package prominic.dm.update;
 
 import java.io.File;
-
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 import lotus.domino.Session;
 import lotus.domino.NotesException;
 
 import prominic.dm.api.Log;
 import prominic.io.RESTClient;
-import prominic.util.SearchFiles;
+import prominic.util.FileUtils;
 import prominic.util.StringUtils;
 
 public class UpdateRobot {
@@ -51,7 +46,7 @@ public class UpdateRobot {
 				String fileUrl = endpoint + fileURL;
 				log("Attempt to download file: " + fileUrl);
 				log("New version will be downloaded to: " + filePath);
-				boolean upload = saveURLTo(fileUrl, filePath);
+				boolean upload = RESTClient.saveURLTo(fileUrl, filePath);
 				if (!upload) {
 					log("File was NOT downloaded due to some error. Update aborted.");
 					return "";
@@ -99,33 +94,6 @@ public class UpdateRobot {
 
 		return "";
 	}
-
-	private boolean saveURLTo(String fileURL, String filePath) throws IOException {
-		boolean res = false;
-		URL url = new URL(fileURL);
-		HttpURLConnection con = (HttpURLConnection) url.openConnection();
-		int responseCode = con.getResponseCode();
-
-		if (responseCode == HttpURLConnection.HTTP_OK) {
-			InputStream is = con.getInputStream();
-
-			FileOutputStream os = new FileOutputStream(filePath);
-
-			int bytesRead = -1;
-			byte[] buffer = new byte[4096];
-			while ((bytesRead = is.read(buffer)) != -1) {
-				os.write(buffer, 0, bytesRead);
-			}
-
-			os.close();
-			is.close();
-
-			res = true;
-		}
-		con.disconnect();
-
-		return res;
-	}
 	
 	/*
 	 * Clean out old versions
@@ -135,15 +103,26 @@ public class UpdateRobot {
 			String notesDataDir = session.getEnvironmentString("NotesProgram", true);
 			File dir = new File(notesDataDir + File.separator + "DominoMeterAddin");
 			if (!dir.isDirectory()) return;
-			File files[] = SearchFiles.startsWith(dir, "DominoMeter-");
-			if (files.length == 0) return;
-			for (int i = 0; i < files.length; i++) {
+
+			File files[] = FileUtils.startsWith(dir, "DominoMeter");
+			if (files.length <= 5) return;
+
+			int count = 0;
+			StringBuffer deletedFiles = new StringBuffer();
+			files = FileUtils.sortFilesByModified(files, true);
+			for (int i = 5; i < files.length; i++) {
 				File file = files[i];
 				if (!file.getName().equalsIgnoreCase(curVersion)) {
 					file.delete();
-					Log.sendLog(session, endpoint, file.getName() + " - cleaned out", "");
+					if (count > 0) {
+						deletedFiles.append(", ");
+					}
+					deletedFiles.append(file.getName());
+					count++;
 				}
 			}
+			Log.sendLog(session, endpoint, "Removed outdates versions " + Integer.toString(count), "List of deleted files: " + deletedFiles.toString());
+			
 		} catch (NotesException e) {
 			e.printStackTrace();
 		}

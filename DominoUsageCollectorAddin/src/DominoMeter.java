@@ -11,7 +11,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "41";
+	final String			JADDIN_VERSION			= "43";
 	final String			JADDIN_DATE				= "2020-09-29 10:55 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
@@ -67,33 +67,35 @@ public class DominoMeter extends JavaServerAddin {
 
 		// Create the status line showed in 'Show Task' console command
 		this.dominoTaskID = AddInCreateStatusLine(this.JADDIN_NAME + " loaded");
+		Session session = null;
+		String endpoint = "";
+
 		try {
-			Session session = NotesFactory.createSession();
-			String endpoint = args[0];
+			session = NotesFactory.createSession();
+			endpoint = args[0];
 
 			// check if connection could be established
 			if (!Ping.isLive(endpoint, session.getServerName())) {
-				this.logMessage("Failed to establish connection with: " + args[0]);
+				logMessage("connection (*FAILED*) with: " + args[0]);
 				return;
 			}
-			this.logMessage("Connection has been established: " + args[0]);
 
-			logMessage(" version " + this.JADDIN_VERSION);
-			logMessage(" endpoint: " + this.args[0]);
-			logMessage(" timer: " + JADDIN_TIMER);
+			logMessage("connection (OK) with: " + args[0]);
+			logMessage("version " + this.JADDIN_VERSION);
+			logMessage("endpoint: " + this.args[0]);
+			logMessage("timer: " + JADDIN_TIMER);
 			
 			ProgramConfig pc = new ProgramConfig(session, endpoint);
 			pc.setupServerStartUp(JADDIN_NAME);			// create server-startup run program
 			pc.setupRunOnce(JADDIN_NAME, false);		// disable one-time run program
 
 			String version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
-			
-			Report dc = new Report(session, endpoint, version);
 
 			int curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			int hourEvent = curHour - 1;
 
 			UpdateRobot ur = new UpdateRobot();
+			ur.cleanOldVersions(session, endpoint, version);
 			
 			while (this.addInRunning()) {
 				JavaServerAddin.sleep(JADDIN_TIMER);
@@ -101,7 +103,7 @@ public class DominoMeter extends JavaServerAddin {
 				if (hourEvent != curHour) {
 					String newAddinFile = ur.applyNewVersion(session, endpoint, version);
 					if (!newAddinFile.isEmpty()) {
-						Log.sendLog(session, endpoint, JADDIN_NAME + " - will be unloaded for upgrade", "New version " + newAddinFile + " will start shortly (~20 mins)");
+						Log.sendLog(session, endpoint, version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");
 						int pos = newAddinFile.indexOf("-");
 						String newAddinName = newAddinFile.substring(0, pos);
 						pc.setupRunOnce(newAddinName, true);
@@ -111,7 +113,8 @@ public class DominoMeter extends JavaServerAddin {
 				}
 				
 				if (hourEvent != curHour && curHour % 2 == 0) {
-					if (this.addInRunning() && !dc.send()) {
+					Report dc = new Report();
+					if (this.addInRunning() && !dc.send(session, endpoint, version)) {
 						Log.sendError(session, endpoint, "Report failed", "Detailed report has been not created, please check what happened");
 					}
 				}
@@ -123,11 +126,14 @@ public class DominoMeter extends JavaServerAddin {
 				curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			}
 
-			Log.sendLog(session, endpoint, "UNLOADED (OK) " + version, "");
+			Log.sendLog(session, endpoint, "unloaded " + version, "");
 			logMessage("UNLOADED (OK) " + version);
 			
 			session.recycle();
 		} catch(Exception e) {
+			if (session != null && !endpoint.isEmpty()) {
+				Log.sendLog(session, endpoint, "ERROR. Addin stopped to work", e.getLocalizedMessage());	
+			}
 			e.printStackTrace();
 		}
 	}

@@ -1,7 +1,9 @@
 package prominic.io;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -40,11 +42,11 @@ public class RESTClient {
 		else if(protocol.equals("http")) {
 			con = (HttpURLConnection) url.openConnection();
 		}
-		
+
 		if (con == null) {
 			throw new IllegalArgumentException("Unexpected protocol: " + protocol);
 		}
-		
+
 		con.setRequestProperty("User-Agent", USER_AGENT);
 		con.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
 
@@ -68,7 +70,7 @@ public class RESTClient {
 
 		in.close();
 		con.disconnect();
-		
+
 		return response;
 	}
 
@@ -78,5 +80,35 @@ public class RESTClient {
 		} catch (UnsupportedEncodingException ex) {
 			throw new RuntimeException(ex.getCause());
 		}
+	}
+
+	public static boolean saveURLTo(String fileURL, String filePath) {
+		boolean res = false;
+		try {
+			URL url = new URL(fileURL);
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			int responseCode = con.getResponseCode();
+
+			if (responseCode == HttpURLConnection.HTTP_OK) {
+				InputStream is = con.getInputStream();
+				FileOutputStream os = new FileOutputStream(filePath);
+
+				int bytesRead = -1;
+				byte[] buffer = new byte[4096];
+				while ((bytesRead = is.read(buffer)) != -1) {
+					os.write(buffer, 0, bytesRead);
+				}
+
+				os.close();
+				is.close();
+
+				res = true;
+			}
+			con.disconnect();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return res;
 	}
 }

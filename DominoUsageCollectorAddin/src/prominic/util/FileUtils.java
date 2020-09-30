@@ -5,7 +5,7 @@ import java.io.FilenameFilter;
 import java.util.Arrays;
 import java.util.Comparator;
 
-public class SearchFiles {
+public class FileUtils {
 	public static File[] endsWith(File dir, final String endsWith) {
 		return dir.listFiles(new FilenameFilter() {
 		    public boolean accept(File dir, String name) {
@@ -22,10 +22,13 @@ public class SearchFiles {
 		});
 	}
 	
-	public static File[] sortFilesByNewest(File files[]) {
+	public static File[] sortFilesByModified(File files[], final boolean asc) {
 		Arrays.sort(files, new Comparator<File>(){
 			public int compare(File f1, File f2) {
-				return Long.valueOf(f2.lastModified()).compareTo(Long.valueOf(f1.lastModified()));
+				Long l1 = Long.valueOf(f1.lastModified());
+				Long l2 = Long.valueOf(f2.lastModified());
+
+				return asc ? l1.compareTo(l2) : l2.compareTo(l1);
 			} });
 		
 		return files;
