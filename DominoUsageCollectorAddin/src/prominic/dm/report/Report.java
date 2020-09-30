@@ -248,7 +248,7 @@ public class Report {
 			String variable = variables[i].toLowerCase();
 			if (doc.hasItem(variable)) {
 				String v = doc.getFirstItem(variable).getText();
-				buf.append("&s_" + variable + "=" + RESTClient.encodeValue(v));
+				buf.append("&" + variable + "=" + RESTClient.encodeValue(v));
 			}
 		}
 
