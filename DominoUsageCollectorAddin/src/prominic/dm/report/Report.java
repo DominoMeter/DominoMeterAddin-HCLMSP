@@ -28,7 +28,7 @@ public class Report {
 		try {
 			Date dateStart = new Date();
 			String ndd = session.getEnvironmentString("Directory", true);
-			
+
 			String url = endpoint.concat("/report?openagent&server=" + RESTClient.encodeValue(server));
 
 			// 1. initialize data for report
@@ -37,8 +37,7 @@ public class Report {
 			Document serverDoc = ab.getView("($ServersLookup)").getDocumentByKey(server, true);
 
 			// 2. user license
-			long count = ab.getView("People").getAllEntries().getCount();
-			data.append("&usercount=" + Long.toString(count));
+			data.append(users(ab, server));
 
 			// 3. databases 
 			data.append(getDatabaseInfo(session, server));
@@ -76,7 +75,7 @@ public class Report {
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(this.getLinuxInfo());
 			}
-			
+
 			// 12. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
 			String nsd = getNSD(ndd);
 			if (!nsd.isEmpty()) {
@@ -88,7 +87,7 @@ public class Report {
 			data.append("&numDuration=" + numDuration);
 
 			serverDoc.recycle();
-			
+
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
 		} catch (Exception e) {
@@ -96,6 +95,63 @@ public class Report {
 			e.printStackTrace();
 			return false;
 		}
+	}
+
+	private String users(Database ab, String server) throws NotesException {
+		StringBuffer buf = new StringBuffer();
+
+		long users = 0;
+		long usersNotes = 0;
+		long usersWeb = 0;
+		long usersNotesWeb = 0;
+		long usersPNI = 0;
+		long usersMail = 0;
+		long usersReplica = 0;
+
+		View view = ab.getView("People");
+		Document doc = view.getFirstDocument();
+		while (doc != null) {
+			Document nextDoc = view.getNextDocument(doc);
+
+			boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
+			boolean isWeb = doc.hasItem("HTTPPassword") && !doc.getItemValueString("HTTPPassword").isEmpty();
+			String mailSystem = doc.getItemValueString("MailSystem");
+			boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6") && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty());
+
+			users++;
+
+			if (isNotes && !isWeb) {
+				usersNotes++;
+			}
+			if (!isNotes && isWeb) {
+				usersWeb++;
+			}			
+			if (isNotes && isWeb) {
+				usersNotesWeb++;
+			}			
+			if (doc.getItemValueString("FullName").contains("/O=PNI")) {
+				usersPNI++;
+			}			
+			if (isMail) {
+				usersMail++;
+			}			
+			if (doc.hasItem("$Conflict")) {
+				usersReplica++;
+			}
+
+			doc.recycle();
+			doc = nextDoc;
+		}
+
+		buf.append("&users=" + Long.toString(users));
+		buf.append("&usersNotes=" + Long.toString(usersNotes));
+		buf.append("&usersWeb=" + Long.toString(usersWeb));
+		buf.append("&usersNotesWeb=" + Long.toString(usersNotesWeb));
+		buf.append("&usersPNI=" + Long.toString(usersPNI));
+		buf.append("&usersMail=" + Long.toString(usersMail));
+		buf.append("&usersReplica=" + Long.toString(usersReplica));
+
+		return buf.toString();
 	}
 
 	/*
@@ -117,7 +173,7 @@ public class Report {
 			}
 			recentNSD.append(file.getName());
 		}
-		
+
 		Date date = new Date();
 		long time = date.getTime();
 		int nsd1Day = 0;
@@ -136,7 +192,7 @@ public class Report {
 				i = files.length;	// since files are sorted we only need to read to first 'false'
 			}
 		}
-		
+
 		return "&nsdName10Days="+recentNSD.toString() + "&numNsdCount1Day=" + Integer.toString(nsd1Day) + "&numNsdCount7Day=" + Integer.toString(nsd7Day);
 	}
 
@@ -192,9 +248,9 @@ public class Report {
 			buf.append("&numApp=" + Long.toString(dbInfo.getApp()));
 			buf.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
 		}
-		
+
 		catalogDb.recycle();
-		
+
 		return buf.toString();
 	}
 
@@ -330,7 +386,7 @@ public class Report {
 
 		return buf.toString();
 	}
-	
+
 	/*
 	 * Detects if DA is configured
 	 */
@@ -361,7 +417,7 @@ public class Report {
 		ViewEntry entry = entries.getFirstEntry();
 		while (entry != null) {
 			ViewEntry nextEntry = entries.getNextEntry();
-			
+
 			@SuppressWarnings("rawtypes")
 			Vector v = entry.getColumnValues();
 			String s = "";
@@ -376,10 +432,10 @@ public class Report {
 			entry.recycle();
 			entry = nextEntry;
 		}
-		
+
 		entries.recycle();
 		view.recycle();
-		
+
 		return buf.toString();
 	}
 }
