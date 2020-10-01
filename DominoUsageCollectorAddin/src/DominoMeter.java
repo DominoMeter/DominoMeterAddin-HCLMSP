@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "51";
+	final String			JADDIN_VERSION			= "52";
 	final String			JADDIN_DATE				= "2020-10-01 22:40 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
@@ -190,8 +190,8 @@ public class DominoMeter extends JavaServerAddin {
 		int year = Calendar.getInstance().get(Calendar.YEAR);
 		logMessage("*** Usage ***");
 		AddInLogMessageText("[LOAD]");
-		AddInLogMessageText("   load runjava DominoMeter <endpoint>");
-		AddInLogMessageText("[TELL DominoMeter]");
+		AddInLogMessageText("	load runjava DominoMeter <endpoint>");
+		AddInLogMessageText("[tell DominoMeter]");
 		AddInLogMessageText("	quit       Unload DominoMeter");
 		AddInLogMessageText("	help       Show help information (or -h)");
 		AddInLogMessageText("	version    Show version of DominoMeter (or -v)");
