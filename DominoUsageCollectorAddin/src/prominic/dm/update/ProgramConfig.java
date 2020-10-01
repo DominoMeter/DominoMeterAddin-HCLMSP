@@ -9,158 +9,133 @@ import lotus.domino.NotesException;
 
 public class ProgramConfig {
 	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoMeter (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
+	public final static int LOAD = 1;
+	public final static int UNLOAD = 2;
+
+	private final static int PROGRAM_MINUTES = 20;
+	private final static String PROGRAM_DISABLE = "0";
+	private final static String PROGRAM_ENABLE = "1";
+	private final static String PROGRAM_SERVERSTART = "2";
 
 	private String m_server;
 	private String m_endpoint;
+	private String m_addinName;
 
-	public ProgramConfig(String server, String endpoint) {
+	public ProgramConfig(String server, String endpoint, String addinName) {
 		m_server = server;
 		m_endpoint = endpoint;
+		m_addinName = addinName;
 	}
 
 	/*
-	 * Create/Update program document "At server startup only"
-	 * Must be run once when Addin loads
+	 * Set state for program documents
 	 */
-	public boolean setupServerStartUp(Database database, String addinName) throws NotesException {
-		Document doc = updateServerStartUp(database, addinName);
-		return doc != null;
-	}
-
-	/*
-	 * Create "At server startup only" if it does not exist in database
-	 * Delete if find duplicates (in case of some error etc).
-	 */
-	private Document updateServerStartUp(Database database, String addinName) throws NotesException {
+	public void setState(Database database, int state) throws NotesException {
 		View view = database.getView("($Programs)");
 		DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
-		Document program = null;
+		boolean programStartupOnly = false;
+		boolean programScheduled = false;
+		String newEnabled = (state == LOAD) ? PROGRAM_DISABLE : PROGRAM_ENABLE;
+
 		Document doc = col.getFirstDocument();
 		while (doc != null) {
 			Document nextDoc = col.getNextDocument(doc);
 
-			if (isDominoMeter(doc) && isProgramAtStartupOnly(doc)) {
-				if (program == null) {
-					program = doc;
+			if (isDominoMeter(doc)) {
+				if (isProgramAtStartupOnly(doc)) {
+					if (!programStartupOnly) {
+						programStartupOnly = true;
+						updateProgram(database, doc, PROGRAM_SERVERSTART);
+					}
+					else {
+						deleteDuplicate(doc);
+						doc = null;
+					}	
 				}
 				else {
-					doc.remove(true);
-					log("program document (at server start up only) - deleted (duplicate)");
+					if (!programScheduled) {
+						programScheduled = true;
+						updateProgram(database, doc, newEnabled);
+					}
+					else {
+						deleteDuplicate(doc);
+						doc = null;
+					}	
 				}
+			}
+
+			if (doc != null) {
+				doc.recycle();
 			}
 
 			doc = nextDoc;
 		}
 
-		boolean toSave = false;
-		if (program == null) {
-			log("program document (at server start up only) - created");
-			program = createProgram(database, addinName, "2");
-			toSave = true;
+		if (!programStartupOnly) {
+			doc = createProgram(database, PROGRAM_SERVERSTART);
+			doc.recycle();
 		}
-		else {
-			String val = addinName + " " + m_endpoint;
-			if (!val.equalsIgnoreCase(program.getItemValueString("CmdLine"))) {
-				program.replaceItemValue("CmdLine", val);
-				toSave = true;
-				log("program document (at server start up only) - updated. CmdLine: " + val);
-			}
+
+		if (!programScheduled) {
+			doc = createProgram(database, newEnabled);
+			doc.recycle();
+		}
+
+		col.recycle();
+		view.recycle();
+	}
+	
+	private void deleteDuplicate(Document doc) throws NotesException {
+		String docEnabled = doc.getItemValueString("Enabled");
+		doc.remove(true);
+		log("program document (enabled: " + docEnabled + ") - deleted (duplicate)");
+	}
+
+	private Document updateProgram(Database database, Document doc, String enabled) throws NotesException {
+		String cmdLine = m_addinName + " " + m_endpoint;
+		boolean toSave = false;
+		String docEnabled = doc.getItemValueString("Enabled");
+		
+		if (!cmdLine.equalsIgnoreCase(doc.getItemValueString("CmdLine"))) {
+			doc.replaceItemValue("CmdLine", cmdLine);
+			toSave = true;
+			log("program document (enabled: " + docEnabled + ") - updated. CmdLine: " + cmdLine);
+		}
+		
+		if (!enabled.equalsIgnoreCase(doc.getItemValueString("Enabled"))) {
+			doc.replaceItemValue("Enabled", enabled);
+			toSave = true;
+			log("program document (enabled: " + docEnabled + ") - updated. Enabled: " + enabled);
+		}
+
+		if (enabled.equalsIgnoreCase(PROGRAM_ENABLE)) {
+			setSchedule(database, doc, enabled);
+			log("program document (enabled: " + docEnabled + ") - updated. Schedule: " + doc.getFirstItem("Schedule").getDateTimeValue().getLocalTime());
+			toSave = true;
 		}
 
 		if (toSave) {
-			program.save();
+			doc.save();
 		}
 		
-		col.recycle();
-		view.recycle();
-
-		return program;
+		return doc;
 	}
 	
 	/*
-	 * Enable/Disable program document "Run once at specific time"
-	 * Used to run a new version of DominoMeter
+	 * set Schedule to now+20 mins
 	 */
-	public boolean setupRunOnce(Database database, String addinName, boolean enable) throws NotesException {
-		int adjustMinutes = enable ? 20 : 0;
-		Document doc = updateOnce(database, addinName, adjustMinutes, enable);
-
-		return doc != null;
+	private void setSchedule(Database database, Document doc, String enabled) throws NotesException {
+		DateTime dt = database.getParent().createDateTime("Today");
+		dt.setNow();
+		dt.adjustMinute(PROGRAM_MINUTES);
+		doc.replaceItemValue("Schedule", dt);
+		dt.recycle();
 	}
-
-	/*
-	 * Create/Update/Enable/Disable "Run once at specific time"
-	 * Used when we want to load a new version of DominoUsageCollectoAddin.
-	 */
-	private Document updateOnce(Database database, String addinName, int adjustMinutes, boolean enabled) throws NotesException {
-		View view = database.getView("($Programs)");
-		DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
-		Document program = null;
-		Document doc = col.getFirstDocument();
-		while (doc != null) {
-			Document nextDoc = col.getNextDocument(doc);
-
-			if (isDominoMeter(doc) && !isProgramAtStartupOnly(doc)) {
-				if (program == null) {
-					program = doc;
-				}
-				else {
-					doc.remove(true);
-					log("program document (run at specific time) - deleted (duplicate)");
-				}
-			}
-
-			doc = nextDoc;
-		}
-
-		boolean toSave = false;
-		String sEnabled = enabled ? "1" : "0";
-		if (program == null) {
-			program = createProgram(database, addinName, sEnabled);
-			log("program document (run at specific time) - created. Enabled: " + sEnabled);
-			toSave = true;
-		}
-		else {
-			if (!sEnabled.equalsIgnoreCase(program.getItemValueString("Enabled"))) {
-				program.replaceItemValue("Enabled", sEnabled);
-				toSave = true;
-				log("program document (run at specific time) - updated. Enabled: " + sEnabled);
-			}
-			
-			String val = addinName + " " + m_endpoint;
-			if (!val.equalsIgnoreCase(program.getItemValueString("CmdLine"))) {
-				program.replaceItemValue("CmdLine", val);
-				toSave = true;
-				log("program document (run at specific time) - updated. CmdLine: " + val);
-			}
-		}
-
-		// this is only value we need to modify
-		if (adjustMinutes > 0) {
-		    DateTime dt = database.getParent().createDateTime("Today");
-		    dt.setNow();
-			dt.adjustMinute(adjustMinutes);
-			program.replaceItemValue("Schedule", dt);
-			log("program document (run at specific time) - updated. Schedule: " + dt.getLocalTime());
-
-			dt.recycle();
-			toSave = true;
-		}
-		
-		if (toSave) {
-			program.save();
-		}
-		
-		col.recycle();
-		view.recycle();
-		
-		return program;
-	}
-
+	
 	/* 
-	 * Create stub program
+	 * Create program document
 	 */
-	private Document createProgram(Database database, String addinName, String enabled) throws NotesException {
+	private Document createProgram(Database database, String enabled) throws NotesException {
 		Document doc = database.createDocument();
 
 		doc.replaceItemValue("Form", "Program");
@@ -169,14 +144,22 @@ public class ProgramConfig {
 		doc.replaceItemValue("Program", "runjava");
 		doc.replaceItemValue("Enabled", enabled);
 		doc.replaceItemValue("Comments", COMMENT_PROMINIC);
-		doc.replaceItemValue("CmdLine", addinName + " " + m_endpoint);
+		doc.replaceItemValue("CmdLine", m_addinName + " " + m_endpoint);
+	
+		if (enabled.equalsIgnoreCase(PROGRAM_ENABLE)) {
+			setSchedule(database, doc, enabled);
+		}
+		
 		doc.computeWithForm(true, false);
+		doc.save();
 
+		log("program document (enabled: " + enabled + ") - created");
+		
 		return doc;
 	}
 
 	/*
-	 * Check if Program document is DominoMeter
+	 * Check if program document is DominoMeter
 	 */
 	private boolean isDominoMeter(Document doc) throws NotesException {
 		String cmdLine = doc.getItemValueString("CmdLine");

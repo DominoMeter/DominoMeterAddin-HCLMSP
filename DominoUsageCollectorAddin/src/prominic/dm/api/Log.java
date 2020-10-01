@@ -14,13 +14,12 @@ public class Log {
 
 	public static boolean send(String server, String endpoint, String subject, String body, int logLevel) {
 		try {
+			server = RESTClient.encodeValue(server);
 			subject = RESTClient.encodeValue(subject);
 			body = RESTClient.encodeValue(body);
 			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + server, "subject=" + subject + "&body=" + body + "&logLevel=" + Integer.toString(logLevel));
 			return res.toString().equalsIgnoreCase("OK");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		} catch (IOException e) {}
 		return false;
 	}
 	
