@@ -76,7 +76,7 @@ public class DominoMeter extends JavaServerAddin {
 		String endpoint = "";
 		String server = "";
 		StringBuffer qBuffer = new StringBuffer(1024);
-		
+
 		try {
 			// Set the Java thread name to the class name (default would be "Thread-n")		
 			this.setName(JADDIN_NAME);
@@ -109,19 +109,19 @@ public class DominoMeter extends JavaServerAddin {
 				terminate(session, ab, mq, version);
 				return;
 			}
-			
+
 			if (messageQueueState != MessageQueue.NOERROR) {
 				logMessage("Unable to create the Domino message queue");
 				terminate(session, ab, mq, version);
 				return;
 			}
-			
+
 			if (mq.open(qName, 0) != MessageQueue.NOERROR) {
 				logMessage("Unable to open Domino message queue");
 				terminate(session, ab, mq, version);
 				return;
 			}
-			
+
 			logMessage("connection (OK) with: " + endpoint);
 			logMessage("version " + this.JADDIN_VERSION);
 			logMessage("date " + this.JADDIN_DATE);
@@ -133,7 +133,10 @@ public class DominoMeter extends JavaServerAddin {
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
 			UpdateRobot ur = new UpdateRobot();
+			updateVersion(session, ab, ur, pc, server, endpoint, version);
 			ur.cleanOldVersions(server, endpoint, version);
+
+			sendReport(session, ab, server, endpoint, version);
 
 			while (this.addInRunning() && (messageQueueState != ERR_MQ_QUITTING)) {
 				/* gives control to other task in non preemprive os */
@@ -148,32 +151,15 @@ public class DominoMeter extends JavaServerAddin {
 				// conditions -- otherwise you should keep the timeout to
 				// a second or less (see comments below)
 				messageQueueState = mq.get(qBuffer, MQ_MAX_MSGSIZE, MessageQueue.MQ_WAIT_FOR_MSG, 1000);
-				
+
 				String cmd = qBuffer.toString().trim();
 				if (!cmd.isEmpty()) {
 					resolveCmd(cmd);
 				}
-				
+
 				if (this.AddInHasMinutesElapsed(60)) {
-					setAddinState("Report");
-					Report dc = new Report();
-					if (dc.send(session, ab, server, endpoint, version)) {
-						Log.sendLog(server, endpoint, "report has been sent", "");
-					}
-					else {
-						Log.sendError(server, endpoint, "report has not been sent", "");
-					}
-					
-					setAddinState("UpdateRobot");
-					String newAddinFile = ur.applyNewVersion(session, server, endpoint, version);
-					if (newAddinFile.isEmpty()) {
-						Log.sendLog(server, endpoint, version + " is up to date", "");
-					}
-					else {
-						pc.setState(ab, ProgramConfig.UNLOAD);		// set program documents in UNLOAD state
-						Log.sendLog(server, endpoint, version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");
-						this.stopAddin();
-					}
+					sendReport(session, ab, server, endpoint, version);
+					updateVersion(session, ab, ur, pc, server, endpoint, version);
 				}
 			}
 
@@ -182,7 +168,25 @@ public class DominoMeter extends JavaServerAddin {
 			e.printStackTrace();
 		}
 	}
-	
+
+	private void updateVersion(Session session, Database ab, UpdateRobot ur, ProgramConfig pc, String server, String endpoint, String version) {
+		setAddinState("UpdateRobot");
+		String newAddinFile = ur.applyNewVersion(session, server, endpoint, version);
+		if (newAddinFile.isEmpty()) return;
+
+		pc.setState(ab, ProgramConfig.UNLOAD);		// set program documents in UNLOAD state
+		Log.sendLog(server, endpoint, version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");
+		this.stopAddin();
+	}
+
+	private void sendReport(Session session, Database ab, String server, String endpoint, String version) {
+		setAddinState("Report");
+		Report dc = new Report();
+		if (!dc.send(session, ab, server, endpoint, version)) {
+			Log.sendError(server, endpoint, "report has not been sent", "");
+		}
+	}
+
 	private void resolveCmd(String cmd) {
 		if ("-h".equals(cmd) || "help".equals(cmd)) {
 			int year = Calendar.getInstance().get(Calendar.YEAR);
@@ -298,7 +302,7 @@ public class DominoMeter extends JavaServerAddin {
 		try {
 			ab.recycle();
 			session.recycle();
-			
+
 			setAddinState("Terminating...");
 			mq.close(0);
 			AddInDeleteStatusLine(dominoTaskID);

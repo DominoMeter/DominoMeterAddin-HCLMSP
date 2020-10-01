@@ -30,61 +30,65 @@ public class ProgramConfig {
 	/*
 	 * Set state for program documents
 	 */
-	public void setState(Database database, int state) throws NotesException {
-		View view = database.getView("($Programs)");
-		DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
-		boolean programStartupOnly = false;
-		boolean programScheduled = false;
-		String newEnabled = (state == LOAD) ? PROGRAM_DISABLE : PROGRAM_ENABLE;
+	public void setState(Database database, int state) {
+		try {
+			View view = database.getView("($Programs)");
+			DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
+			boolean programStartupOnly = false;
+			boolean programScheduled = false;
+			String newEnabled = (state == LOAD) ? PROGRAM_DISABLE : PROGRAM_ENABLE;
 
-		Document doc = col.getFirstDocument();
-		while (doc != null) {
-			Document nextDoc = col.getNextDocument(doc);
+			Document doc = col.getFirstDocument();
+			while (doc != null) {
+				Document nextDoc = col.getNextDocument(doc);
 
-			if (isDominoMeter(doc)) {
-				if (isProgramAtStartupOnly(doc)) {
-					if (!programStartupOnly) {
-						programStartupOnly = true;
-						updateProgram(database, doc, PROGRAM_SERVERSTART);
+				if (isDominoMeter(doc)) {
+					if (isProgramAtStartupOnly(doc)) {
+						if (!programStartupOnly) {
+							programStartupOnly = true;
+							updateProgram(database, doc, PROGRAM_SERVERSTART);
+						}
+						else {
+							deleteDuplicate(doc);
+							doc = null;
+						}	
 					}
 					else {
-						deleteDuplicate(doc);
-						doc = null;
-					}	
-				}
-				else {
-					if (!programScheduled) {
-						programScheduled = true;
-						updateProgram(database, doc, newEnabled);
+						if (!programScheduled) {
+							programScheduled = true;
+							updateProgram(database, doc, newEnabled);
+						}
+						else {
+							deleteDuplicate(doc);
+							doc = null;
+						}	
 					}
-					else {
-						deleteDuplicate(doc);
-						doc = null;
-					}	
 				}
+
+				if (doc != null) {
+					doc.recycle();
+				}
+
+				doc = nextDoc;
 			}
 
-			if (doc != null) {
+			if (!programStartupOnly) {
+				doc = createProgram(database, PROGRAM_SERVERSTART);
 				doc.recycle();
 			}
 
-			doc = nextDoc;
-		}
+			if (!programScheduled) {
+				doc = createProgram(database, newEnabled);
+				doc.recycle();
+			}
 
-		if (!programStartupOnly) {
-			doc = createProgram(database, PROGRAM_SERVERSTART);
-			doc.recycle();
+			col.recycle();
+			view.recycle();
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
-
-		if (!programScheduled) {
-			doc = createProgram(database, newEnabled);
-			doc.recycle();
-		}
-
-		col.recycle();
-		view.recycle();
 	}
-	
+
 	private void deleteDuplicate(Document doc) throws NotesException {
 		String docEnabled = doc.getItemValueString("Enabled");
 		doc.remove(true);
@@ -95,13 +99,13 @@ public class ProgramConfig {
 		String cmdLine = m_addinName + " " + m_endpoint;
 		boolean toSave = false;
 		String docEnabled = doc.getItemValueString("Enabled");
-		
+
 		if (!cmdLine.equalsIgnoreCase(doc.getItemValueString("CmdLine"))) {
 			doc.replaceItemValue("CmdLine", cmdLine);
 			toSave = true;
 			log("program document (enabled: " + docEnabled + ") - updated. CmdLine: " + cmdLine);
 		}
-		
+
 		if (!enabled.equalsIgnoreCase(doc.getItemValueString("Enabled"))) {
 			doc.replaceItemValue("Enabled", enabled);
 			toSave = true;
@@ -117,10 +121,10 @@ public class ProgramConfig {
 		if (toSave) {
 			doc.save();
 		}
-		
+
 		return doc;
 	}
-	
+
 	/*
 	 * set Schedule to now+20 mins
 	 */
@@ -131,7 +135,7 @@ public class ProgramConfig {
 		doc.replaceItemValue("Schedule", dt);
 		dt.recycle();
 	}
-	
+
 	/* 
 	 * Create program document
 	 */
@@ -145,16 +149,16 @@ public class ProgramConfig {
 		doc.replaceItemValue("Enabled", enabled);
 		doc.replaceItemValue("Comments", COMMENT_PROMINIC);
 		doc.replaceItemValue("CmdLine", m_addinName + " " + m_endpoint);
-	
+
 		if (enabled.equalsIgnoreCase(PROGRAM_ENABLE)) {
 			setSchedule(database, doc, enabled);
 		}
-		
+
 		doc.computeWithForm(true, false);
 		doc.save();
 
 		log("program document (enabled: " + enabled + ") - created");
-		
+
 		return doc;
 	}
 
