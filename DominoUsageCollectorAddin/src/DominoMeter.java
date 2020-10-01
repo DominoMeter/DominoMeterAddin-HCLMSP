@@ -142,10 +142,12 @@ public class DominoMeter extends JavaServerAddin {
 						logMessage("Version: " + JADDIN_VERSION + ". Build date: " + JADDIN_DATE);
 					}
 					else if ("-u".equals(cmd) || "update".equals(cmd)) {
-						updateVersion(session, ab, ur, pc);
+						boolean res = updateVersion(session, ab, ur, pc);
+						if (!res) logMessage("version is up to date");
 					}
 					else if ("-r".equals(cmd) || "report".equals(cmd)) {
-						sendReport(session, ab);
+						boolean res = sendReport(session, ab);
+						logMessage(res ? "report (OK)" : "report (*FAILED*)");
 					}
 				}
 
@@ -161,22 +163,27 @@ public class DominoMeter extends JavaServerAddin {
 		}
 	}
 
-	private void updateVersion(Session session, Database ab, UpdateRobot ur, ProgramConfig pc) {
+	private boolean updateVersion(Session session, Database ab, UpdateRobot ur, ProgramConfig pc) {
 		setAddinState("UpdateRobot");
 		String newAddinFile = ur.applyNewVersion(session, server, endpoint, version);
-		if (newAddinFile.isEmpty()) return;
+		if (newAddinFile.isEmpty()) return false;
 
 		pc.setState(ab, ProgramConfig.UNLOAD);		// set program documents in UNLOAD state
 		Log.sendLog(server, endpoint, version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");
 		this.stopAddin();
+		return true;
 	}
 
-	private void sendReport(Session session, Database ab) {
+	private boolean sendReport(Session session, Database ab) {
 		setAddinState("Report");
 		Report dc = new Report();
-		if (!dc.send(session, ab, server, endpoint, version)) {
+		boolean res= dc.send(session, ab, server, endpoint, version);
+		
+		if (!res) {
 			Log.sendError(server, endpoint, "report has not been sent", "");
 		}
+		
+		return res;
 	}
 	
 	private void showHelp() {
