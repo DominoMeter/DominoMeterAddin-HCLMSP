@@ -127,8 +127,6 @@ public class DominoMeter extends JavaServerAddin {
 			logMessage("date " + this.JADDIN_DATE);
 			logMessage("endpoint: " + endpoint);
 
-			Log.sendLog(server, endpoint, "started: " + version, "");
-
 			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME);
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
