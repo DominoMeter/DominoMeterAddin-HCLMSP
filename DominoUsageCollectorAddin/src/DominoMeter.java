@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "50";
+	final String			JADDIN_VERSION			= "51";
 	final String			JADDIN_DATE				= "2020-10-01 22:40 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
@@ -28,22 +28,14 @@ public class DominoMeter extends JavaServerAddin {
 	// this is already defined (should be = 1):
 	public static final int	MQ_WAIT_FOR_MSG = MessageQueue.MQ_WAIT_FOR_MSG;
 
-	// MessageQueue errors:
-	public static final int PKG_MISC = 0x0400;
-	public static final int ERR_MQ_POOLFULL = PKG_MISC+94;
-	public static final int ERR_MQ_TIMEOUT = PKG_MISC+95;
-	public static final int ERR_MQSCAN_ABORT = PKG_MISC+96;
-	public static final int ERR_DUPLICATE_MQ = PKG_MISC+97;
-	public static final int ERR_NO_SUCH_MQ = PKG_MISC+98;
-	public static final int ERR_MQ_EXCEEDED_QUOTA = PKG_MISC+99;
-	public static final int ERR_MQ_EMPTY = PKG_MISC+100;
-	public static final int ERR_MQ_BFR_TOO_SMALL = PKG_MISC+101;
-	public static final int ERR_MQ_QUITTING = PKG_MISC+102;
-
 	// Instance variables
 	private String[] 		args 					= null;
 	private int 			dominoTaskID			= 0;
 
+	private String 			server					= "";
+	private String 			endpoint				= "";
+	private String 			version					= "";
+	
 	// constructor if parameters are provided
 	public DominoMeter(String[] args) {
 		this.args = args;
@@ -73,8 +65,6 @@ public class DominoMeter extends JavaServerAddin {
 	private void runLoop() {
 		Session session = null;
 		Database ab = null;
-		String endpoint = "";
-		String server = "";
 		StringBuffer qBuffer = new StringBuffer(1024);
 
 		try {
@@ -93,7 +83,7 @@ public class DominoMeter extends JavaServerAddin {
 				endpoint = "https://prominic.dominometer.com/duca.nsf";
 			}
 			server = session.getServerName();
-			String version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
+			version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
 
 			// check if connection could be established
 			if (!Ping.isLive(endpoint, server)) {
@@ -106,19 +96,19 @@ public class DominoMeter extends JavaServerAddin {
 			int messageQueueState = mq.create(qName, 0, 0);	// use like MQCreate in API
 			if (messageQueueState == MessageQueue.ERR_DUPLICATE_MQ) {
 				logMessage(this.JADDIN_NAME + " task is already running");
-				terminate(session, ab, mq, version);
+				terminate(session, ab, mq);
 				return;
 			}
 
 			if (messageQueueState != MessageQueue.NOERROR) {
 				logMessage("Unable to create the Domino message queue");
-				terminate(session, ab, mq, version);
+				terminate(session, ab, mq);
 				return;
 			}
 
 			if (mq.open(qName, 0) != MessageQueue.NOERROR) {
 				logMessage("Unable to open Domino message queue");
-				terminate(session, ab, mq, version);
+				terminate(session, ab, mq);
 				return;
 			}
 
@@ -131,43 +121,47 @@ public class DominoMeter extends JavaServerAddin {
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
 			UpdateRobot ur = new UpdateRobot();
-			updateVersion(session, ab, ur, pc, server, endpoint, version);
+			updateVersion(session, ab, ur, pc);
 			ur.cleanOldVersions(server, endpoint, version);
 
-			sendReport(session, ab, server, endpoint, version);
+			sendReport(session, ab);
 
-			while (this.addInRunning() && (messageQueueState != ERR_MQ_QUITTING)) {
-				/* gives control to other task in non preemprive os */
+			while (this.addInRunning() && (messageQueueState != MessageQueue.ERR_MQ_QUITTING)) {
+				/* gives control to other task in non preemptive os*/
 				OSPreemptOccasionally();
 
 				setAddinState("Idle");
 
-				// wait half a second (500 milliseconds) for a message,
-				// then check for other conditions -- use 0 as the last
-				// parameter to wait forever. You can use a longer interval
-				// if you're not checking for any of the AddInElapsed
-				// conditions -- otherwise you should keep the timeout to
-				// a second or less (see comments below)
 				messageQueueState = mq.get(qBuffer, MQ_MAX_MSGSIZE, MessageQueue.MQ_WAIT_FOR_MSG, 1000);
-
 				String cmd = qBuffer.toString().trim();
 				if (!cmd.isEmpty()) {
-					resolveCmd(cmd);
+					if ("-h".equals(cmd) || "help".equals(cmd)) {
+						showHelp();
+					}
+					else if ("-v".equals(cmd) || "version".equals(cmd)) {
+						logMessage("Version: " + JADDIN_VERSION + ". Build date: " + JADDIN_DATE);
+					}
+					else if ("-u".equals(cmd) || "update".equals(cmd)) {
+						updateVersion(session, ab, ur, pc);
+					}
+					else if ("-r".equals(cmd) || "report".equals(cmd)) {
+						sendReport(session, ab);
+					}
 				}
 
 				if (this.AddInHasMinutesElapsed(60)) {
-					sendReport(session, ab, server, endpoint, version);
-					updateVersion(session, ab, ur, pc, server, endpoint, version);
+					sendReport(session, ab);
+					updateVersion(session, ab, ur, pc);
 				}
 			}
 
-			terminate(session, ab, mq, version);
+			terminate(session, ab, mq);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	private void updateVersion(Session session, Database ab, UpdateRobot ur, ProgramConfig pc, String server, String endpoint, String version) {
+	private void updateVersion(Session session, Database ab, UpdateRobot ur, ProgramConfig pc) {
 		setAddinState("UpdateRobot");
 		String newAddinFile = ur.applyNewVersion(session, server, endpoint, version);
 		if (newAddinFile.isEmpty()) return;
@@ -177,34 +171,27 @@ public class DominoMeter extends JavaServerAddin {
 		this.stopAddin();
 	}
 
-	private void sendReport(Session session, Database ab, String server, String endpoint, String version) {
+	private void sendReport(Session session, Database ab) {
 		setAddinState("Report");
 		Report dc = new Report();
 		if (!dc.send(session, ab, server, endpoint, version)) {
 			Log.sendError(server, endpoint, "report has not been sent", "");
 		}
 	}
-
-	private void resolveCmd(String cmd) {
-		if ("-h".equals(cmd) || "help".equals(cmd)) {
-			int year = Calendar.getInstance().get(Calendar.YEAR);
-			logMessage("*** Usage ***");
-			AddInLogMessageText("[LOAD]");
-			AddInLogMessageText("   load runjava DominoMeter <endpoint>");
-			AddInLogMessageText("[TELL DominoMeter]");
-			AddInLogMessageText("	quit       Unload DominoMeter");
-			AddInLogMessageText("	help       Show help information (or -h)");
-			AddInLogMessageText("	version    Show version of DominoMeter (or -v)");
-			AddInLogMessageText("Copyright (C) Prominic.NET, Inc. 2020" + (year > 2020 ? " - " + Integer.toString(year) : ""));
-			AddInLogMessageText("See https://dominometer.com for more details.");
-		}
-
-		// 3. version
-		if ("-v".equals(cmd) || "version".equals(cmd)) {
-			logMessage("Version: " + JADDIN_VERSION + ". Build date: " + JADDIN_DATE);
-			return;
-		}
-
+	
+	private void showHelp() {
+		int year = Calendar.getInstance().get(Calendar.YEAR);
+		logMessage("*** Usage ***");
+		AddInLogMessageText("[LOAD]");
+		AddInLogMessageText("   load runjava DominoMeter <endpoint>");
+		AddInLogMessageText("[TELL DominoMeter]");
+		AddInLogMessageText("	quit       Unload DominoMeter");
+		AddInLogMessageText("	help       Show help information (or -h)");
+		AddInLogMessageText("	version    Show version of DominoMeter (or -v)");
+		AddInLogMessageText("	update     Check for a new version (or -u)");
+		AddInLogMessageText("	report     Send report (or -r)");
+		AddInLogMessageText("Copyright (C) Prominic.NET, Inc. 2020" + (year > 2020 ? " - " + Integer.toString(year) : ""));
+		AddInLogMessageText("See https://dominometer.com for more details.");
 	}
 
 	/**
@@ -296,7 +283,7 @@ public class DominoMeter extends JavaServerAddin {
 	/**
 	 * Terminate all variables
 	 */
-	private void terminate(Session session, Database ab, MessageQueue mq, String version) {
+	private void terminate(Session session, Database ab, MessageQueue mq) {
 		try {
 			ab.recycle();
 			session.recycle();
@@ -307,5 +294,4 @@ public class DominoMeter extends JavaServerAddin {
 			logMessage("UNLOADED (OK) " + version);
 		} catch (NotesException e) {}
 	}
-
 }
