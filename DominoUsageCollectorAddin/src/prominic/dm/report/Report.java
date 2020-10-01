@@ -106,7 +106,7 @@ public class Report {
 		long usersNotesWeb = 0;
 		long usersPNI = 0;
 		long usersMail = 0;
-		long usersReplica = 0;
+		long usersConflict = 0;
 
 		View view = ab.getView("People");
 		Document doc = view.getFirstDocument();
@@ -116,7 +116,7 @@ public class Report {
 			boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
 			boolean isWeb = doc.hasItem("HTTPPassword") && !doc.getItemValueString("HTTPPassword").isEmpty();
 			String mailSystem = doc.getItemValueString("MailSystem");
-			boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6") && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty());
+			boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
 
 			users++;
 
@@ -136,7 +136,7 @@ public class Report {
 				usersMail++;
 			}			
 			if (doc.hasItem("$Conflict")) {
-				usersReplica++;
+				usersConflict++;
 			}
 
 			doc.recycle();
@@ -149,7 +149,7 @@ public class Report {
 		buf.append("&usersNotesWeb=" + Long.toString(usersNotesWeb));
 		buf.append("&usersPNI=" + Long.toString(usersPNI));
 		buf.append("&usersMail=" + Long.toString(usersMail));
-		buf.append("&usersReplica=" + Long.toString(usersReplica));
+		buf.append("&usersConflict=" + Long.toString(usersConflict));
 
 		return buf.toString();
 	}

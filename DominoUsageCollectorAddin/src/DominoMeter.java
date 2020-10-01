@@ -13,8 +13,8 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "46";
-	final String			JADDIN_DATE				= "2020-10-01 14:30 CET";
+	final String			JADDIN_VERSION			= "49";
+	final String			JADDIN_DATE				= "2020-10-01 15:30 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Instance variables
@@ -60,15 +60,16 @@ public class DominoMeter extends JavaServerAddin {
 			logMessage("Version: " + JADDIN_VERSION + ". Build date: " + JADDIN_DATE);
 			return;
 		}
+
+		// Set the Java thread name to the class name (default would be "Thread-n")		
+		this.setName(JADDIN_NAME);
+		this.dominoTaskID = createAddinStatusLine(this.JADDIN_NAME);
+		setAddinState("Initializing");
+		
 		runLoop();
 	}
 
 	private void runLoop() {
-		// Set the Java thread name to the class name (default would be "Thread-n")		
-		this.setName(JADDIN_NAME);
-
-		// Create the status line showed in 'Show Task' console command
-		this.dominoTaskID = AddInCreateStatusLine(this.JADDIN_NAME + " loaded");
 		Session session = null;
 		Database ab = null;
 		String endpoint = "";
@@ -89,6 +90,7 @@ public class DominoMeter extends JavaServerAddin {
 
 			logMessage("connection (OK) with: " + args[0]);
 			logMessage("version " + this.JADDIN_VERSION);
+			logMessage("date " + this.JADDIN_DATE);
 			logMessage("endpoint: " + endpoint);
 			logMessage("timer: " + JADDIN_TIMER);
 
@@ -106,9 +108,11 @@ public class DominoMeter extends JavaServerAddin {
 			ur.cleanOldVersions(server, endpoint, version);
 
 			while (this.addInRunning()) {
-				JavaServerAddin.sleep(JADDIN_TIMER);
+				setAddinState("Idle");
+				waitMilliSeconds(JADDIN_TIMER);
 
 				if (hourEvent != curHour) {
+					setAddinState("UpdateRobot");
 					String newAddinFile = ur.applyNewVersion(session, server, endpoint, version);
 					if (!newAddinFile.isEmpty()) {
 						Log.sendLog(server, endpoint, version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");
@@ -122,6 +126,7 @@ public class DominoMeter extends JavaServerAddin {
 
 				if (hourEvent != curHour) {
 					Report dc = new Report();
+					setAddinState("Report");
 					if (this.addInRunning() && !dc.send(session, ab, server, endpoint, version)) {
 						Log.sendError(server, endpoint, "report has not been sent", "");
 					}
@@ -134,6 +139,7 @@ public class DominoMeter extends JavaServerAddin {
 				curHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 			}
 
+			setAddinState("Terminate");
 			Log.sendLog(server, endpoint, "unloaded " + version, "");
 			logMessage("UNLOADED (OK) " + version);
 
@@ -166,13 +172,70 @@ public class DominoMeter extends JavaServerAddin {
 	}
 
 	/**
+	 * Create the Domino task status line which is shown in <code>"show tasks"</code> command.
+	 * 
+	 * Note: This method is also called by the JAddinThread and the user add-in
+	 * 
+	 * @param	name	Name of task
+	 * @return	Domino task ID
+	 */
+	public final int createAddinStatusLine(String name) {
+		return (AddInCreateStatusLine(name));
+	}
+
+	/**
+	 * Delete the Domino task status line.
+	 * 
+	 * Note: This method is also called by the JAddinThread and the user add-in
+	 * 
+	 * @param	id	Domino task id
+	 */
+	public final void deleteAddinStatusLine(int id) {
+		if (id != 0)
+			AddInDeleteStatusLine(id);
+	}
+
+	/**
 	 * Set the text of the add-in which is shown in command <code>"show tasks"</code>.
 	 * 
 	 * @param	text	Text to be set
 	 */
-	@SuppressWarnings("unused")
 	private final void setAddinState(String text) {
-		if (this.dominoTaskID == 0) return;
+		
+		if (this.dominoTaskID == 0)
+			return;
+		
 		AddInSetStatusLine(this.dominoTaskID, text);
+	}
+
+	/**
+	 * Set the text of the add-in which is shown in command <code>"show tasks"</code>.
+	 * 
+	 * Note: This method is also called by the JAddinThread and the user add-in
+	 * 
+	 * @param	id		Domino task id
+	 * @param	message	Text to be set
+	 */
+	public final void setAddinState(int id, String message) {
+		
+		if (id == 0)
+			return;
+		
+		AddInSetStatusLine(id, message);
+	}
+	
+	/**
+	 * Delay the execution of the current thread.
+	 * 
+	 * Note: This method is also called by the JAddinThread and the user add-in
+	 * 
+	 * @param	sleepTime	Delay time in milliseconds
+	 */
+	public final void waitMilliSeconds(long sleepTime) {
+		try {
+			Thread.sleep(sleepTime);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
