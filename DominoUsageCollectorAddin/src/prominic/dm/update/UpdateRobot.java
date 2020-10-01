@@ -1,6 +1,7 @@
 package prominic.dm.update;
 
 import java.io.File;
+
 import java.io.IOException;
 
 import lotus.domino.Session;
@@ -14,9 +15,9 @@ import prominic.util.StringUtils;
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
 
-	public String applyNewVersion(Session session, String endpoint, String activeVersion) {
+	public String applyNewVersion(Session session, String server, String endpoint, String activeVersion) {
 		try {
-			String url = endpoint + "/version?openagent&server=" + RESTClient.encodeValue(session.getServerName()) + "&endpoint=" + RESTClient.encodeValue(endpoint);
+			String url = endpoint + "/version?openagent&server=" + RESTClient.encodeValue(server) + "&endpoint=" + RESTClient.encodeValue(endpoint);
 			String fileURL = RESTClient.sendGET(url).toString();
 
 			String configVersion = new File(fileURL).getName();
@@ -98,7 +99,7 @@ public class UpdateRobot {
 	/*
 	 * Clean out old versions
 	 */
-	public void cleanOldVersions(Session session, String endpoint, String curVersion) {
+	public void cleanOldVersions(String server, String endpoint, String curVersion) {
 		try {
 			File dir = new File("DominoMeterAddin");
 			if (!dir.isDirectory()) return;
@@ -122,10 +123,10 @@ public class UpdateRobot {
 			}
 			
 			if (count>0)
-				Log.sendLog(session, endpoint, "removed outdates versions (" + Integer.toString(count) + ")", deletedFiles.toString());
+				Log.sendLog(server, endpoint, "removed outdates versions (" + Integer.toString(count) + ")", deletedFiles.toString());
 			
 		} catch (Exception e) {
-			Log.sendError(session, endpoint, "error during deleting files", e.getLocalizedMessage());
+			Log.sendError(server, endpoint, "error during deleting files", e.getLocalizedMessage());
 			e.printStackTrace();
 		}
 	}

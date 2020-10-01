@@ -1,8 +1,5 @@
 package prominic.dm.update;
 
-import java.util.Date;
-
-import lotus.domino.Session;
 import lotus.domino.Database;
 import lotus.domino.View;
 import lotus.domino.DocumentCollection;
@@ -13,28 +10,20 @@ import lotus.domino.NotesException;
 public class ProgramConfig {
 	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoMeter (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
 
-	private Session m_session;
-	private Database m_database = null;
+	private String m_server;
 	private String m_endpoint;
 
-	public ProgramConfig(Session session, String endpoint) {
-		m_session = session;
+	public ProgramConfig(String server, String endpoint) {
+		m_server = server;
 		m_endpoint = endpoint;
-	}
-
-	private Database getAddressBook() throws NotesException {
-		if (m_database == null) {
-			m_database = m_session.getDatabase(m_session.getServerName(), "names.nsf");
-		}
-		return m_database;
 	}
 
 	/*
 	 * Create/Update program document "At server startup only"
 	 * Must be run once when Addin loads
 	 */
-	public boolean setupServerStartUp(String addinName) throws NotesException {
-		Document doc = updateServerStartUp(addinName);
+	public boolean setupServerStartUp(Database database, String addinName) throws NotesException {
+		Document doc = updateServerStartUp(database, addinName);
 		return doc != null;
 	}
 
@@ -42,11 +31,9 @@ public class ProgramConfig {
 	 * Create "At server startup only" if it does not exist in database
 	 * Delete if find duplicates (in case of some error etc).
 	 */
-	private Document updateServerStartUp(String addinName) throws NotesException {
-		Database database = this.getAddressBook();
-		String server = m_session.getServerName();
+	private Document updateServerStartUp(Database database, String addinName) throws NotesException {
 		View view = database.getView("($Programs)");
-		DocumentCollection col = view.getAllDocumentsByKey(server, true);
+		DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
 		Document program = null;
 		Document doc = col.getFirstDocument();
 		while (doc != null) {
@@ -94,9 +81,9 @@ public class ProgramConfig {
 	 * Enable/Disable program document "Run once at specific time"
 	 * Used to run a new version of DominoMeter
 	 */
-	public boolean setupRunOnce(String addinName, boolean enable) throws NotesException {
+	public boolean setupRunOnce(Database database, String addinName, boolean enable) throws NotesException {
 		int adjustMinutes = enable ? 20 : 0;
-		Document doc = updateOnce(addinName, adjustMinutes, enable);
+		Document doc = updateOnce(database, addinName, adjustMinutes, enable);
 
 		return doc != null;
 	}
@@ -105,11 +92,9 @@ public class ProgramConfig {
 	 * Create/Update/Enable/Disable "Run once at specific time"
 	 * Used when we want to load a new version of DominoUsageCollectoAddin.
 	 */
-	private Document updateOnce(String addinName, int adjustMinutes, boolean enabled) throws NotesException {
-		Database database = this.getAddressBook();
-		String server = m_session.getServerName();
+	private Document updateOnce(Database database, String addinName, int adjustMinutes, boolean enabled) throws NotesException {
 		View view = database.getView("($Programs)");
-		DocumentCollection col = view.getAllDocumentsByKey(server, true);
+		DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
 		Document program = null;
 		Document doc = col.getFirstDocument();
 		while (doc != null) {
@@ -152,8 +137,8 @@ public class ProgramConfig {
 
 		// this is only value we need to modify
 		if (adjustMinutes > 0) {
-			Date jDate = new Date();
-			DateTime dt = m_session.createDateTime(jDate);
+		    DateTime dt = database.getParent().createDateTime("Today");
+		    dt.setNow();
 			dt.adjustMinute(adjustMinutes);
 			program.replaceItemValue("Schedule", dt);
 			log("program document (run at specific time) - updated. Schedule: " + dt.getLocalTime());

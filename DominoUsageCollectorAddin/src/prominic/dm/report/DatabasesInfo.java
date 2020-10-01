@@ -2,22 +2,16 @@ package prominic.dm.report;
 
 import java.util.HashMap;
 
-import lotus.domino.Session;
 import lotus.domino.Database;
 import lotus.domino.View;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
 
 public class DatabasesInfo {
-	private Session m_session;
 	private int m_ntf;
 	private int m_app;
 	private int m_mail;
 	private HashMap<String, Integer> m_templatesUsage;
-
-	public DatabasesInfo(Session session) {
-		m_session = session;
-	}
 
 	private void resetCounters() {
 		m_ntf = 0;
@@ -29,8 +23,7 @@ public class DatabasesInfo {
 	/*
 	 * count NSF, NTF, Mail and App for defined Application server
 	 */
-	public boolean process(String serverName) throws NotesException {
-		Database catalogDb = m_session.getDatabase(serverName, "catalog.nsf");
+	public boolean process(Database catalogDb, String serverName) throws NotesException {
 		View replicaId = catalogDb.getView("($ReplicaId)");
 
 		resetCounters();
@@ -38,7 +31,8 @@ public class DatabasesInfo {
 		// File
 		Document doc = replicaId.getFirstDocument();
 		while (doc != null) {
-			String server = doc.getItemValueString("Server").toLowerCase();
+			Document nextDoc = replicaId.getNextDocument(doc);
+			String server = doc.getItemValueString("Server");
 			String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
 			
 			if (serverName.equalsIgnoreCase(server)) {
@@ -62,11 +56,11 @@ public class DatabasesInfo {
 				m_templatesUsage.put(dbInheritTemplateName, Integer.valueOf(count + 1));	
 			}
 
-			doc = replicaId.getNextDocument(doc);
+			doc.recycle();
+			doc = nextDoc;
 		}
 
 		replicaId.recycle();
-		catalogDb.recycle();
 		
 		return true;
 	}

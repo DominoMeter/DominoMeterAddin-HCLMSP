@@ -1,6 +1,7 @@
 package prominic.dm.report;
 
 import java.io.BufferedReader;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -23,22 +24,20 @@ import prominic.util.FileUtils;
 import prominic.util.StringUtils;
 
 public class Report {
-	public boolean send(Session session, String endpoint, String version) {
+	public boolean send(Session session, Database ab, String server, String endpoint, String version) {
 		try {
 			Date dateStart = new Date();
-
-			String server = session.getServerName();
+			String ndd = session.getEnvironmentString("Directory", true);
+			
 			String url = endpoint.concat("/report?openagent&server=" + RESTClient.encodeValue(server));
-
-			Database database = session.getDatabase(session.getServerName(), "names.nsf");
 
 			// 1. initialize data for report
 			StringBuffer data = new StringBuffer();
-			StringBuffer keyword = Keyword.getValue(endpoint, session.getServerName(), "all");
-			Document serverDoc = database.getView("($ServersLookup)").getDocumentByKey(server, true);
+			StringBuffer keyword = Keyword.getValue(endpoint, server, "all");
+			Document serverDoc = ab.getView("($ServersLookup)").getDocumentByKey(server, true);
 
 			// 2. user license
-			long count = database.getView("People").getAllEntries().getCount();
+			long count = ab.getView("People").getAllEntries().getCount();
 			data.append("&usercount=" + Long.toString(count));
 
 			// 3. databases 
@@ -59,10 +58,10 @@ public class Report {
 			data.append(getServerItems(serverDoc, keyword));
 
 			// 8. program documents
-			data.append("&programs=" + RESTClient.encodeValue(getProgram(database, server)));
+			data.append("&programs=" + RESTClient.encodeValue(getProgram(ab, server)));
 
 			// 9. id files on server
-			String idFiles = getIdFiles(session);
+			String idFiles = getIdFiles(ndd);
 			if (!idFiles.isEmpty()) {
 				data.append("&idfiles=" + idFiles);	
 			}
@@ -79,7 +78,7 @@ public class Report {
 			}
 			
 			// 12. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
-			String nsd = getNSD(session);
+			String nsd = getNSD(ndd);
 			if (!nsd.isEmpty()) {
 				data.append(nsd);
 			}
@@ -93,7 +92,7 @@ public class Report {
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
 		} catch (Exception e) {
-			Log.sendError(session, endpoint, "report failed", e.getLocalizedMessage());	
+			Log.sendError(server, endpoint, "report failed", e.getLocalizedMessage());	
 			e.printStackTrace();
 			return false;
 		}
@@ -102,9 +101,8 @@ public class Report {
 	/*
 	 * Get N latest NSD file names
 	 */
-	private String getNSD(Session session) throws NotesException {
-		String notesDataDir = session.getEnvironmentString("Directory", true);
-		File dir = new File(notesDataDir + File.separator + "IBM_TECHNICAL_SUPPORT");
+	private String getNSD(String ndd) throws NotesException {
+		File dir = new File(ndd + File.separator + "IBM_TECHNICAL_SUPPORT");
 		if (!dir.isDirectory()) return "";
 		File files[] = FileUtils.startsWith(dir, "nsd");
 		if (files.length == 0) return "";
@@ -184,14 +182,19 @@ public class Report {
 	 */
 	private String getDatabaseInfo(Session session, String server) throws NotesException {
 		StringBuffer buf = new StringBuffer();
-		DatabasesInfo dbInfo = new DatabasesInfo(session);
-		if (dbInfo.process(server)) {
+
+		Database catalogDb = session.getDatabase(server, "catalog.nsf");
+		DatabasesInfo dbInfo = new DatabasesInfo();
+		if (dbInfo.process(catalogDb, server)) {
 			buf.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
 			buf.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
 			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));
 			buf.append("&numApp=" + Long.toString(dbInfo.getApp()));
 			buf.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
 		}
+		
+		catalogDb.recycle();
+		
 		return buf.toString();
 	}
 
@@ -228,7 +231,7 @@ public class Report {
 			String variable = variables[i].toLowerCase();
 			String iniValue = session.getEnvironmentString(variable, true);
 			if (iniValue.length() > 0) {
-				buf.append("&ni_" + variable + "=" + RESTClient.encodeValue(iniValue));	
+				buf.append("&" + variable + "=" + RESTClient.encodeValue(iniValue));	
 			}
 		}
 
@@ -308,9 +311,8 @@ public class Report {
 	 * Search all .id files in Domino Data directory
 	 * Build file-md5hash list form the result.
 	 */
-	private String getIdFiles(Session session) throws Exception {
-		String notesDataDir = session.getEnvironmentString("Directory", true);
-		File dir = new File(notesDataDir);
+	private String getIdFiles(String ndd) throws Exception {
+		File dir = new File(ndd);
 		File[] idFiles = FileUtils.endsWith(dir, ".id");
 		if (idFiles.length == 0) return "";
 
@@ -352,14 +354,16 @@ public class Report {
 
 	private String getProgram(Database database, String server) throws NotesException {
 		StringBuffer buf = new StringBuffer();
-		View viewPrograms = database.getView("($Programs)");
-		buf.append(StringUtils.join(viewPrograms.getColumnNames(), "|"));
+		View view = database.getView("($Programs)");
+		buf.append(StringUtils.join(view.getColumnNames(), "|"));
 
-		ViewEntryCollection programs = viewPrograms.getAllEntriesByKey(server, true);
-		ViewEntry program = programs.getFirstEntry();
-		while (program != null) {
+		ViewEntryCollection entries = view.getAllEntriesByKey(server, true);
+		ViewEntry entry = entries.getFirstEntry();
+		while (entry != null) {
+			ViewEntry nextEntry = entries.getNextEntry();
+			
 			@SuppressWarnings("rawtypes")
-			Vector v = program.getColumnValues();
+			Vector v = entry.getColumnValues();
 			String s = "";
 			for(int i = 0; i < v.size(); i++) {
 				if (i > 0) {
@@ -369,11 +373,12 @@ public class Report {
 			}
 			buf.append("~").append(s);
 
-			program = programs.getNextEntry();
+			entry.recycle();
+			entry = nextEntry;
 		}
 		
-		programs.recycle();
-		viewPrograms.recycle();
+		entries.recycle();
+		view.recycle();
 		
 		return buf.toString();
 	}
