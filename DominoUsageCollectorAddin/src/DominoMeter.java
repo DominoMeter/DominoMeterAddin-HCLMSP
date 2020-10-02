@@ -3,6 +3,7 @@ import java.util.Calendar;
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.domino.Database;
+import lotus.domino.Name;
 import lotus.domino.NotesException;
 import lotus.notes.addins.JavaServerAddin;
 import lotus.notes.internal.MessageQueue;
@@ -15,7 +16,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "52";
+	final String			JADDIN_VERSION			= "54";
 	final String			JADDIN_DATE				= "2020-10-01 22:40 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
@@ -35,7 +36,7 @@ public class DominoMeter extends JavaServerAddin {
 	private String 			server					= "";
 	private String 			endpoint				= "";
 	private String 			version					= "";
-	
+
 	// constructor if parameters are provided
 	public DominoMeter(String[] args) {
 		this.args = args;
@@ -120,11 +121,11 @@ public class DominoMeter extends JavaServerAddin {
 			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME);
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
+			sendReport(session, ab);
+
 			UpdateRobot ur = new UpdateRobot();
 			updateVersion(session, ab, ur, pc);
 			ur.cleanOldVersions(server, endpoint, version);
-
-			sendReport(session, ab);
 
 			while (this.addInRunning() && (messageQueueState != MessageQueue.ERR_MQ_QUITTING)) {
 				/* gives control to other task in non preemptive os*/
@@ -154,7 +155,7 @@ public class DominoMeter extends JavaServerAddin {
 				if (this.AddInHasMinutesElapsed(60)) {
 					sendReport(session, ab);
 					updateVersion(session, ab, ur, pc);
-				}
+				}				
 			}
 
 			terminate(session, ab, mq);
@@ -171,6 +172,7 @@ public class DominoMeter extends JavaServerAddin {
 		pc.setState(ab, ProgramConfig.UNLOAD);		// set program documents in UNLOAD state
 		Log.sendLog(server, endpoint, version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");
 		this.stopAddin();
+
 		return true;
 	}
 
@@ -178,14 +180,14 @@ public class DominoMeter extends JavaServerAddin {
 		setAddinState("Report");
 		Report dc = new Report();
 		boolean res= dc.send(session, ab, server, endpoint, version);
-		
+
 		if (!res) {
 			Log.sendError(server, endpoint, "report has not been sent", "");
 		}
-		
+
 		return res;
 	}
-	
+
 	private void showHelp() {
 		int year = Calendar.getInstance().get(Calendar.YEAR);
 		logMessage("*** Usage ***");
@@ -270,21 +272,6 @@ public class DominoMeter extends JavaServerAddin {
 			return;
 
 		AddInSetStatusLine(id, message);
-	}
-
-	/**
-	 * Delay the execution of the current thread.
-	 * 
-	 * Note: This method is also called by the JAddinThread and the user add-in
-	 * 
-	 * @param	sleepTime	Delay time in milliseconds
-	 */
-	public final void waitMilliSeconds(long sleepTime) {
-		try {
-			Thread.sleep(sleepTime);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 
 	/**
