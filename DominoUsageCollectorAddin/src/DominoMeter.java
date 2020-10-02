@@ -3,7 +3,6 @@ import java.util.Calendar;
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.domino.Database;
-import lotus.domino.Name;
 import lotus.domino.NotesException;
 import lotus.notes.addins.JavaServerAddin;
 import lotus.notes.internal.MessageQueue;
@@ -17,7 +16,7 @@ import prominic.dm.update.UpdateRobot;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "54";
-	final String			JADDIN_DATE				= "2020-10-01 22:40 CET";
+	final String			JADDIN_DATE				= "2020-10-02 22:40 CET";
 	final long				JADDIN_TIMER			= 10000;	// 10000 - 10 seconds; 60000 - 1 minute; 3600000 - 1 hour;
 
 	// Message Queue name for this Addin (normally uppercase);
