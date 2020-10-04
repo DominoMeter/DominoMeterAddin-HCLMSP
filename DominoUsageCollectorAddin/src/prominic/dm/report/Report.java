@@ -36,8 +36,11 @@ public class Report {
 			StringBuffer keyword = Keyword.getValue(endpoint, server, "all");
 			Document serverDoc = ab.getView("($ServersLookup)").getDocumentByKey(server, true);
 
-			// 2. user license
-			data.append(users(ab, server));
+			// 2.1. user: license
+			UsersInfo ui = new UsersInfo();
+			data.append(ui.usersCount(ab, server));
+			// 2.2. user: members
+			data.append(ui.accessDeniedCount(ab, serverDoc));
 
 			// 3. databases 
 			data.append(getDatabaseInfo(session, server));
@@ -95,63 +98,6 @@ public class Report {
 			e.printStackTrace();
 			return false;
 		}
-	}
-
-	private String users(Database ab, String server) throws NotesException {
-		StringBuffer buf = new StringBuffer();
-
-		long users = 0;
-		long usersNotes = 0;
-		long usersWeb = 0;
-		long usersNotesWeb = 0;
-		long usersPNI = 0;
-		long usersMail = 0;
-		long usersConflict = 0;
-
-		View view = ab.getView("People");
-		Document doc = view.getFirstDocument();
-		while (doc != null) {
-			Document nextDoc = view.getNextDocument(doc);
-
-			boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
-			boolean isWeb = doc.hasItem("HTTPPassword") && !doc.getItemValueString("HTTPPassword").isEmpty();
-			String mailSystem = doc.getItemValueString("MailSystem");
-			boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
-
-			users++;
-
-			if (isNotes && !isWeb) {
-				usersNotes++;
-			}
-			if (!isNotes && isWeb) {
-				usersWeb++;
-			}			
-			if (isNotes && isWeb) {
-				usersNotesWeb++;
-			}			
-			if (doc.getItemValueString("FullName").contains("/O=PNI")) {
-				usersPNI++;
-			}			
-			if (isMail) {
-				usersMail++;
-			}			
-			if (doc.hasItem("$Conflict")) {
-				usersConflict++;
-			}
-
-			doc.recycle();
-			doc = nextDoc;
-		}
-
-		buf.append("&users=" + Long.toString(users));
-		buf.append("&usersNotes=" + Long.toString(usersNotes));
-		buf.append("&usersWeb=" + Long.toString(usersWeb));
-		buf.append("&usersNotesWeb=" + Long.toString(usersNotesWeb));
-		buf.append("&usersPNI=" + Long.toString(usersPNI));
-		buf.append("&usersMail=" + Long.toString(usersMail));
-		buf.append("&usersConflict=" + Long.toString(usersConflict));
-
-		return buf.toString();
 	}
 
 	/*
