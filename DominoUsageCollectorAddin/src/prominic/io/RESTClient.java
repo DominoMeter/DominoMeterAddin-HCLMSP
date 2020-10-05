@@ -57,7 +57,7 @@ public class RESTClient {
 		int responseCode = con.getResponseCode();
 		if (responseCode != HttpURLConnection.HTTP_OK) {
 			con.disconnect();
-			throw new IOException("GET failed: " + con.getURL());
+			throw new IOException("Unexpected response code: " + Integer.toString(responseCode));
 		}
 
 		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));

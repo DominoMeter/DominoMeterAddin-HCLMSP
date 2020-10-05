@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "63";
+	final String			JADDIN_VERSION			= "64";
 	final String			JADDIN_DATE				= "2020-10-05 22:30 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
@@ -90,7 +90,8 @@ public class DominoMeter extends JavaServerAddin {
 			Ping ping = new Ping();
 			if (!ping.check(endpoint, server)) {
 				Log.sendError(server, endpoint, "connection (*FAILED*) with: " + endpoint, ping.getLastError());
-				logMessage("connection (*FAILED*) with: " + endpoint + " error:" + ping.getLastError());
+				logMessage("connection (*FAILED*) with: " + endpoint);
+				logMessage("> " + ping.getLastError());
 				return;
 			}
 
