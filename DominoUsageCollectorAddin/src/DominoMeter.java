@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "58";
+	final String			JADDIN_VERSION			= "59";
 	final String			JADDIN_DATE				= "2020-10-05 15:30 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
@@ -31,6 +31,7 @@ public class DominoMeter extends JavaServerAddin {
 	private String[] 		args 					= null;
 	private int 			dominoTaskID			= 0;
 
+	MessageQueue 			mq						= null;
 	Session 				session 				= null;
 	Database 				ab 						= null;
 	private int				interval				= 60;
@@ -97,26 +98,23 @@ public class DominoMeter extends JavaServerAddin {
 
 			showInfo();
 
-			MessageQueue mq = new MessageQueue();
+			mq = new MessageQueue();
 			int messageQueueState = mq.create(qName, 0, 0);	// use like MQCreate in API
 			if (messageQueueState == MessageQueue.ERR_DUPLICATE_MQ) {
 				logMessage(this.JADDIN_NAME + " task is already running");
-				terminate(session, ab, mq);
 				return;
 			}
 
 			if (messageQueueState != MessageQueue.NOERROR) {
 				logMessage("Unable to create the Domino message queue");
-				terminate(session, ab, mq);
 				return;
 			}
 
 			if (mq.open(qName, 0) != MessageQueue.NOERROR) {
 				logMessage("Unable to open Domino message queue");
-				terminate(session, ab, mq);
 				return;
 			}
-
+			
 			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME);
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
@@ -132,6 +130,7 @@ public class DominoMeter extends JavaServerAddin {
 
 				setAddinState("Idle");
 
+				// check for command from console
 				messageQueueState = mq.get(qBuffer, MQ_MAX_MSGSIZE, MessageQueue.MQ_WAIT_FOR_MSG, 1000);
 				resolveMessageQueueState(qBuffer, ur, pc, config);
 
@@ -141,8 +140,6 @@ public class DominoMeter extends JavaServerAddin {
 					updateVersion(ur, pc, config.getJAR());
 				}				
 			}
-
-			terminate(session, ab, mq);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -232,7 +229,8 @@ public class DominoMeter extends JavaServerAddin {
 	 * This method is called by the Java runtime during garbage collection.
 	 */
 	public void finalize() {
-		// Call the superclass method
+		terminate();
+		
 		super.finalize();
 	}
 
@@ -302,15 +300,23 @@ public class DominoMeter extends JavaServerAddin {
 	/**
 	 * Terminate all variables
 	 */
-	private void terminate(Session session, Database ab, MessageQueue mq) {
+	private void terminate() {
 		try {
-			ab.recycle();
-			session.recycle();
-
-			setAddinState("Terminating...");
-			mq.close(0);
 			AddInDeleteStatusLine(dominoTaskID);
+			
+			if (this.ab != null) {
+				this.ab.recycle();
+			}
+			if (this.session != null) {
+				this.session.recycle();
+			}
+			if (this.mq != null) {
+				this.mq.close(0);	
+			}
+
 			logMessage("UNLOADED (OK) " + version);
-		} catch (NotesException e) {}
+		} catch (NotesException e) {
+			logMessage("UNLOADED (**FAILED**) " + version);
+		}
 	}
 }
