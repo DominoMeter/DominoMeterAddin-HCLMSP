@@ -7,9 +7,8 @@ public class Keyword {
 		String url = endpoint + "/keyword?openagent&server=" + RESTClient.encodeValue(server) + "&id=" + id;
 		try {
 			return RESTClient.sendGET(url);
-		} catch (Exception e) {
-			return null;
-		}
+		} catch (Exception e) {}
+		return null;
 	}
 	
 	public static StringBuffer getAll(String endpoint, String server) {

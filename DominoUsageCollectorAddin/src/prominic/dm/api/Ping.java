@@ -8,8 +8,7 @@ public class Ping {
 		try {
 			StringBuffer buf = RESTClient.sendGET(url);
 			return buf.toString().equals("OK");
-		} catch (Exception e) {
-			return false;
-		}
+		} catch (Exception e) {}
+		return false;
 	}
 }
