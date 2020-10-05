@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "59";
+	final String			JADDIN_VERSION			= "62";
 	final String			JADDIN_DATE				= "2020-10-05 15:30 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
@@ -87,16 +87,12 @@ public class DominoMeter extends JavaServerAddin {
 			version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
 
 			// check if connection could be established
-			if (!Ping.isLive(endpoint, server)) {
-				Log.sendError(server, endpoint, "connection (*FAILED*) with: " + endpoint, "");
-				logMessage("connection (*FAILED*) with: " + endpoint);
+			Ping ping = new Ping();
+			if (!ping.check(endpoint, server)) {
+				Log.sendError(server, endpoint, "connection (*FAILED*) with: " + endpoint, ping.getLastError());
+				logMessage("connection (*FAILED*) with: " + endpoint + " error:" + ping.getLastError());
 				return;
 			}
-
-			Config config = new Config();
-			loadConfig(config);
-
-			showInfo();
 
 			mq = new MessageQueue();
 			int messageQueueState = mq.create(qName, 0, 0);	// use like MQCreate in API
@@ -114,7 +110,11 @@ public class DominoMeter extends JavaServerAddin {
 				logMessage("Unable to open Domino message queue");
 				return;
 			}
-			
+
+			Config config = new Config();
+			loadConfig(config);
+			showInfo();
+
 			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME);
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 

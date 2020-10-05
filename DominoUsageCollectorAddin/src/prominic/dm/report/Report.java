@@ -18,6 +18,7 @@ import lotus.domino.NotesException;
 
 import prominic.dm.api.Keyword;
 import prominic.dm.api.Log;
+import prominic.dm.api.Ping;
 import prominic.io.RESTClient;
 import prominic.util.MD5Checksum;
 import prominic.util.FileUtils;
@@ -85,6 +86,10 @@ public class Report {
 				data.append(nsd);
 			}
 
+			// 13. In case if connection is done via HTTP we still need to check if HTTPS works
+			data.append(checkHTTPSConnection(endpoint, server));
+
+
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
@@ -98,6 +103,21 @@ public class Report {
 			e.printStackTrace();
 			return false;
 		}
+	}
+
+	private String checkHTTPSConnection(String endpoint, String server) {
+		StringBuffer buf = new StringBuffer();
+		if (!endpoint.startsWith("http://")) return "";
+
+		String testHTTPS = "https" + endpoint.substring(4);
+		Ping ping = new Ping();
+		boolean check = ping.check(testHTTPS, server);
+		buf.append("&checkhttps=" + (check ? "1" : "0"));
+		if (!check) {
+			buf.append("&checkhttpserror=" + ping.getLastError());
+		}
+
+		return buf.toString();
 	}
 
 	/*

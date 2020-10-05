@@ -1,7 +1,6 @@
 package prominic.dm.report;
 
 import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
@@ -18,6 +17,10 @@ public class UsersInfo {
 	@SuppressWarnings("unchecked")
 	public String accessDeniedCount(Database database, Document serverDoc) throws NotesException {
 		View vimGroups = database.getView("($VIMGroups)");
+		if (vimGroups == null) {
+			return "";
+		};
+		
 		View viewPeople = database.getView("People");
 
 		Vector<String> usersFullName = new Vector<String>();
@@ -60,7 +63,7 @@ public class UsersInfo {
 		vimGroups.recycle();
 
 		String res = "&usersAllow=" + Integer.toString(allowData.get(USERS).size()) + "&usersDeny=" + Integer.toString(denyData.get(USERS).size());
-		
+
 		return res;
 	}
 
@@ -97,10 +100,9 @@ public class UsersInfo {
 		data.put(USERS, users);
 
 		doc.recycle();
-		
+
 		return data;
 	}
-
 
 	public String usersCount(Database ab, String server) throws NotesException {
 		StringBuffer buf = new StringBuffer();
