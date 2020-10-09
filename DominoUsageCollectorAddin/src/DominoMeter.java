@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "65";
+	final String			JADDIN_VERSION			= "66";
 	final String			JADDIN_DATE				= "2020-10-06 01:30 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
@@ -131,11 +131,11 @@ public class DominoMeter extends JavaServerAddin {
 				resolveMessageQueueState(qBuffer, ur, pc, config);
 
 				if (this.AddInHasMinutesElapsed(interval)) {
-					checkConnection();
-
-					loadConfig(config);
-					sendReport();
-					updateVersion(ur, pc, config.getJAR());
+					if (checkConnection()) {
+						loadConfig(config);
+						sendReport();
+						updateVersion(ur, pc, config.getJAR());	
+					}
 				}				
 			}
 		} catch(Exception e) {
@@ -143,21 +143,23 @@ public class DominoMeter extends JavaServerAddin {
 		}
 	}
 
-	private void checkConnection() {
+	private boolean checkConnection() {
 		Ping ping = new Ping();
 		if (ping.check(endpoint, server)) {
 			failedCounter = 0;
-			return;
+			return true;
 		};
+
+		failedCounter++;
 
 		logMessage("connection (*FAILED*) with: " + endpoint);
 		logMessage("> " + ping.getLastError());
 		logMessage("> counter: " + Integer.toString(failedCounter));
-		failedCounter++;
-		
-		if (failedCounter <= 5) return;
-		
-		this.stopAddin();
+
+		if (failedCounter > 5) {
+			this.stopAddin();		
+		}
+		return false;
 	}
 
 	private void resolveMessageQueueState(StringBuffer qBuffer, UpdateRobot ur, ProgramConfig pc, Config config) {

@@ -3,7 +3,6 @@ package prominic.dm.update;
 import java.io.File;
 
 import lotus.domino.Session;
-import lotus.domino.NotesException;
 
 import prominic.dm.api.Log;
 import prominic.io.RESTClient;
@@ -15,6 +14,10 @@ public class UpdateRobot {
 
 	public String applyNewVersion(Session session, String server, String endpoint, String fileURL, String activeVersion) {
 		try {
+			if (fileURL.isEmpty()) {
+				return "";
+			}
+			
 			String configVersion = new File(fileURL).getName();
 			if (configVersion.equalsIgnoreCase(activeVersion)) {
 				return "";
@@ -82,7 +85,7 @@ public class UpdateRobot {
 			log(JAVA_USER_CLASSES + " (new) set to " + userClasses);
 
 			return configVersion;
-		} catch (NotesException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
