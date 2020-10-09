@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "66";
+	final String			JADDIN_VERSION			= "67";
 	final String			JADDIN_DATE				= "2020-10-06 01:30 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
@@ -88,7 +88,7 @@ public class DominoMeter extends JavaServerAddin {
 			version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
 
 			// check if connection could be established
-			checkConnection();
+			boolean check = checkConnection();
 
 			mq = new MessageQueue();
 			int messageQueueState = mq.create(qName, 0, 0);	// use like MQCreate in API
@@ -114,10 +114,10 @@ public class DominoMeter extends JavaServerAddin {
 			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME);
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
-			sendReport();
+			if (check) sendReport();	
 
 			UpdateRobot ur = new UpdateRobot();
-			updateVersion(ur, pc, config.getJAR());
+			if (check) updateVersion(ur, pc, config.getJAR());	
 			ur.cleanOldVersions(server, endpoint, version);
 
 			while (this.addInRunning() && (messageQueueState != MessageQueue.ERR_MQ_QUITTING)) {

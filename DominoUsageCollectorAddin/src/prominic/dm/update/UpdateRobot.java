@@ -14,7 +14,7 @@ public class UpdateRobot {
 
 	public String applyNewVersion(Session session, String server, String endpoint, String fileURL, String activeVersion) {
 		try {
-			if (fileURL.isEmpty()) {
+			if (fileURL == null || fileURL.isEmpty()) {
 				return "";
 			}
 			
