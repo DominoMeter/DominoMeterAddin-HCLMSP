@@ -57,7 +57,7 @@ public class Report {
 			// 6. notes.ini, we could get variables using API call
 			data.append(getNotesINI(session, keyword));
 
-			// 7. notes.ini, we could get variables using API call
+			// 7. server document items
 			data.append(getServerItems(serverDoc, keyword));
 
 			// 8. program documents
