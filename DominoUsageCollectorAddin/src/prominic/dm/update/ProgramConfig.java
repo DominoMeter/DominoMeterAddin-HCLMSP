@@ -31,7 +31,7 @@ public class ProgramConfig {
 	/*
 	 * Set state for program documents
 	 */
-	public void setState(Database database, int state) {
+	public boolean setState(Database database, int state) {
 		try {
 			m_lastError = "";
 			View view = database.getView("($Programs)");
@@ -86,9 +86,14 @@ public class ProgramConfig {
 
 			col.recycle();
 			view.recycle();
+			
+			return true;
 		} catch(Exception e) {
+			m_lastError = e.getMessage();
 			e.printStackTrace();
 		}
+		
+		return false;
 	}
 
 	private void deleteDuplicate(Document doc) throws NotesException {

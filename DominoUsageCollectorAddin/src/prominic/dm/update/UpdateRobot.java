@@ -89,7 +89,7 @@ public class UpdateRobot {
 
 			return configVersion;
 		} catch (Exception e) {
-			e.printStackTrace();
+			m_lastError = e.getMessage();
 		}
 
 		return "";

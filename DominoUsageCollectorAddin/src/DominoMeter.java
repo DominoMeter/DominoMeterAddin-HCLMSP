@@ -197,7 +197,12 @@ public class DominoMeter extends JavaServerAddin {
 	private boolean updateVersion(UpdateRobot ur, ProgramConfig pc, String jar) {
 		setAddinState("UpdateRobot");
 		String newAddinFile = ur.applyNewVersion(session, server, endpoint, jar, version);
-		if (newAddinFile.isEmpty()) return false;
+		if (newAddinFile.isEmpty()) {
+			if (ur.getLastError().length() > 0) {
+				Log.sendError(server, endpoint, ur.getLastError(), "");
+			}
+			return false;
+		}
 
 		pc.setState(ab, ProgramConfig.UNLOAD);		// set program documents in UNLOAD state
 		Log.sendLog(server, endpoint, version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");

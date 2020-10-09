@@ -103,15 +103,14 @@ public class Report {
 			return res.toString().equals("OK");
 		} 
 		catch (NotesException e) {
-			m_lastError = e.getLocalizedMessage();
+			m_lastError = e.getMessage();
 			e.printStackTrace();
-			return false;
 		}
 		catch (Exception e) {
-			m_lastError = e.getLocalizedMessage();
+			m_lastError = e.getMessage();
 			e.printStackTrace();
-			return false;
 		}
+		return false;
 	}
 
 	private String checkHTTPSConnection(String endpoint, String server) {
