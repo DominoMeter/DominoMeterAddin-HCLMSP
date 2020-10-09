@@ -19,7 +19,12 @@ public class Log {
 			body = RESTClient.encodeValue(body);
 			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + server, "subject=" + subject + "&body=" + body + "&logLevel=" + Integer.toString(logLevel));
 			return res.toString().equalsIgnoreCase("OK");
-		} catch (IOException e) {}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		return false;
 	}
 	

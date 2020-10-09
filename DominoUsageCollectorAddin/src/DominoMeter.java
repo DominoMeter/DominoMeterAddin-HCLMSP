@@ -1,5 +1,4 @@
 import java.util.Calendar;
-
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
 import lotus.domino.Database;
@@ -15,7 +14,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "67";
+	final String			JADDIN_VERSION			= "68";
 	final String			JADDIN_DATE				= "2020-10-06 01:30 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
@@ -209,11 +208,11 @@ public class DominoMeter extends JavaServerAddin {
 
 	private boolean sendReport() {
 		setAddinState("Report");
-		Report dc = new Report();
-		boolean res = dc.send(session, ab, server, endpoint, version);
+		Report report = new Report();
+		boolean res = report.send(session, ab, server, endpoint, version);
 
 		if (!res) {
-			Log.sendError(server, endpoint, "report has not been sent", "");
+			Log.sendError(server, endpoint, report.getLastError(), "");
 		}
 
 		return res;

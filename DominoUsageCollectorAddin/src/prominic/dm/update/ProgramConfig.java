@@ -20,6 +20,7 @@ public class ProgramConfig {
 	private String m_server;
 	private String m_endpoint;
 	private String m_addinName;
+	private String m_lastError = "";
 
 	public ProgramConfig(String server, String endpoint, String addinName) {
 		m_server = server;
@@ -32,6 +33,7 @@ public class ProgramConfig {
 	 */
 	public void setState(Database database, int state) {
 		try {
+			m_lastError = "";
 			View view = database.getView("($Programs)");
 			DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
 			boolean programStartupOnly = false;
@@ -177,6 +179,10 @@ public class ProgramConfig {
 		return "2".equals(doc.getItemValueString("Enabled"));
 	}
 
+	public String getLastError() {
+		return m_lastError;
+	}
+	
 	private void log(Object msg) {
 		System.out.println("[ProgramConfig] " + msg.toString());
 	}

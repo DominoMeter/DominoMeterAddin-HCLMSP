@@ -1,6 +1,7 @@
 package prominic.dm.report;
 
 import java.io.BufferedReader;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -16,7 +17,6 @@ import lotus.domino.Document;
 import lotus.domino.NotesException;
 
 import prominic.dm.api.Keyword;
-import prominic.dm.api.Log;
 import prominic.dm.api.Ping;
 import prominic.io.RESTClient;
 import prominic.util.MD5Checksum;
@@ -24,9 +24,13 @@ import prominic.util.FileUtils;
 import prominic.util.StringUtils;
 
 public class Report {
+	private String m_lastError = "";
+
 	public boolean send(Session session, Database ab, String server, String endpoint, String version) {
 		try {
 			Date dateStart = new Date();
+
+			m_lastError = "";
 			String ndd = session.getEnvironmentString("Directory", true);
 
 			String url = endpoint.concat("/report?openagent&server=" + RESTClient.encodeValue(server));
@@ -97,8 +101,14 @@ public class Report {
 
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
-		} catch (Exception e) {
-			Log.sendError(server, endpoint, "report failed", e.getLocalizedMessage());	
+		} 
+		catch (NotesException e) {
+			m_lastError = e.getLocalizedMessage();
+			e.printStackTrace();
+			return false;
+		}
+		catch (Exception e) {
+			m_lastError = e.getLocalizedMessage();
 			e.printStackTrace();
 			return false;
 		}
@@ -402,5 +412,9 @@ public class Report {
 		view.recycle();
 
 		return buf.toString();
+	}
+
+	public String getLastError() {
+		return m_lastError;
 	}
 }

@@ -11,9 +11,12 @@ import prominic.util.StringUtils;
 
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
-
+	private String m_lastError = "";
+	
 	public String applyNewVersion(Session session, String server, String endpoint, String fileURL, String activeVersion) {
 		try {
+			m_lastError = "";
+			
 			if (fileURL == null || fileURL.isEmpty()) {
 				return "";
 			}
@@ -131,4 +134,7 @@ public class UpdateRobot {
 		System.out.println("[UpdateRobot] " + msg.toString());
 	}
 
+	public String getLastError() {
+		return m_lastError;
+	}
 }
