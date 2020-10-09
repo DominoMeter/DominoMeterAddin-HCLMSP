@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "64";
+	final String			JADDIN_VERSION			= "65";
 	final String			JADDIN_DATE				= "2020-10-06 01:30 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
@@ -38,6 +38,7 @@ public class DominoMeter extends JavaServerAddin {
 	private String 			server					= "";
 	private String 			endpoint				= "";
 	private String 			version					= "";
+	private int				failedCounter			= 0;
 
 	// constructor if parameters are provided
 	public DominoMeter(String[] args) {
@@ -87,13 +88,7 @@ public class DominoMeter extends JavaServerAddin {
 			version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
 
 			// check if connection could be established
-			Ping ping = new Ping();
-			if (!ping.check(endpoint, server)) {
-				Log.sendError(server, endpoint, "connection (*FAILED*) with: " + endpoint, ping.getLastError());
-				logMessage("connection (*FAILED*) with: " + endpoint);
-				logMessage("> " + ping.getLastError());
-				return;
-			}
+			checkConnection();
 
 			mq = new MessageQueue();
 			int messageQueueState = mq.create(qName, 0, 0);	// use like MQCreate in API
@@ -136,6 +131,8 @@ public class DominoMeter extends JavaServerAddin {
 				resolveMessageQueueState(qBuffer, ur, pc, config);
 
 				if (this.AddInHasMinutesElapsed(interval)) {
+					checkConnection();
+
 					loadConfig(config);
 					sendReport();
 					updateVersion(ur, pc, config.getJAR());
@@ -144,6 +141,23 @@ public class DominoMeter extends JavaServerAddin {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private void checkConnection() {
+		Ping ping = new Ping();
+		if (ping.check(endpoint, server)) {
+			failedCounter = 0;
+			return;
+		};
+
+		logMessage("connection (*FAILED*) with: " + endpoint);
+		logMessage("> " + ping.getLastError());
+		logMessage("> counter: " + Integer.toString(failedCounter));
+		failedCounter++;
+		
+		if (failedCounter <= 5) return;
+		
+		this.stopAddin();
 	}
 
 	private void resolveMessageQueueState(StringBuffer qBuffer, UpdateRobot ur, ProgramConfig pc, Config config) {
@@ -202,7 +216,7 @@ public class DominoMeter extends JavaServerAddin {
 
 		return res;
 	}
-	
+
 	private void showInfo() {
 		logMessage("version " + this.JADDIN_VERSION);
 		logMessage("build date " + this.JADDIN_DATE);
@@ -231,7 +245,7 @@ public class DominoMeter extends JavaServerAddin {
 	 */
 	public void finalize() {
 		terminate();
-		
+
 		super.finalize();
 	}
 
@@ -304,7 +318,7 @@ public class DominoMeter extends JavaServerAddin {
 	private void terminate() {
 		try {
 			AddInDeleteStatusLine(dominoTaskID);
-			
+
 			if (this.ab != null) {
 				this.ab.recycle();
 			}
