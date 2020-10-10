@@ -5,6 +5,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Vector;
 
@@ -25,7 +27,7 @@ import prominic.util.StringUtils;
 
 public class Report {
 	private String m_lastError = "";
-
+	
 	public boolean send(Session session, Database ab, String server, String endpoint, String version) {
 		try {
 			Date dateStart = new Date();
@@ -135,7 +137,7 @@ public class Report {
 		File dir = new File(ndd + File.separator + "IBM_TECHNICAL_SUPPORT");
 		if (!dir.isDirectory()) return "";
 		File files[] = FileUtils.startsWith(dir, "nsd");
-		if (files.length == 0) return "";
+		if (files.length == 0) return "&numNsdCount1Day=0&numNsdCount7Day=0";
 
 		// get 10 recent nsd
 		StringBuffer recentNSD = new StringBuffer();
@@ -193,7 +195,7 @@ public class Report {
 	/*
 	 * OS data
 	 */
-	private String getSystemInfo(Session session, String endpoint, String version) throws NotesException {
+	private String getSystemInfo(Session session, String endpoint, String version) throws NotesException, UnknownHostException {
 		StringBuffer buf = new StringBuffer();
 
 		buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
@@ -201,6 +203,8 @@ public class Report {
 		buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
 		buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
 		buf.append("&domino=" + session.getNotesVersion());
+		buf.append("&username=" + System.getProperty("user.name", "n/a"));
+		buf.append("&hostname=" + InetAddress.getLocalHost().getHostName());
 		buf.append("&version=" + version);
 		buf.append("&endpoint=" + RESTClient.encodeValue(endpoint));
 
@@ -303,8 +307,9 @@ public class Report {
 			index1 += "DAOS".length();
 			int index2 = buf.indexOf("Not", index1);
 			int index3 = buf.indexOf("Enabled", index1);	
-			String flag = index2 < index3 ? "0" : "1";
-			buf.append("&daos=" + flag);
+			if( index2 >= index3) {
+				buf.append("&daos=1");
+			};
 		}
 
 		index1 = buf.indexOf("Transactional");
@@ -312,8 +317,9 @@ public class Report {
 			index1 += "Transactional".length();
 			int index2 = buf.indexOf("Not", index1);
 			int index3 = buf.indexOf("Enabled", index1);	
-			String flag = index2 < index3 ? "0" : "1";
-			buf.append("&transactional_logging=" + flag);
+			if (index2 >= index3) {
+				buf.append("&transactional_logging=1");	
+			}
 		}
 
 		// SHOW TASKS

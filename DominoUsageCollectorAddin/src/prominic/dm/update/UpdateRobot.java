@@ -51,7 +51,7 @@ public class UpdateRobot {
 				boolean upload = RESTClient.saveURLTo(fileUrl, filePath);
 				if (!upload) {
 					log("File was NOT downloaded due to some error. Update aborted.");
-					return "";
+					throw new Exception("File was NOT downloaded due to some error. Update aborted.");
 				};
 				log("File was downloaded to: " + filePath);
 			}
