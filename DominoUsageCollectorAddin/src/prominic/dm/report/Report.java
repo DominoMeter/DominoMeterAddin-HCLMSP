@@ -16,6 +16,7 @@ import lotus.domino.View;
 import lotus.domino.ViewEntryCollection;
 import lotus.domino.ViewEntry;
 import lotus.domino.Document;
+import lotus.domino.Item;
 import lotus.domino.NotesException;
 
 import prominic.dm.api.Keyword;
@@ -284,7 +285,11 @@ public class Report {
 		for(int i = 0; i < variables.length; i++) {
 			String variable = variables[i].toLowerCase();
 			if (doc.hasItem(variable)) {
-				String v = doc.getFirstItem(variable).getText();
+				Item item = doc.getFirstItem(variable);
+				if (item.getValues().size() > 1) {
+					variable += "list_";
+				}
+				String v = item.getText();
 				buf.append("&" + variable + "=" + RESTClient.encodeValue(v));
 			}
 		}
