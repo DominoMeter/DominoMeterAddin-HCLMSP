@@ -287,7 +287,7 @@ public class Report {
 			if (doc.hasItem(variable)) {
 				Item item = doc.getFirstItem(variable);
 				if (item.getValues().size() > 1) {
-					variable += "list_";
+					variable += "list";
 				}
 				String v = item.getText();
 				buf.append("&" + variable + "=" + RESTClient.encodeValue(v));
