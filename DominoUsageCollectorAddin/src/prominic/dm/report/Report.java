@@ -1,7 +1,6 @@
 package prominic.dm.report;
 
 import java.io.BufferedReader;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -16,7 +15,6 @@ import lotus.domino.View;
 import lotus.domino.ViewEntryCollection;
 import lotus.domino.ViewEntry;
 import lotus.domino.Document;
-import lotus.domino.Item;
 import lotus.domino.NotesException;
 
 import prominic.dm.api.Keyword;
@@ -192,11 +190,25 @@ public class Report {
 		}
 		return "";
 	}
+	
+	// TODO: move to util
+	private String getHost() {
+		try {
+			return InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {}
+		
+		String host = System.getenv("HOSTNAME");
+		if (host.isEmpty()) {
+			host = System.getenv("COMPUTERNAME");
+		}
+		
+		return host;
+	}
 
 	/*
 	 * OS data
 	 */
-	private String getSystemInfo(Session session, String endpoint, String version) throws NotesException, UnknownHostException {
+	private String getSystemInfo(Session session, String endpoint, String version) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
 		buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
@@ -205,9 +217,9 @@ public class Report {
 		buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
 		buf.append("&domino=" + session.getNotesVersion());
 		buf.append("&username=" + System.getProperty("user.name", "n/a"));
-		buf.append("&hostname=" + InetAddress.getLocalHost().getHostName());
 		buf.append("&version=" + version);
 		buf.append("&endpoint=" + RESTClient.encodeValue(endpoint));
+		buf.append("&hostname=" + getHost());
 
 		return buf.toString();
 	}
@@ -285,11 +297,7 @@ public class Report {
 		for(int i = 0; i < variables.length; i++) {
 			String variable = variables[i].toLowerCase();
 			if (doc.hasItem(variable)) {
-				Item item = doc.getFirstItem(variable);
-				if (item.getValues().size() > 1) {
-					variable += "list";
-				}
-				String v = item.getText();
+				String v = doc.getFirstItem(variable).getText();
 				buf.append("&" + variable + "=" + RESTClient.encodeValue(v));
 			}
 		}
