@@ -207,16 +207,12 @@ public class Report {
 		buf.append("&endpoint=" + RESTClient.encodeValue(endpoint));
 
 		String host = "";
-		String ip = "";
 		try {
             InetAddress local = InetAddress.getLocalHost();
-            ip = local.getHostAddress();
 			host = local.getHostName();
 		} catch (UnknownHostException e) {
-			ip = "n/a";
 			host = "n/a";
 		}
-		buf.append("&hostip=" + ip);
 		buf.append("&hostname=" + host);
 		
 		return buf.toString();
