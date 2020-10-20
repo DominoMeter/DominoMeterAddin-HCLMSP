@@ -191,15 +191,6 @@ public class Report {
 		return "";
 	}
 	
-	// TODO: move to util
-	private String getHost() {
-		try {
-			return InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e) {
-			return "n/a";
-		}
-	}
-
 	/*
 	 * OS data
 	 */
@@ -214,8 +205,20 @@ public class Report {
 		buf.append("&username=" + System.getProperty("user.name", "n/a"));
 		buf.append("&version=" + version);
 		buf.append("&endpoint=" + RESTClient.encodeValue(endpoint));
-		buf.append("&hostname=" + getHost());
 
+		String host = "";
+		String ip = "";
+		try {
+            InetAddress local = InetAddress.getLocalHost();
+            ip = local.getHostAddress();
+			host = local.getHostName();
+		} catch (UnknownHostException e) {
+			ip = "n/a";
+			host = "n/a";
+		}
+		buf.append("&hostip=" + ip);
+		buf.append("&hostname=" + host);
+		
 		return buf.toString();
 	}
 
