@@ -195,14 +195,9 @@ public class Report {
 	private String getHost() {
 		try {
 			return InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e) {}
-		
-		String host = System.getenv("HOSTNAME");
-		if (host.isEmpty()) {
-			host = System.getenv("COMPUTERNAME");
+		} catch (UnknownHostException e) {
+			return "n/a";
 		}
-		
-		return host;
 	}
 
 	/*
