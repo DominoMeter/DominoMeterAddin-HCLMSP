@@ -15,6 +15,7 @@ import lotus.domino.View;
 import lotus.domino.ViewEntryCollection;
 import lotus.domino.ViewEntry;
 import lotus.domino.Document;
+import lotus.domino.NoteCollection;
 import lotus.domino.NotesException;
 
 import prominic.dm.api.Keyword;
@@ -26,7 +27,7 @@ import prominic.util.StringUtils;
 
 public class Report {
 	private String m_lastError = "";
-	
+
 	public boolean send(Session session, Database ab, String server, String endpoint, String version) {
 		try {
 			Date dateStart = new Date();
@@ -56,7 +57,7 @@ public class Report {
 			}
 
 			// 5. system data
-			data.append(getSystemInfo(session, endpoint, version));
+			data.append(getSystemInfo(session, ab, endpoint, version));
 
 			// 6. notes.ini, we could get variables using API call
 			data.append(getNotesINI(session, keyword));
@@ -92,8 +93,7 @@ public class Report {
 
 			// 13. In case if connection is done via HTTP we still need to check if HTTPS works
 			data.append(checkHTTPSConnection(endpoint, server));
-
-
+			
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
@@ -190,11 +190,11 @@ public class Report {
 		}
 		return "";
 	}
-	
+
 	/*
 	 * OS data
 	 */
-	private String getSystemInfo(Session session, String endpoint, String version) throws NotesException {
+	private String getSystemInfo(Session session, Database ab, String endpoint, String version) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
 		buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
@@ -205,16 +205,17 @@ public class Report {
 		buf.append("&username=" + System.getProperty("user.name", "n/a"));
 		buf.append("&version=" + version);
 		buf.append("&endpoint=" + RESTClient.encodeValue(endpoint));
+		buf.append("&templateVersion=" + getDatabaseVersionNumber(ab));
 
 		String host = "";
 		try {
-            InetAddress local = InetAddress.getLocalHost();
+			InetAddress local = InetAddress.getLocalHost();
 			host = local.getHostName();
 		} catch (UnknownHostException e) {
 			host = "n/a";
 		}
 		buf.append("&hostname=" + host);
-		
+
 		return buf.toString();
 	}
 
@@ -299,6 +300,18 @@ public class Report {
 		return buf.toString();
 	}
 
+	private static String getDatabaseVersionNumber(Database database) throws NotesException {
+		NoteCollection noteCollection;
+		noteCollection = database.createNoteCollection(true);
+		noteCollection.setSelectSharedFields(true);
+		noteCollection.setSelectionFormula("$TITLE=\"$TemplateBuild\"");
+		noteCollection.buildCollection();
+		final String noteID = noteCollection.getFirstNoteID();
+		final Document designDoc = database.getDocumentByID(noteID);
+
+		return designDoc.getItemValueString("$TemplateBuild");
+	}
+
 	/*
 	 * Get data from Domino console
 	 */
@@ -308,6 +321,9 @@ public class Report {
 		// SHOW SERVER
 		String console = session.sendConsoleCommand("", "!sh server");
 		buf.append("&sh_server=" + RESTClient.encodeValue(console));
+
+		console = session.sendConsoleCommand("", "!sh cluster");
+		buf.append("&sh_cluster=" + RESTClient.encodeValue(console));
 
 		int index1 = buf.indexOf("DAOS");
 		if (index1 >= 0) {
@@ -334,7 +350,7 @@ public class Report {
 		buf.append("&sh_tasks=" + RESTClient.encodeValue(console));		
 		if (console.contains("Traveler")) {
 			buf.append("&traveler=1");
-		}		
+		}
 		if (console.contains("Sametime")) {
 			buf.append("&sametime=1");
 		}
