@@ -34,65 +34,90 @@ public class Report {
 
 			m_lastError = "";
 			String ndd = session.getEnvironmentString("Directory", true);
-
 			String url = endpoint.concat("/report?openagent&server=" + RESTClient.encodeValue(server));
 
 			// 1. initialize data for report
+			Date stepStart = new Date();
 			StringBuffer data = new StringBuffer();
 			StringBuffer keyword = Keyword.getValue(endpoint, server, "all");
 			Document serverDoc = ab.getView("($ServersLookup)").getDocumentByKey(server, true);
-
+			data.append("numStep1=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			
 			// 2.1. user: license
+			stepStart = new Date();
 			UsersInfo ui = new UsersInfo();
 			data.append(ui.usersCount(ab, server));
 			// 2.2. user: members
 			data.append(ui.accessDeniedCount(ab, serverDoc));
-
-			// 3. databases 
+			data.append("&numStep2=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			
+			// 3. databases
+			stepStart = new Date();
 			data.append(getDatabaseInfo(session, server));
-
+			data.append("&numStep3=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			
 			// 4. dir assistance
+			stepStart = new Date();
 			if (isDA(session, serverDoc)) {
 				data.append("&da=1");
 			}
+			data.append("&numStep4=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 5. system data
+			stepStart = new Date();
 			data.append(getSystemInfo(session, ab, endpoint, version));
+			data.append("&numStep5=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 6. notes.ini, we could get variables using API call
+			stepStart = new Date();
 			data.append(getNotesINI(session, keyword));
+			data.append("&numStep6=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 7. server document items
+			stepStart = new Date();
 			data.append(getServerItems(serverDoc, keyword));
+			data.append("&numStep7=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 8. program documents
+			stepStart = new Date();
 			data.append("&programs=" + RESTClient.encodeValue(getProgram(ab, server)));
+			data.append("&numStep8=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 9. id files on server
+			stepStart = new Date();
 			String idFiles = getIdFiles(ndd);
 			if (!idFiles.isEmpty()) {
 				data.append("&idfiles=" + idFiles);	
 			}
+			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 10. services
+			stepStart = new Date();
 			String services = this.getServices(session);
 			if (!services.isEmpty()) {
 				data.append(services);
 			}
-
+			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			
 			// 11. Linux specific data
+			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(this.getLinuxInfo());
 			}
+			data.append("&numStep11=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 12. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
+			stepStart = new Date();
 			String nsd = getNSD(ndd);
 			if (!nsd.isEmpty()) {
 				data.append(nsd);
 			}
+			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 13. In case if connection is done via HTTP we still need to check if HTTPS works
+			stepStart = new Date();
 			data.append(checkHTTPSConnection(endpoint, server));
+			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
