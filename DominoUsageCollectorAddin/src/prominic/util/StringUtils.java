@@ -27,16 +27,4 @@ public class StringUtils {
 		
 		return res;
 	}
-	
-	public static String join(ArrayList<?> data, String sep) {
-		String res = "";
-		for(int i = 0; i < data.size(); i++) {
-			if (i > 0) {
-				res += sep;
-			}
-			res += data.get(i);
-		}
-		
-		return res;
-	}
 }
