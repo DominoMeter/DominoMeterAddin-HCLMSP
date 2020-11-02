@@ -68,8 +68,8 @@ public class DatabasesInfo {
 					m_openFailedDatabase.add(pathName);
 				};
 				
-				// catalog.nsf will be recycled later (we use a view from it).
-				if (!database.getFilePath().toLowerCase().equals("catalog.nsf")) {
+				// those database will be released later
+				if (!(pathName.toLowerCase().equals("catalog.nsf") || pathName.toLowerCase().equals("names.nsf"))) {
 					database.recycle();
 				}
 			}
