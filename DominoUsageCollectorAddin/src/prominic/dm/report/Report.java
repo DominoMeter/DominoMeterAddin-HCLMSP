@@ -1,6 +1,7 @@
 package prominic.dm.report;
 
 import java.io.BufferedReader;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -250,17 +251,16 @@ public class Report {
 	private String getDatabaseInfo(Session session, String server) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
-		Database catalogDb = session.getDatabase(server, "catalog.nsf");
 		DatabasesInfo dbInfo = new DatabasesInfo();
-		if (dbInfo.process(catalogDb, server)) {
+		if (dbInfo.process(session, server)) {
 			buf.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
 			buf.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
 			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));
 			buf.append("&numApp=" + Long.toString(dbInfo.getApp()));
 			buf.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
+			buf.append("&disableTransactionLogging=" + RESTClient.encodeValue(StringUtils.join(dbInfo.getDisableTransactionLogging(), ";")));
+			buf.append("&openFailedDatabase=" + RESTClient.encodeValue(StringUtils.join(dbInfo.getOpenFailedDatabase(), ";")));
 		}
-
-		catalogDb.recycle();
 
 		return buf.toString();
 	}
