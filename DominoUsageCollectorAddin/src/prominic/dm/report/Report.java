@@ -1,6 +1,7 @@
 package prominic.dm.report;
 
 import java.io.BufferedReader;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -42,7 +43,7 @@ public class Report {
 			StringBuffer keyword = Keyword.getValue(endpoint, server, "all");
 			Document serverDoc = ab.getView("($ServersLookup)").getDocumentByKey(server, true);
 			data.append("numStep1=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			
+
 			// 2.1. user: license
 			stepStart = new Date();
 			UsersInfo ui = new UsersInfo();
@@ -50,12 +51,12 @@ public class Report {
 			// 2.2. user: members
 			data.append(ui.accessDeniedCount(ab, serverDoc));
 			data.append("&numStep2=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			
+
 			// 3. databases
 			stepStart = new Date();
 			data.append(getDatabaseInfo(session, server));
 			data.append("&numStep3=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			
+
 			// 4. dir assistance
 			stepStart = new Date();
 			if (isDA(session, serverDoc)) {
@@ -98,7 +99,7 @@ public class Report {
 				data.append(services);
 			}
 			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			
+
 			// 11. Linux specific data
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
@@ -118,7 +119,14 @@ public class Report {
 			stepStart = new Date();
 			data.append(checkHTTPSConnection(endpoint, server));
 			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			
+
+			// 14. Jedi upload files
+			stepStart = new Date();
+			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
+				data.append(jedi());	
+			}
+			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
@@ -137,6 +145,20 @@ public class Report {
 			e.printStackTrace();
 		}
 		return false;
+	}
+
+	private String jedi() {
+		String res = "";
+		StringBuffer buf = FileUtils.readFileContent("/opt/prominic/jedi/etc/jdi.cfg");
+		if (buf != null) {
+			res = "&FileJdiCfg=" + RESTClient.encodeValue(buf.toString());
+		}
+		buf = FileUtils.readFileContent("/opt/prominic/jedi/etc/partitions.xml");
+		if (buf != null) {
+			res += "&FilePartitionsxml=" + RESTClient.encodeValue(buf.toString());
+		}
+				
+		return res;
 	}
 
 	private String checkHTTPSConnection(String endpoint, String server) {
