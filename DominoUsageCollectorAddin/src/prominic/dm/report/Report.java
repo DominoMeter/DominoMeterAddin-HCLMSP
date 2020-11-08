@@ -272,17 +272,15 @@ public class Report {
 	private String getDatabaseInfo(Session session, String server) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
-		Database catalogDb = session.getDatabase(server, "catalog.nsf");
 		DatabasesInfo dbInfo = new DatabasesInfo();
-		if (dbInfo.process(catalogDb, server)) {
+		if (dbInfo.process(session, server)) {
 			buf.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
 			buf.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
 			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));
 			buf.append("&numApp=" + Long.toString(dbInfo.getApp()));
 			buf.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
+			buf.append("&anonymousAccessDbList=" + RESTClient.encodeValue(StringUtils.join(dbInfo.getAnonymousAccess(), ",")));
 		}
-
-		catalogDb.recycle();
 
 		return buf.toString();
 	}

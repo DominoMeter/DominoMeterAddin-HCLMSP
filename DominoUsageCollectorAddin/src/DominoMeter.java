@@ -14,8 +14,8 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "92";
-	final String			JADDIN_DATE				= "2020-11-05 22:30 CET";
+	final String			JADDIN_VERSION			= "93";
+	final String			JADDIN_DATE				= "2020-11-08 22:30 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
