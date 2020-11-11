@@ -1,10 +1,8 @@
 package prominic.dm.report;
 
-import java.io.BufferedReader;
-
 import java.io.File;
+
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
@@ -23,6 +21,7 @@ import prominic.dm.api.Keyword;
 import prominic.dm.api.Ping;
 import prominic.io.RESTClient;
 import prominic.util.MD5Checksum;
+import prominic.util.Bash;
 import prominic.util.FileUtils;
 import prominic.util.StringUtils;
 
@@ -137,27 +136,78 @@ public class Report {
 			return res.toString().equals("OK");
 		} 
 		catch (NotesException e) {
-			m_lastError = e.getMessage();
-			e.printStackTrace();
+			m_lastError = e.getMessage() + " | "+ e.getStackTrace()[0];
 		}
 		catch (Exception e) {
-			m_lastError = e.getMessage();
-			e.printStackTrace();
+			m_lastError = e.getMessage() + " | "+ e.getStackTrace()[0];
 		}
 		return false;
 	}
 
-	private String jedi() {
+	private String jedi() throws IOException {
 		String res = "";
-		StringBuffer buf = FileUtils.readFileContent("/opt/prominic/jedi/etc/jdi.cfg");
-		if (buf != null) {
-			res = "&FileJdiCfg=" + RESTClient.encodeValue(buf.toString());
+
+		StringBuffer partitionsxml = FileUtils.readFileContent("/opt/prominic/jedi/etc/partitions.xml");
+		if (partitionsxml != null) {
+			res += "&FilePartitionsxml=" + RESTClient.encodeValue(partitionsxml.toString());
 		}
-		buf = FileUtils.readFileContent("/opt/prominic/jedi/etc/partitions.xml");
-		if (buf != null) {
-			res += "&FilePartitionsxml=" + RESTClient.encodeValue(buf.toString());
+
+		StringBuffer jdicfg = FileUtils.readFileContent("/opt/prominic/jedi/etc/jdi.cfg");
+		if (jdicfg != null) {
+			res += "&FileJdiCfg=" + RESTClient.encodeValue(jdicfg.toString());
+
+			/*
+			int start = jdicfg.indexOf("server.text.port=");
+			if (start > 0) {
+				start += "server.text.port=".length();
+				int end = jdicfg.indexOf(System.getProperty("line.separator"), start);
+				if (end > start && end - start < 10) {
+
+					int port = Integer.parseInt(jdicfg.substring(start, end));
+					System.out.print(port);
+					EchoClient echoClient = new EchoClient();
+					System.out.print("1");
+					boolean connect = echoClient.startConnection("0", port);
+					System.out.print("2");
+					System.out.print(connect);
+					String jedi = echoClient.readBufferReaderReady();
+					System.out.print(jedi);
+
+					String answer = echoClient.sendMessage("Gstatus\r\n");
+					System.out.print(answer);
+
+
+					echoClient.stopConnection();
+					System.out.print("closed connection");
+
+					String answer = echoClient.sendMessage("Glogin admin pass\r\n");
+					System.out.print("3");
+					System.out.print(answer);
+					echoClient.stopConnection();
+					System.out.print("perfect");
+					/*
+					if (!bashRes.contains("refused")) {
+						res += "&jdiTelnet=" + RESTClient.encodeValue(bashRes);
+
+						bashRes = Bash.exec("Glogin admin pass");
+						System.out.println(bashRes);
+
+						res += "&jdiLogin=" + RESTClient.encodeValue(bashRes);
+						if (bashRes.contains("denied")) {
+							bashRes = Bash.exec("Gstatus");
+							System.out.println(bashRes);
+
+							res += "&jdiStatus=" + RESTClient.encodeValue(bashRes);
+							bashRes = Bash.exec("Glogout");
+							System.out.println(bashRes);
+							res += "&jdiLogout=" + RESTClient.encodeValue(bashRes);
+						}
+					}
+				}
+			}
+			 */
 		}
-				
+
 		return res;
 	}
 
@@ -222,20 +272,10 @@ public class Report {
 	 * Linux data
 	 */
 	private String getLinuxInfo() throws IOException {
-		ProcessBuilder pb = new ProcessBuilder("bash", "-c", "ulimit -n");
-		Process shell = pb.start();
-		BufferedReader stdInput = new BufferedReader(new InputStreamReader(shell.getInputStream()));
+		String ulimit = Bash.exec("ulimit -n");
+		if (ulimit.isEmpty()) return "";
 
-		String ulimit = "";
-		String s = null;
-		while ((s = stdInput.readLine()) != null) {
-			ulimit += s;
-		}
-
-		if (!ulimit.isEmpty()) {
-			return "&numUlimit=" + ulimit;
-		}
-		return "";
+		return "&numUlimit=" + ulimit;
 	}
 
 	/*
@@ -279,7 +319,7 @@ public class Report {
 			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));
 			buf.append("&numApp=" + Long.toString(dbInfo.getApp()));
 			buf.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
-			buf.append("&anonymousAccessDbList=" + RESTClient.encodeValue(StringUtils.join(dbInfo.getAnonymousAccess(), ",")));
+			buf.append("&anonymousAccessDbList=" + RESTClient.encodeValue(StringUtils.join(dbInfo.getAnonymousAccess(), ";")));
 		}
 
 		return buf.toString();
