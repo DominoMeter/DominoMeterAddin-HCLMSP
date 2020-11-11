@@ -1,4 +1,4 @@
-package prominic.util;
+package prominic.io;
 
 import java.io.*;
 import java.net.*;

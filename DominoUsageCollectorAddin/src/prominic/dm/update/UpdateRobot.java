@@ -2,25 +2,27 @@ package prominic.dm.update;
 
 import java.io.File;
 
+import lotus.domino.NotesException;
 import lotus.domino.Session;
 
 import prominic.dm.api.Log;
 import prominic.io.RESTClient;
 import prominic.util.FileUtils;
+import prominic.util.ParsedError;
 import prominic.util.StringUtils;
 
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
-	private String m_lastError = "";
-	
+	private ParsedError m_pe = null;
+
 	public String applyNewVersion(Session session, String server, String endpoint, String fileURL, String activeVersion) {
 		try {
-			m_lastError = "";
-			
+			m_pe = null;
+
 			if (fileURL == null || fileURL.isEmpty()) {
 				return "";
 			}
-			
+
 			String configVersion = new File(fileURL).getName();
 			if (configVersion.equalsIgnoreCase(activeVersion)) {
 				return "";
@@ -31,10 +33,10 @@ public class UpdateRobot {
 
 			// 2. check if current
 			String folder = "DominoMeterAddin";
-			
+
 			File f = new File(folder);
 			if (!f.exists()) {
-			    f.mkdir();				
+				f.mkdir();				
 			}
 
 			String filePath = folder + File.separator + configVersion;
@@ -88,13 +90,15 @@ public class UpdateRobot {
 			log(JAVA_USER_CLASSES + " (new) set to " + userClasses);
 
 			return configVersion;
+		} catch (NotesException e) {
+			m_pe = new ParsedError(e);
 		} catch (Exception e) {
-			m_lastError = e.getMessage();
+			m_pe = new ParsedError(e);
 		}
-
+		
 		return "";
 	}
-	
+
 	/*
 	 * Clean out old versions
 	 */
@@ -120,12 +124,12 @@ public class UpdateRobot {
 					count++;
 				}
 			}
-			
+
 			if (count>0)
 				Log.sendLog(server, endpoint, "removed outdates versions (" + Integer.toString(count) + ")", deletedFiles.toString());
-			
+
 		} catch (Exception e) {
-			Log.sendError(server, endpoint, "error during deleting files", e.getLocalizedMessage());
+			Log.sendError(server, endpoint, new ParsedError(e));
 			e.printStackTrace();
 		}
 	}
@@ -134,7 +138,7 @@ public class UpdateRobot {
 		System.out.println("[UpdateRobot] " + msg.toString());
 	}
 
-	public String getLastError() {
-		return m_lastError;
+	public ParsedError getParsedError() {
+		return m_pe;
 	}
 }

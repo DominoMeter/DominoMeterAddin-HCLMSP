@@ -30,10 +30,10 @@ public class DatabasesInfo {
 	 */
 	public boolean process(Session session, String server) throws NotesException {
 		Database catalogDb = session.getDatabase(server, "catalog.nsf");
-		if (catalogDb == null || !catalogDb.isOpen()) return false;
+//		if (catalogDb == null || !catalogDb.isOpen()) return false;
 
 		View replicaId = catalogDb.getView("($ReplicaId)");
-		if (replicaId == null) return false;
+//		if (replicaId == null) return false;
 
 		resetCounters();
 

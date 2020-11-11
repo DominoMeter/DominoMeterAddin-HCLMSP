@@ -19,20 +19,21 @@ import lotus.domino.NotesException;
 
 import prominic.dm.api.Keyword;
 import prominic.dm.api.Ping;
+import prominic.io.Bash;
 import prominic.io.RESTClient;
 import prominic.util.MD5Checksum;
-import prominic.util.Bash;
+import prominic.util.ParsedError;
 import prominic.util.FileUtils;
 import prominic.util.StringUtils;
 
 public class Report {
-	private String m_lastError = "";
+	private ParsedError m_pe = null;
 
 	public boolean send(Session session, Database ab, String server, String endpoint, String version) {
 		try {
 			Date dateStart = new Date();
 
-			m_lastError = "";
+			m_pe = null;
 			String ndd = session.getEnvironmentString("Directory", true);
 			String url = endpoint.concat("/report?openagent&server=" + RESTClient.encodeValue(server));
 
@@ -136,10 +137,10 @@ public class Report {
 			return res.toString().equals("OK");
 		} 
 		catch (NotesException e) {
-			m_lastError = e.getMessage() + " | "+ e.getStackTrace()[0];
+			m_pe = new ParsedError(e);
 		}
 		catch (Exception e) {
-			m_lastError = e.getMessage() + " | "+ e.getStackTrace()[0];
+			m_pe = new ParsedError(e);
 		}
 		return false;
 	}
@@ -220,7 +221,7 @@ public class Report {
 		boolean check = ping.check(testHTTPS, server);
 		buf.append("&checkhttps=" + (check ? "1" : "0"));
 		if (!check) {
-			buf.append("&checkhttpserror=" + ping.getLastError());
+			buf.append("&checkhttpserror=" + ping.getParsedError().getMessage());
 		}
 
 		return buf.toString();
@@ -527,7 +528,7 @@ public class Report {
 		return buf.toString();
 	}
 
-	public String getLastError() {
-		return m_lastError;
+	public ParsedError getParsedError() {
+		return m_pe;
 	}
 }

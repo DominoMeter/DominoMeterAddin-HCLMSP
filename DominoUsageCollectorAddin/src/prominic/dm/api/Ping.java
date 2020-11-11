@@ -1,23 +1,26 @@
 package prominic.dm.api;
 
+import java.io.IOException;
+
 import prominic.io.RESTClient;
+import prominic.util.ParsedError;
 
 public class Ping {
-	String m_lastError = "";
+	private ParsedError m_pe = null;
 	
 	public boolean check(String endpoint, String server) {
-		m_lastError = "";
+		m_pe = null;
 		String url = endpoint + "/ping?openagent&server=" + RESTClient.encodeValue(server);
 		try {
 			StringBuffer buf = RESTClient.sendGET(url);
 			return buf.toString().equals("OK");
-		} catch (Exception e) {
-			m_lastError = e.getMessage();
+		} catch (IOException e) {
+			m_pe = new ParsedError(e);
 		}
 		return false;
 	}
 
-	public String getLastError() {
-		return m_lastError;
+	public ParsedError getParsedError() {
+		return m_pe;
 	}
 }

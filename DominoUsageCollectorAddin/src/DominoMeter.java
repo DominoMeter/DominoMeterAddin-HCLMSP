@@ -14,8 +14,8 @@ import prominic.dm.update.UpdateRobot;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "94";
-	final String			JADDIN_DATE				= "2020-11-10 15:45 CET";
+	final String			JADDIN_VERSION			= "95";
+	final String			JADDIN_DATE				= "2020-11-11 22:45 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -109,6 +109,8 @@ public class DominoMeter extends JavaServerAddin {
 				return;
 			}
 
+			if (check) Log.sendLog(server, endpoint, version + " loaded (OK)", "");
+			
 			Config config = new Config();
 			loadConfig(config);
 			showInfo();
@@ -155,7 +157,7 @@ public class DominoMeter extends JavaServerAddin {
 		failedCounter++;
 
 		logMessage("connection (*FAILED*) with: " + endpoint);
-		logMessage("> " + ping.getLastError());
+		logMessage("> " + ping.getParsedError().getMessage());
 		logMessage("> counter: " + Integer.toString(failedCounter));
 
 		if (failedCounter > 10) {
@@ -201,8 +203,8 @@ public class DominoMeter extends JavaServerAddin {
 		setAddinState("UpdateRobot");
 		String newAddinFile = ur.applyNewVersion(session, server, endpoint, jar, version);
 		if (newAddinFile.isEmpty()) {
-			if (ur.getLastError().length() > 0) {
-				Log.sendError(server, endpoint, ur.getLastError(), "");
+			if (ur.getParsedError() != null) {
+				Log.sendError(server, endpoint, ur.getParsedError());
 			}
 			return false;
 		}
@@ -220,7 +222,7 @@ public class DominoMeter extends JavaServerAddin {
 		boolean res = report.send(session, ab, server, endpoint, version);
 
 		if (!res) {
-			Log.sendError(server, endpoint, report.getLastError(), "");
+			Log.sendError(server, endpoint, report.getParsedError());
 		}
 
 		return res;
