@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import lotus.domino.Database;
 import lotus.domino.View;
+import prominic.util.ParsedError;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
@@ -16,69 +17,86 @@ public class DatabasesInfo {
 	private int m_mail;
 	private HashMap<String, Integer> m_templatesUsage;
 	private ArrayList<String> m_anonymousAccess;
+	private ParsedError m_pe = null;
 
-	private void resetCounters() {
+	private void reset() {
 		m_ntf = 0;
 		m_app = 0;
 		m_mail = 0;
 		m_templatesUsage = new HashMap<String, Integer>();
 		m_anonymousAccess = new ArrayList<String>();
+		m_pe = null;
 	}
 
 	/*
 	 * count NSF, NTF, Mail and App for defined Application server
 	 */
-	public boolean process(Session session, String server) throws NotesException {
-		Database catalogDb = session.getDatabase(server, "catalog.nsf");
-//		if (catalogDb == null || !catalogDb.isOpen()) return false;
+	public boolean process(Session session, String server) {
+		boolean res = false;
 
-		View replicaId = catalogDb.getView("($ReplicaId)");
-//		if (replicaId == null) return false;
+		reset();
 
-		resetCounters();
+		try {
+			Database catalogDb = session.getDatabase(server, "catalog.nsf");
+			if (catalogDb == null || !catalogDb.isOpen()) {
+				throw new Exception("Catalog Database - not initialized");
+			};
 
-		// File
-		Document doc = replicaId.getFirstDocument();
-		while (doc != null) {
-			Document nextDoc = replicaId.getNextDocument(doc);
-			String serverDoc = doc.getItemValueString("Server");
-			String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
-			
-			if (server.equalsIgnoreCase(serverDoc)) {
-				String pathName = doc.getItemValueString("PathName").toLowerCase();
-				if (pathName.endsWith(".ntf")) {
-					m_ntf++;
-				}
-				else {
-					String dbInheritTemplateNameLower = dbInheritTemplateName.toLowerCase();
-					if (dbInheritTemplateNameLower.startsWith("std") && dbInheritTemplateNameLower.endsWith("mail")) {
-						m_mail++;
+			View replicaId = catalogDb.getView("($ReplicaId)");
+			if (replicaId == null) {
+				throw new Exception("Catalog Database: View ($ReplicaId) - not initialized");
+			};
+
+			// File
+			Document doc = replicaId.getFirstDocument();
+			while (doc != null) {
+				Document nextDoc = replicaId.getNextDocument(doc);
+				String serverDoc = doc.getItemValueString("Server");
+				String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
+
+				if (server.equalsIgnoreCase(serverDoc)) {
+					String pathName = doc.getItemValueString("PathName").toLowerCase();
+					if (pathName.endsWith(".ntf")) {
+						m_ntf++;
 					}
 					else {
-						m_app++;
+						String dbInheritTemplateNameLower = dbInheritTemplateName.toLowerCase();
+						if (dbInheritTemplateNameLower.startsWith("std") && dbInheritTemplateNameLower.endsWith("mail")) {
+							m_mail++;
+						}
+						else {
+							m_app++;
+						}
+					}
+
+					if (!dbInheritTemplateName.isEmpty()) {
+						Integer count = m_templatesUsage.containsKey(dbInheritTemplateName) ? m_templatesUsage.get(dbInheritTemplateName) : 0;
+						m_templatesUsage.put(dbInheritTemplateName, Integer.valueOf(count + 1));	
+					}
+
+					if (hasAnonymous(doc)) {
+						m_anonymousAccess.add(pathName);
 					}
 				}
-				
-				if (!dbInheritTemplateName.isEmpty()) {
-					Integer count = m_templatesUsage.containsKey(dbInheritTemplateName) ? m_templatesUsage.get(dbInheritTemplateName) : 0;
-					m_templatesUsage.put(dbInheritTemplateName, Integer.valueOf(count + 1));	
-				}
-				
-				if (hasAnonymous(doc)) {
-					m_anonymousAccess.add(pathName);
-				}
-			}
 
-			doc.recycle();
-			doc = nextDoc;
+				doc.recycle();
+				doc = nextDoc;
+			}
+			
+			replicaId.recycle();
+			catalogDb.recycle();
+			
+			res = true;
+		} catch (NotesException e) {
+			m_pe = new ParsedError(e);
+		}
+		catch (Exception e) {
+			m_pe = new ParsedError(e);
 		}
 
-		replicaId.recycle();
-		catalogDb.recycle();
-		
-		return true;
+		return res;
 	}
-	
+
 	private boolean hasAnonymous(Document doc) {
 		try {
 			String items[] = {"ManagerList", "DesignerList", "EditorList", "AuthorList", "ReaderList", "DepositorList"};
@@ -113,12 +131,16 @@ public class DatabasesInfo {
 	public int getApp() {
 		return m_app;
 	}
-	
+
 	public HashMap<String, Integer> getTemplateUsage() {
 		return m_templatesUsage;
 	}
-	
+
 	public ArrayList<String> getAnonymousAccess() {
 		return m_anonymousAccess;
+	}
+	
+	public ParsedError getParsedError() {
+		return m_pe;
 	}
 }

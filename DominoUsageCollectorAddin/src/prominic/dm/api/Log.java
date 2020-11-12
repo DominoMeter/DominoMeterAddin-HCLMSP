@@ -13,6 +13,13 @@ public class Log {
 		return send(server, endpoint, subject, body, 4);
 	}
 	
+	public static boolean sendError(String server, String endpoint, Exception e) {
+		if (e == null) return true;
+		ParsedError pe = new ParsedError(e);
+
+		return sendError(server, endpoint, pe);
+	}
+	
 	public static boolean sendError(String server, String endpoint, String subject, String body) {
 		return send(server, endpoint, subject, body, 4);
 	}

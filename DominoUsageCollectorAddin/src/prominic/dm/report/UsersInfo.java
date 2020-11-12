@@ -11,13 +11,63 @@ import lotus.domino.NotesException;
 import lotus.domino.View;
 import lotus.domino.ViewEntry;
 import lotus.domino.ViewEntryCollection;
+import prominic.util.ParsedError;
 
 public class UsersInfo {
 	private final String GROUPS = "groups";
 	private final String USERS = "users";
 
+	private HashMap<String, List<String>> m_allowData;
+	private HashMap<String, List<String>> m_denyData;
+
+	private long m_users;
+	private long m_usersNotes;
+	private long m_usersWeb;
+	private long m_usersNotesWeb;
+	private long m_usersPNI;
+	private long m_usersMail;
+	private long m_usersConflict;
+
+	private ParsedError m_pe;
+
+	private void reset( ) {
+		m_users = 0;
+		m_usersNotes = 0;
+		m_usersWeb = 0;
+		m_usersNotesWeb = 0;
+		m_usersPNI = 0;
+		m_usersMail = 0;
+		m_usersConflict = 0;
+		
+		m_allowData = new HashMap<String, List<String>>();
+		m_allowData.put(GROUPS, new ArrayList<String>());
+		m_allowData.put(USERS, new ArrayList<String>());
+
+		m_denyData = new HashMap<String, List<String>>();
+		m_denyData.put(GROUPS, new ArrayList<String>());
+		m_denyData.put(USERS, new ArrayList<String>());
+
+		m_pe = null;
+	}
+	
+	public boolean process(Database ab, String server, Document serverDoc) {
+		boolean res = false;
+		
+		reset();
+
+		try {
+			usersCount(ab, server);
+			accessDeniedCount(ab, serverDoc);
+			res = true;
+		} catch (NotesException e) {
+			m_pe = new ParsedError(e);
+		}
+
+		return res;
+	}
+	
 	@SuppressWarnings("unchecked")
-	public String accessDeniedCount(Database database, Document serverDoc) throws NotesException {
+	private void accessDeniedCount(Database database, Document serverDoc) throws NotesException {
 		View viewGroups = database.getView("($VIMGroups)");
 		Vector<String> vimGroups = new Vector<String>();
 		Document doc = viewGroups.getFirstDocument();
@@ -28,7 +78,7 @@ public class UsersInfo {
 			doc.recycle();
 			doc = docNext;
 		}
-		
+
 		View viewServers = database.getView("($Servers)");
 		Vector<String> servers = new Vector<String>();
 		ViewEntryCollection entries = viewServers.getAllEntries();
@@ -41,26 +91,15 @@ public class UsersInfo {
 			entry = nextEntry;
 		}
 
-		HashMap<String, List<String>> allowData = new HashMap<String, List<String>>();
-		allowData.put(GROUPS, new ArrayList<String>());
-		allowData.put(USERS, new ArrayList<String>());
-
 		Vector<String> members = serverDoc.getItemValue("AllowAccess");
-		allowData = resolveGroupToMembers(viewGroups, vimGroups, servers, members, allowData);
-		
-		HashMap<String, List<String>> denyData = new HashMap<String, List<String>>();
-		denyData.put(GROUPS, new ArrayList<String>());
-		denyData.put(USERS, new ArrayList<String>());
+		m_allowData = resolveGroupToMembers(viewGroups, vimGroups, servers, members, m_allowData);
+
 		members = serverDoc.getItemValue("DenyAccess");
-		denyData = resolveGroupToMembers(viewGroups, vimGroups, servers, members, denyData);
+		m_denyData = resolveGroupToMembers(viewGroups, vimGroups, servers, members, m_denyData);
 
 		entries.recycle();
 		viewServers.recycle();
 		viewGroups.recycle();
-
-		String res = "&usersAllow=" + Integer.toString(allowData.get(USERS).size()) + "&usersDeny=" + Integer.toString(denyData.get(USERS).size());
-
-		return res;
 	}
 
 	private Document getGroupDocument(View view, String key) {
@@ -103,61 +142,65 @@ public class UsersInfo {
 		return data;
 	}
 
-	public String usersCount(Database ab, String server) throws NotesException {
-		StringBuffer buf = new StringBuffer();
-
-		long users = 0;
-		long usersNotes = 0;
-		long usersWeb = 0;
-		long usersNotesWeb = 0;
-		long usersPNI = 0;
-		long usersMail = 0;
-		long usersConflict = 0;
-
+	private void usersCount(Database ab, String server) throws NotesException {
 		View view = ab.getView("People");
+		view.setAutoUpdate(false);
+
 		Document doc = view.getFirstDocument();
 		while (doc != null) {
 			Document nextDoc = view.getNextDocument(doc);
 
-			boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
-			boolean isWeb = doc.hasItem("HTTPPassword") && !doc.getItemValueString("HTTPPassword").isEmpty();
-			String mailSystem = doc.getItemValueString("MailSystem");
-			boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
+			if (!doc.isDeleted() && doc.isValid()) {
+				boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
+				boolean isWeb = doc.hasItem("HTTPPassword") && !doc.getItemValueString("HTTPPassword").isEmpty();
+				String mailSystem = doc.getItemValueString("MailSystem");
+				boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
 
-			users++;
-
-			if (isNotes && !isWeb) {
-				usersNotes++;
-			}
-			if (!isNotes && isWeb) {
-				usersWeb++;
-			}			
-			if (isNotes && isWeb) {
-				usersNotesWeb++;
-			}			
-			if (doc.getItemValueString("FullName").contains("/O=PNI")) {
-				usersPNI++;
-			}			
-			if (isMail) {
-				usersMail++;
-			}			
-			if (doc.hasItem("$Conflict")) {
-				usersConflict++;
+				m_users++;
+				if (isNotes && !isWeb) m_usersNotes++;
+				if (!isNotes && isWeb) m_usersWeb++;
+				if (isNotes && isWeb) m_usersNotesWeb++;
+				if (doc.getItemValueString("FullName").contains("/O=PNI")) m_usersPNI++;
+				if (isMail) m_usersMail++;
+				if (doc.hasItem("$Conflict")) m_usersConflict++;
 			}
 
 			doc.recycle();
 			doc = nextDoc;
 		}
-
-		buf.append("&users=" + Long.toString(users));
-		buf.append("&usersNotes=" + Long.toString(usersNotes));
-		buf.append("&usersWeb=" + Long.toString(usersWeb));
-		buf.append("&usersNotesWeb=" + Long.toString(usersNotesWeb));
-		buf.append("&usersPNI=" + Long.toString(usersPNI));
-		buf.append("&usersMail=" + Long.toString(usersMail));
-		buf.append("&usersConflict=" + Long.toString(usersConflict));
-
-		return buf.toString();
+		
+		view.setAutoUpdate(true);
+		view.recycle();
 	}
 
+	public long getUsers() {
+		return m_users;
+	}
+	public long getUsersNotes() {
+		return m_usersNotes;
+	}
+	public long getUsersWeb() {
+		return m_usersWeb;
+	}
+	public long getUsersNotesWeb() {
+		return m_usersNotesWeb;
+	}
+	public long getUsersPNI() {
+		return m_usersPNI;
+	}
+	public long getUsersMail() {
+		return m_usersMail;
+	}
+	public long getUsersConflict() {
+		return m_usersConflict;
+	}
+	public long getAllowCount() {
+		return m_allowData.get(USERS).size();
+	}
+	public long getDenyCount() {
+		return m_denyData.get(USERS).size();
+	}
+	public ParsedError getParsedError() {
+		return m_pe;
+	}
 }
