@@ -4,12 +4,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
 
+import lotus.domino.Session;
 import lotus.domino.Database;
-import lotus.domino.View;
-import prominic.util.ParsedError;
+import lotus.domino.DocumentCollection;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
-import lotus.domino.Session;
+
+import prominic.util.ParsedError;
 
 public class DatabasesInfo {
 	private int m_ntf;
@@ -42,15 +43,10 @@ public class DatabasesInfo {
 				throw new Exception("Catalog Database - not initialized");
 			};
 
-			View replicaId = catalogDb.getView("($ReplicaId)");
-			if (replicaId == null) {
-				throw new Exception("Catalog Database: View ($ReplicaId) - not initialized");
-			};
-
-			// File
-			Document doc = replicaId.getFirstDocument();
+			DocumentCollection col = catalogDb.search("@IsAvailable(ReplicaID) & @IsUnavailable(RepositoryType)");
+			Document doc = col.getFirstDocument();
 			while (doc != null) {
-				Document nextDoc = replicaId.getNextDocument(doc);
+				Document nextDoc = col.getNextDocument(doc);
 				String serverDoc = doc.getItemValueString("Server");
 				String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
 
@@ -83,7 +79,7 @@ public class DatabasesInfo {
 				doc = nextDoc;
 			}
 			
-			replicaId.recycle();
+			col.recycle();
 			catalogDb.recycle();
 			
 			res = true;

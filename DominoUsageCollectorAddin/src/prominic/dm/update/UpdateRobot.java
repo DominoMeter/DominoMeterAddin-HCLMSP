@@ -126,7 +126,7 @@ public class UpdateRobot {
 			}
 
 			if (count>0)
-				Log.sendLog(server, endpoint, "removed outdates versions (" + Integer.toString(count) + ")", deletedFiles.toString());
+				Log.sendLog(server, endpoint, "Removed outdates versions (" + Integer.toString(count) + ")", deletedFiles.toString());
 
 		} catch (Exception e) {
 			Log.sendError(server, endpoint, new ParsedError(e));

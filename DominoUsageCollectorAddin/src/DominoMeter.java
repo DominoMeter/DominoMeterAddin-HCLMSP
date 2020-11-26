@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "96";
-	final String			JADDIN_DATE				= "2020-11-12 22:00 CET";
+	final String			JADDIN_DATE				= "2020-11-26 22:00 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -109,7 +109,7 @@ public class DominoMeter extends JavaServerAddin {
 				return;
 			}
 
-			if (check) Log.sendLog(server, endpoint, version + " loaded (OK)", "");
+			if (check) Log.sendLog(server, endpoint, version + " - started", "");
 			
 			Config config = new Config();
 			loadConfig(config);

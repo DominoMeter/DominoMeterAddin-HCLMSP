@@ -20,7 +20,6 @@ public class ProgramConfig {
 	private String m_server;
 	private String m_endpoint;
 	private String m_addinName;
-	private String m_lastError = "";
 
 	public ProgramConfig(String server, String endpoint, String addinName) {
 		m_server = server;
@@ -33,7 +32,6 @@ public class ProgramConfig {
 	 */
 	public boolean setState(Database database, int state) {
 		try {
-			m_lastError = "";
 			View view = database.getView("($Programs)");
 			DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
 			boolean programStartupOnly = false;
@@ -89,7 +87,6 @@ public class ProgramConfig {
 			
 			return true;
 		} catch(Exception e) {
-			m_lastError = e.getMessage();
 			e.printStackTrace();
 		}
 		
@@ -97,31 +94,31 @@ public class ProgramConfig {
 	}
 
 	private void deleteDuplicate(Document doc) throws NotesException {
-		String docEnabled = doc.getItemValueString("Enabled");
+		String enabled = doc.getItemValueString("Enabled");
 		doc.remove(true);
-		log("program document (enabled: " + docEnabled + ") - deleted (duplicate)");
+		log("program document deleted: " + getEnabledLabel(enabled));
 	}
 
-	private Document updateProgram(Database database, Document doc, String enabled) throws NotesException {
+	private Document updateProgram(Database database, Document doc, String newEnabled) throws NotesException {
 		String cmdLine = m_addinName + " " + m_endpoint;
 		boolean toSave = false;
-		String docEnabled = doc.getItemValueString("Enabled");
+		String enabled = doc.getItemValueString("Enabled");
 
 		if (!cmdLine.equalsIgnoreCase(doc.getItemValueString("CmdLine"))) {
 			doc.replaceItemValue("CmdLine", cmdLine);
 			toSave = true;
-			log("program document (enabled: " + docEnabled + ") - updated. CmdLine: " + cmdLine);
+			log("program document updated: " + getEnabledLabel(enabled) + ". CmdLine: " + cmdLine);
 		}
 
-		if (!enabled.equalsIgnoreCase(doc.getItemValueString("Enabled"))) {
-			doc.replaceItemValue("Enabled", enabled);
+		if (!newEnabled.equals(doc.getItemValueString("Enabled"))) {
+			doc.replaceItemValue("Enabled", newEnabled);
 			toSave = true;
-			log("program document (enabled: " + docEnabled + ") - updated. Enabled: " + enabled);
+			log("program document updated: " + getEnabledLabel(enabled) + " -> " + getEnabledLabel(newEnabled));
 		}
 
-		if (enabled.equalsIgnoreCase(PROGRAM_ENABLE)) {
-			setSchedule(database, doc, enabled);
-			log("program document (enabled: " + docEnabled + ") - updated. Schedule: " + doc.getFirstItem("Schedule").getDateTimeValue().getLocalTime());
+		if (newEnabled.equals(PROGRAM_ENABLE)) {
+			setSchedule(database, doc, newEnabled);
+			log("program document updated: " + getEnabledLabel(enabled) + ". Run at: " + doc.getFirstItem("Schedule").getDateTimeValue().getLocalTime());
 			toSave = true;
 		}
 
@@ -164,9 +161,21 @@ public class ProgramConfig {
 		doc.computeWithForm(true, false);
 		doc.save();
 
-		log("program document (enabled: " + enabled + ") - created");
+		log("program document created: " + getEnabledLabel(enabled));
 
 		return doc;
+	}
+	
+	private String getEnabledLabel(String v) {
+		if (PROGRAM_ENABLE.equals(v)) {
+			return "Enabled";
+		}
+		else if(PROGRAM_SERVERSTART.equals(v)) {
+			return "At server startup only";
+		}
+		else {
+			return "Disabled";
+		}
 	}
 
 	/*
@@ -184,10 +193,6 @@ public class ProgramConfig {
 		return "2".equals(doc.getItemValueString("Enabled"));
 	}
 
-	public String getLastError() {
-		return m_lastError;
-	}
-	
 	private void log(Object msg) {
 		System.out.println("[ProgramConfig] " + msg.toString());
 	}

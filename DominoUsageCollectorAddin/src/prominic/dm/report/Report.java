@@ -1,6 +1,7 @@
 package prominic.dm.report;
 
 import java.io.File;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -37,7 +38,7 @@ public class Report {
 		m_server = server;
 		m_endpoint = endpoint;
 	}
-	
+
 	public boolean send(Database ab, String version) {
 		try {
 			Date dateStart = new Date();
@@ -153,7 +154,7 @@ public class Report {
 
 	private String usersInfo(Database ab, Document serverDoc) {
 		StringBuffer buf = new StringBuffer();
-		
+
 		UsersInfo ui = new UsersInfo();
 		if (ui.process(ab, m_server, serverDoc)) {
 			buf.append("&users=" + Long.toString(ui.getUsers()));
@@ -170,7 +171,7 @@ public class Report {
 		else {
 			Log.sendError(m_server, m_endpoint, ui.getParsedError());
 		}
-		
+
 		return buf.toString();
 	}
 
@@ -187,24 +188,38 @@ public class Report {
 			res += "&FileJdiCfg=" + RESTClient.encodeValue(jdicfg.toString());
 
 			/*
+			Socket clientSocket = new Socket("localhost", 9010);
+	        DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+	        DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
+	        dataOutputStream.writeUTF("ls -l");
+	        System.out.println(dataInputStream.readUTF());
+
 			int start = jdicfg.indexOf("server.text.port=");
 			if (start > 0) {
 				start += "server.text.port=".length();
 				int end = jdicfg.indexOf(System.getProperty("line.separator"), start);
 				if (end > start && end - start < 10) {
-
 					int port = Integer.parseInt(jdicfg.substring(start, end));
 					System.out.print(port);
+
 					EchoClient echoClient = new EchoClient();
 					System.out.print("1");
 					boolean connect = echoClient.startConnection("0", port);
 					System.out.print("2");
 					System.out.print(connect);
-					String jedi = echoClient.readBufferReaderReady();
-					System.out.print(jedi);
+					System.out.print(echoClient.readBufferReaderReady());
 
-					String answer = echoClient.sendMessage("Gstatus\r\n");
+					String answer = echoClient.sendMessage("Gstatus");
 					System.out.print(answer);
+					System.out.print("3");
+
+					echoClient.stopConnection();
+					System.out.print("4");
+
+//					String jedi = echoClient.readBufferReaderReady();
+//					System.out.print(jedi);
+
+
 
 
 					echoClient.stopConnection();
@@ -236,6 +251,7 @@ public class Report {
 				}
 			}
 			 */
+
 		}
 
 		return res;

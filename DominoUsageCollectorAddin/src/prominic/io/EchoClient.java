@@ -1,23 +1,44 @@
 package prominic.io;
 
-import java.io.*;
-import java.net.*;
+import java.io.BufferedReader;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+
+import prominic.util.ParsedError;
 
 public class EchoClient {
-
 	private Socket clientSocket;
 	private PrintWriter out;
 	private BufferedReader in;
-
+	private ParsedError m_pe = null;
+	
 	public boolean startConnection(String endpoint, int port) {
 		try {
+			m_pe = null;
+
+			/*
+			Socket clientSocket = new Socket("localhost", 10001);
+	        DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+	        DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
+	        dataOutputStream.writeUTF("ls -l");
+	        System.out.println(dataInputStream.readUTF());
+	        */
+			
 			clientSocket = new Socket();
 			SocketAddress socketAddress = new InetSocketAddress(endpoint, port);
 			clientSocket.connect(socketAddress, 5000);
 			out = new PrintWriter(clientSocket.getOutputStream(), true);
 			in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 			return true;
-		} catch (IOException e) {}
+		} catch (IOException e) {
+			e.printStackTrace();
+			m_pe = new ParsedError(e);
+		}
 		return false;
 	}
 
@@ -25,14 +46,13 @@ public class EchoClient {
 		String res = "";
 		try {
 			int letter;
-			boolean ready = in.ready();
-			while(ready && (letter = in.read()) != -1) {
+			while(in.ready() && (letter = in.read()) != -1) {
 				char c = (char) letter;
 				res += c;
-				ready = in.ready();
-			}	
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
+			m_pe = new ParsedError(e);
 		}
 
 		return res;
@@ -48,6 +68,7 @@ public class EchoClient {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
+			m_pe = new ParsedError(e);
 		}
 
 		return res;
@@ -57,9 +78,12 @@ public class EchoClient {
 		String res = null;
 		try {
 			out.println(msg);
-			res = readBufferReader();
+			out.print(System.getProperty("line.separator"));
+			out.flush();
+			res = readBufferReaderReady();
 		} catch (Exception e) {
 			e.printStackTrace();
+			m_pe = new ParsedError(e);
 		}
 		return res;
 	}
@@ -71,6 +95,11 @@ public class EchoClient {
 			clientSocket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+			m_pe = new ParsedError(e);
 		}
+	}
+	
+	public ParsedError getParsedError() {
+		return m_pe;
 	}
 }
