@@ -1,30 +1,29 @@
 package prominic.dm.report;
 
 import java.io.File;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Vector;
 
-import lotus.domino.Session;
 import lotus.domino.Database;
-import lotus.domino.View;
-import lotus.domino.ViewEntryCollection;
-import lotus.domino.ViewEntry;
 import lotus.domino.Document;
 import lotus.domino.NoteCollection;
 import lotus.domino.NotesException;
-
+import lotus.domino.Session;
+import lotus.domino.View;
+import lotus.domino.ViewEntry;
+import lotus.domino.ViewEntryCollection;
 import prominic.dm.api.Keyword;
 import prominic.dm.api.Log;
 import prominic.dm.api.Ping;
 import prominic.io.Bash;
+import prominic.io.EchoClient;
 import prominic.io.RESTClient;
+import prominic.util.FileUtils;
 import prominic.util.MD5Checksum;
 import prominic.util.ParsedError;
-import prominic.util.FileUtils;
 import prominic.util.StringUtils;
 
 public class Report {
@@ -127,7 +126,7 @@ public class Report {
 			data.append(checkHTTPSConnection());
 			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
-			// 14. Jedi upload files
+			// 14. Jedi
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(jedi());	
@@ -187,71 +186,32 @@ public class Report {
 		if (jdicfg != null) {
 			res += "&FileJdiCfg=" + RESTClient.encodeValue(jdicfg.toString());
 
-			/*
-			Socket clientSocket = new Socket("localhost", 9010);
-	        DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
-	        DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
-	        dataOutputStream.writeUTF("ls -l");
-	        System.out.println(dataInputStream.readUTF());
-
 			int start = jdicfg.indexOf("server.text.port=");
 			if (start > 0) {
 				start += "server.text.port=".length();
 				int end = jdicfg.indexOf(System.getProperty("line.separator"), start);
 				if (end > start && end - start < 10) {
 					int port = Integer.parseInt(jdicfg.substring(start, end));
-					System.out.print(port);
 
 					EchoClient echoClient = new EchoClient();
-					System.out.print("1");
 					boolean connect = echoClient.startConnection("0", port);
-					System.out.print("2");
-					System.out.print(connect);
-					System.out.print(echoClient.readBufferReaderReady());
 
-					String answer = echoClient.sendMessage("Gstatus");
-					System.out.print(answer);
-					System.out.print("3");
+					if (connect) {
+						echoClient.sendMessage("Glogin admin pass");
+						echoClient.sendMessage("Gstatus");
+						echoClient.sendMessage("Glogout");
 
-					echoClient.stopConnection();
-					System.out.print("4");
-
-//					String jedi = echoClient.readBufferReaderReady();
-//					System.out.print(jedi);
-
-
-
-
-					echoClient.stopConnection();
-					System.out.print("closed connection");
-
-					String answer = echoClient.sendMessage("Glogin admin pass\r\n");
-					System.out.print("3");
-					System.out.print(answer);
-					echoClient.stopConnection();
-					System.out.print("perfect");
-					/*
-					if (!bashRes.contains("refused")) {
-						res += "&jdiTelnet=" + RESTClient.encodeValue(bashRes);
-
-						bashRes = Bash.exec("Glogin admin pass");
-						System.out.println(bashRes);
-
-						res += "&jdiLogin=" + RESTClient.encodeValue(bashRes);
-						if (bashRes.contains("denied")) {
-							bashRes = Bash.exec("Gstatus");
-							System.out.println(bashRes);
-
-							res += "&jdiStatus=" + RESTClient.encodeValue(bashRes);
-							bashRes = Bash.exec("Glogout");
-							System.out.println(bashRes);
-							res += "&jdiLogout=" + RESTClient.encodeValue(bashRes);
-						}
+						echoClient.shutdownOutput();
+						String jediInfo = echoClient.readBufferReader();
+						res += "&JediInfo=" + RESTClient.encodeValue(jediInfo);
+						
+						echoClient.stopConnection();
+					}
+					else {
+						Log.sendError(m_server, m_endpoint, "JEDI connection failed", "");
 					}
 				}
 			}
-			 */
-
 		}
 
 		return res;
