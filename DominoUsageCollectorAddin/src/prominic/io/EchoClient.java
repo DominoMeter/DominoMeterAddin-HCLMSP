@@ -22,14 +22,13 @@ public class EchoClient {
 
 			socket = new Socket();
 			SocketAddress socketAddress = new InetSocketAddress(endpoint, port);
-			socket.connect(socketAddress, 5000);
-			
+			socket.connect(socketAddress, 10000);
+
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			out = new PrintWriter(socket.getOutputStream(), true);
 			
 			return true;
 		} catch (IOException e) {
-			e.printStackTrace();
 			m_pe = new ParsedError(e);
 		}
 		return false;
@@ -45,7 +44,6 @@ public class EchoClient {
 			    answer += lineSep;
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
 			m_pe = new ParsedError(e);
 		}
 
@@ -57,7 +55,6 @@ public class EchoClient {
 			out.println(msg);
 			out.flush();
 		} catch (Exception e) {
-			e.printStackTrace();
 			m_pe = new ParsedError(e);
 		}
 	}
@@ -66,7 +63,6 @@ public class EchoClient {
 		try {
 			socket.shutdownOutput();
 		} catch (IOException e) {
-			e.printStackTrace();
 			m_pe = new ParsedError(e);
 		}
 	}
@@ -77,7 +73,6 @@ public class EchoClient {
 			if (out != null) out.close();
 			if (socket != null) socket.close();
 		} catch (IOException e) {
-			e.printStackTrace();
 			m_pe = new ParsedError(e);
 		}
 	}

@@ -44,7 +44,7 @@ public class Report {
 
 			m_pe = null;
 			String ndd = m_session.getEnvironmentString("Directory", true);
-			String url = m_endpoint.concat("/report?openagent&server=" + RESTClient.encodeValue(m_server));
+			String url = m_endpoint.concat("/report?openagent");
 
 			// 1. initialize data for report
 			Date stepStart = new Date();
@@ -52,6 +52,7 @@ public class Report {
 			StringBuffer keyword = Keyword.getValue(m_endpoint, m_server, "all");
 			Document serverDoc = ab.getView("($ServersLookup)").getDocumentByKey(m_server, true);
 			data.append("numStep1=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&server=" + RESTClient.encodeValue(m_server));
 
 			// 2. users
 			stepStart = new Date();
@@ -194,8 +195,7 @@ public class Report {
 					int port = Integer.parseInt(jdicfg.substring(start, end));
 
 					EchoClient echoClient = new EchoClient();
-					boolean connect = echoClient.startConnection("0", port);
-
+					boolean connect = echoClient.startConnection("127.0.0.1", port);
 					if (connect) {
 						echoClient.sendMessage("Glogin admin pass");
 						echoClient.sendMessage("Gstatus");
@@ -208,7 +208,7 @@ public class Report {
 						echoClient.stopConnection();
 					}
 					else {
-						Log.sendError(m_server, m_endpoint, "JEDI connection failed", "");
+						Log.sendError(m_server, m_endpoint, echoClient.getParsedError());
 					}
 				}
 			}
@@ -457,6 +457,7 @@ public class Report {
 				String elapsed_time = console.substring(console.lastIndexOf(":") + 2, console.lastIndexOf("seconds") - 1);
 				buf.append("&numElapsedTime=" + elapsed_time);
 			}
+			
 		} catch (NotesException e) {
 			Log.sendError(m_server, m_endpoint, e);
 		}
