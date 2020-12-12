@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.Vector;
 
 import lotus.domino.Database;
@@ -52,7 +53,6 @@ public class Report {
 			StringBuffer keyword = Keyword.getValue(m_endpoint, m_server, "all");
 			Document serverDoc = ab.getView("($ServersLookup)").getDocumentByKey(m_server, true);
 			data.append("numStep1=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			data.append("&server=" + RESTClient.encodeValue(m_server));
 
 			// 2. users
 			stepStart = new Date();
@@ -290,6 +290,8 @@ public class Report {
 	private String getSystemInfo(Database ab, String version) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
+		buf.append("&server=" + RESTClient.encodeValue(m_server));
+		buf.append("&ostimezone=" + RESTClient.encodeValue(TimeZone.getDefault().getDisplayName()));
 		buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
 		buf.append("&osname=" + System.getProperty("os.name", "n/a"));
 		buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
@@ -299,7 +301,7 @@ public class Report {
 		buf.append("&version=" + version);
 		buf.append("&endpoint=" + RESTClient.encodeValue(m_endpoint));
 		buf.append("&templateVersion=" + getDatabaseVersionNumber(ab));
-
+		
 		String host = "";
 		try {
 			InetAddress local = InetAddress.getLocalHost();
