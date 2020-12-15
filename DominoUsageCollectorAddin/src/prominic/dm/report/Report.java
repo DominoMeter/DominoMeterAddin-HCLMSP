@@ -327,6 +327,7 @@ public class Report {
 			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));
 			buf.append("&numApp=" + Long.toString(dbInfo.getApp()));
 			buf.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
+			buf.append("&dbReplica=" + RESTClient.encodeValue(dbInfo.getDbReplica().toString()));
 			buf.append("&anonymousAccessDbList=" + RESTClient.encodeValue(StringUtils.join(dbInfo.getAnonymousAccess(), ";")));
 		}
 		else {

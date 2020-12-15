@@ -17,6 +17,7 @@ public class DatabasesInfo {
 	private int m_app;
 	private int m_mail;
 	private HashMap<String, Integer> m_templatesUsage;
+	private HashMap<String, String> m_dbReplica;
 	private ArrayList<String> m_anonymousAccess;
 	private ParsedError m_pe = null;
 
@@ -25,6 +26,7 @@ public class DatabasesInfo {
 		m_app = 0;
 		m_mail = 0;
 		m_templatesUsage = new HashMap<String, Integer>();
+		m_dbReplica = new HashMap<String, String>();
 		m_anonymousAccess = new ArrayList<String>();
 		m_pe = null;
 	}
@@ -47,11 +49,18 @@ public class DatabasesInfo {
 			Document doc = col.getFirstDocument();
 			while (doc != null) {
 				Document nextDoc = col.getNextDocument(doc);
-				String serverDoc = doc.getItemValueString("Server");
-				String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
 
+				String serverDoc = doc.getItemValueString("Server");
 				if (server.equalsIgnoreCase(serverDoc)) {
+					String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
 					String pathName = doc.getItemValueString("PathName").toLowerCase();
+
+					if (pathName.equalsIgnoreCase("names.nsf") || pathName.equalsIgnoreCase("admin4.nsf") || pathName.equalsIgnoreCase("log.nsf") || pathName.equalsIgnoreCase("catalog.nsf")) {
+						@SuppressWarnings("unchecked")
+						Vector<String> replicaId = session.evaluate("@Text(ReplicaId;\"*\")", doc);
+						m_dbReplica.put(pathName, replicaId.get(0));
+					}
+					
 					if (pathName.endsWith(".ntf")) {
 						m_ntf++;
 					}
@@ -130,6 +139,10 @@ public class DatabasesInfo {
 
 	public HashMap<String, Integer> getTemplateUsage() {
 		return m_templatesUsage;
+	}
+	
+	public HashMap<String, String> getDbReplica() {
+		return m_dbReplica;
 	}
 
 	public ArrayList<String> getAnonymousAccess() {
