@@ -151,33 +151,31 @@ public class UsersInfo {
 		View view = ab.getView("People");
 		view.setAutoUpdate(false);
 
-		for (int i = 0; i <= 5000; i++) {
-			Document doc = view.getFirstDocument();
-			while (doc != null) {
-				Document nextDoc = view.getNextDocument(doc);
+		Document doc = view.getFirstDocument();
+		while (doc != null) {
+			Document nextDoc = view.getNextDocument(doc);
 
-				if (!doc.isDeleted() && doc.isValid()) {
-					boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
-					boolean isWeb = doc.hasItem("HTTPPassword") && !doc.getItemValueString("HTTPPassword").isEmpty();
-					String mailSystem = doc.getItemValueString("MailSystem");
-					boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
+			if (!doc.isDeleted() && doc.isValid()) {
+				boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
+				boolean isWeb = doc.hasItem("HTTPPassword") && !doc.getItemValueString("HTTPPassword").isEmpty();
+				String mailSystem = doc.getItemValueString("MailSystem");
+				boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
 
-					m_usersTotal++;
-					if (isNotes && !isWeb) m_usersNotes++;
-					if (!isNotes && isWeb) m_usersWeb++;
-					if (isNotes && isWeb) m_usersNotesWeb++;
-					if (doc.getItemValueString("FullName").contains("/O=PNI")) m_usersPNI++;
-					if (isMail) m_usersMail++;
-					if (doc.hasItem("$Conflict")) m_usersConflict++;
+				m_usersTotal++;
+				if (isNotes && !isWeb) m_usersNotes++;
+				if (!isNotes && isWeb) m_usersWeb++;
+				if (isNotes && isWeb) m_usersNotesWeb++;
+				if (doc.getItemValueString("FullName").contains("/O=PNI")) m_usersPNI++;
+				if (isMail) m_usersMail++;
+				if (doc.hasItem("$Conflict")) m_usersConflict++;
 
-					String userLine = doc.getUniversalID() + "|" + StringUtils.encodeValue(doc.getItemValueString("LastName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("Suffix")) + "|" + StringUtils.encodeValue(doc.getItemValueString("FirstName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("MiddleInitial"));
-					userLine += (nextDoc != null) ? "~" : "";
-					m_usersList.append(userLine);
-				}
-
-				doc.recycle();
-				doc = nextDoc;
+				String userLine = doc.getUniversalID() + "|" + StringUtils.encodeValue(doc.getItemValueString("LastName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("Suffix")) + "|" + StringUtils.encodeValue(doc.getItemValueString("FirstName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("MiddleInitial"));
+				userLine += (nextDoc != null) ? "~" : "";
+				m_usersList.append(userLine);
 			}
+
+			doc.recycle();
+			doc = nextDoc;
 		}
 
 		view.setAutoUpdate(true);
