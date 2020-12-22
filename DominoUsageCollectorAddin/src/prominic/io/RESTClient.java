@@ -5,10 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import javax.net.ssl.HttpsURLConnection;
 
 public class RESTClient {
@@ -72,14 +70,6 @@ public class RESTClient {
 		con.disconnect();
 
 		return response;
-	}
-
-	public static String encodeValue(String value) {
-		try {
-			return URLEncoder.encode(value, "UTF-8");
-		} catch (UnsupportedEncodingException ex) {
-			throw new RuntimeException(ex.getCause());
-		}
 	}
 
 	public static boolean saveURLTo(String fileURL, String filePath) {

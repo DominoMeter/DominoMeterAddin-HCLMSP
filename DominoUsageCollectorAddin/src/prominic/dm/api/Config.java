@@ -1,13 +1,14 @@
 package prominic.dm.api;
 
 import prominic.io.RESTClient;
+import prominic.util.StringUtils;
 
 public class Config {
 	private String jar;
 	private int interval;
 	
 	public boolean load(String endpoint, String server) {
-		String url = endpoint + "/config?openagent&server=" + RESTClient.encodeValue(server) + "&endpoint=" + RESTClient.encodeValue(endpoint);
+		String url = endpoint + "/config?openagent&server=" + StringUtils.encodeValue(server) + "&endpoint=" + StringUtils.encodeValue(endpoint);
 		try {
 			StringBuffer buf = RESTClient.sendGET(url);
 

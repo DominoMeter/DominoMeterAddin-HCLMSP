@@ -88,7 +88,7 @@ public class Report {
 
 			// 8. program documents
 			stepStart = new Date();
-			data.append("&programs=" + RESTClient.encodeValue(getProgram(ab)));
+			data.append("&programs=" + StringUtils.encodeValue(getProgram(ab)));
 			data.append("&numStep8=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 9. id files on server
@@ -157,16 +157,17 @@ public class Report {
 
 		UsersInfo ui = new UsersInfo();
 		if (ui.process(ab, m_server, serverDoc)) {
-			buf.append("&users=" + Long.toString(ui.getUsers()));
+			buf.append("&usersTotal=" + Long.toString(ui.getUsersTotal()));
 			buf.append("&usersNotes=" + Long.toString(ui.getUsersNotes()));
 			buf.append("&usersWeb=" + Long.toString(ui.getUsersWeb()));
 			buf.append("&usersNotesWeb=" + Long.toString(ui.getUsersNotesWeb()));
 			buf.append("&usersPNI=" + Long.toString(ui.getUsersPNI()));
 			buf.append("&usersMail=" + Long.toString(ui.getUsersMail()));
 			buf.append("&usersConflict=" + Long.toString(ui.getUsersConflict()));
-
 			buf.append("&usersAllow=" + Long.toString(ui.getAllowCount()));
 			buf.append("&usersDeny=" + Long.toString(ui.getDenyCount()));
+			buf.append("&richtextUsersList=" + ui.getUsersList());
+			buf.append("&UsersListHashCode=" + ui.getUsersList().toString().hashCode());
 		}
 		else {
 			Log.sendError(m_server, m_endpoint, ui.getParsedError());
@@ -180,12 +181,12 @@ public class Report {
 
 		StringBuffer partitionsxml = FileUtils.readFileContent("/opt/prominic/jedi/etc/partitions.xml");
 		if (partitionsxml != null) {
-			res += "&FilePartitionsxml=" + RESTClient.encodeValue(partitionsxml.toString());
+			res += "&FilePartitionsxml=" + StringUtils.encodeValue(partitionsxml.toString());
 		}
 
 		StringBuffer jdicfg = FileUtils.readFileContent("/opt/prominic/jedi/etc/jdi.cfg");
 		if (jdicfg != null) {
-			res += "&FileJdiCfg=" + RESTClient.encodeValue(jdicfg.toString());
+			res += "&FileJdiCfg=" + StringUtils.encodeValue(jdicfg.toString());
 
 			int start = jdicfg.indexOf("server.text.port=");
 			if (start > 0) {
@@ -203,7 +204,7 @@ public class Report {
 
 						echoClient.shutdownOutput();
 						String jediInfo = echoClient.readBufferReader();
-						res += "&JediInfo=" + RESTClient.encodeValue(jediInfo);
+						res += "&JediInfo=" + StringUtils.encodeValue(jediInfo);
 						
 						echoClient.stopConnection();
 					}
@@ -290,8 +291,8 @@ public class Report {
 	private String getSystemInfo(Database ab, String version) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
-		buf.append("&server=" + RESTClient.encodeValue(m_server));
-		buf.append("&ostimezone=" + RESTClient.encodeValue(TimeZone.getDefault().getDisplayName()));
+		buf.append("&server=" + StringUtils.encodeValue(m_server));
+		buf.append("&ostimezone=" + StringUtils.encodeValue(TimeZone.getDefault().getDisplayName()));
 		buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
 		buf.append("&osname=" + System.getProperty("os.name", "n/a"));
 		buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
@@ -299,7 +300,7 @@ public class Report {
 		buf.append("&domino=" + m_session.getNotesVersion());
 		buf.append("&username=" + System.getProperty("user.name", "n/a"));
 		buf.append("&version=" + version);
-		buf.append("&endpoint=" + RESTClient.encodeValue(m_endpoint));
+		buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));
 		buf.append("&templateVersion=" + getDatabaseVersionNumber(ab));
 		
 		String host = "";
@@ -326,9 +327,9 @@ public class Report {
 			buf.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
 			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));
 			buf.append("&numApp=" + Long.toString(dbInfo.getApp()));
-			buf.append("&templateUsage=" + RESTClient.encodeValue(dbInfo.getTemplateUsage().toString()));
-			buf.append("&dbReplica=" + RESTClient.encodeValue(dbInfo.getDbReplica().toString()));
-			buf.append("&anonymousAccessDbList=" + RESTClient.encodeValue(StringUtils.join(dbInfo.getAnonymousAccess(), ";")));
+			buf.append("&templateUsage=" + StringUtils.encodeValue(dbInfo.getTemplateUsage().toString()));
+			buf.append("&dbReplica=" + StringUtils.encodeValue(dbInfo.getDbReplica().toString()));
+			buf.append("&anonymousAccessDbList=" + StringUtils.encodeValue(StringUtils.join(dbInfo.getAnonymousAccess(), ";")));
 		}
 		else {
 			Log.sendError(m_server, m_endpoint, dbInfo.getParsedError());
@@ -370,7 +371,7 @@ public class Report {
 			String variable = variables[i].toLowerCase();
 			String iniValue = m_session.getEnvironmentString(variable, true);
 			if (iniValue.length() > 0) {
-				buf.append("&" + variable + "=" + RESTClient.encodeValue(iniValue));	
+				buf.append("&" + variable + "=" + StringUtils.encodeValue(iniValue));	
 			}
 		}
 
@@ -390,7 +391,7 @@ public class Report {
 			String variable = variables[i].toLowerCase();
 			if (doc.hasItem(variable)) {
 				String v = doc.getFirstItem(variable).getText();
-				buf.append("&" + variable + "=" + RESTClient.encodeValue(v));
+				buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
 			}
 		}
 
@@ -418,10 +419,10 @@ public class Report {
 		// SHOW SERVER
 		try {
 			String console = m_session.sendConsoleCommand("", "!sh server");
-			buf.append("&sh_server=" + RESTClient.encodeValue(console));
+			buf.append("&sh_server=" + StringUtils.encodeValue(console));
 
 			console = m_session.sendConsoleCommand("", "!sh cluster");
-			buf.append("&sh_cluster=" + RESTClient.encodeValue(console));
+			buf.append("&sh_cluster=" + StringUtils.encodeValue(console));
 
 			int index1 = buf.indexOf("DAOS");
 			if (index1 >= 0) {
@@ -445,7 +446,7 @@ public class Report {
 
 			// SHOW TASKS
 			console = m_session.sendConsoleCommand("", "!sh tasks");
-			buf.append("&sh_tasks=" + RESTClient.encodeValue(console));		
+			buf.append("&sh_tasks=" + StringUtils.encodeValue(console));		
 			if (console.contains("Traveler")) {
 				buf.append("&traveler=1");
 			}
@@ -455,7 +456,7 @@ public class Report {
 
 			// SHOW HEARTBEAT
 			console = m_session.sendConsoleCommand("", "!sh heartbeat");
-			buf.append("&sh_heartbeat=" + RESTClient.encodeValue(console));		
+			buf.append("&sh_heartbeat=" + StringUtils.encodeValue(console));		
 			if (console.contains("seconds")) {
 				String elapsed_time = console.substring(console.lastIndexOf(":") + 2, console.lastIndexOf("seconds") - 1);
 				buf.append("&numElapsedTime=" + elapsed_time);

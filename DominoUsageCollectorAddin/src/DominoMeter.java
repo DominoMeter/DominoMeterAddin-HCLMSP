@@ -15,7 +15,7 @@ import prominic.dm.update.UpdateRobot;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "101";
-	final String			JADDIN_DATE				= "2020-12-15 22:30 CET";
+	final String			JADDIN_DATE				= "2020-12-22 14:00 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -33,7 +33,7 @@ public class DominoMeter extends JavaServerAddin {
 	MessageQueue 			mq						= null;
 	Session 				session 				= null;
 	Database 				ab 						= null;
-	private int				interval				= 60;
+	private int				interval				= 120;
 	private String 			server					= "";
 	private String 			endpoint				= "";
 	private String 			version					= "";
@@ -110,7 +110,7 @@ public class DominoMeter extends JavaServerAddin {
 			}
 
 			if (check) Log.sendLog(server, endpoint, version + " - started", "");
-			
+
 			Config config = new Config();
 			loadConfig(config);
 			showInfo();
@@ -157,8 +157,10 @@ public class DominoMeter extends JavaServerAddin {
 		failedCounter++;
 
 		logMessage("connection (*FAILED*) with: " + endpoint);
-		logMessage("> " + ping.getParsedError().getMessage());
 		logMessage("> counter: " + Integer.toString(failedCounter));
+		if (ping.getParsedError() != null) {
+			logMessage("> " + ping.getParsedError().getMessage());	
+		}
 
 		if (failedCounter > 24) {
 			this.stopAddin();		
@@ -193,7 +195,7 @@ public class DominoMeter extends JavaServerAddin {
 
 	private boolean loadConfig(Config config) {
 		boolean res = config.load(endpoint, server);
-		if (res) {
+		if (res && config.getInterval() > 0) {
 			interval = config.getInterval();
 		}
 		return res;

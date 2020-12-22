@@ -3,6 +3,7 @@ package prominic.dm.api;
 import java.io.IOException;
 import prominic.io.RESTClient;
 import prominic.util.ParsedError;
+import prominic.util.StringUtils;
 
 public class Log {
 	public static boolean sendError(String server, String endpoint, ParsedError pe) {
@@ -33,9 +34,9 @@ public class Log {
 			if (subject == null) subject = "-";
 			if (body == null) body = "-";
 			
-			server = RESTClient.encodeValue(server);
-			subject = RESTClient.encodeValue(subject);
-			body = RESTClient.encodeValue(body);
+			server = StringUtils.encodeValue(server);
+			subject = StringUtils.encodeValue(subject);
+			body = StringUtils.encodeValue(body);
 			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + server, "subject=" + subject + "&body=" + body + "&logLevel=" + Integer.toString(logLevel));
 			return res.toString().equalsIgnoreCase("OK");
 		} catch (IOException e) {

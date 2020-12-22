@@ -12,6 +12,7 @@ import lotus.domino.View;
 import lotus.domino.ViewEntry;
 import lotus.domino.ViewEntryCollection;
 import prominic.util.ParsedError;
+import prominic.util.StringUtils;
 
 public class UsersInfo {
 	private final String GROUPS = "groups";
@@ -20,7 +21,9 @@ public class UsersInfo {
 	private HashMap<String, List<String>> m_allowData;
 	private HashMap<String, List<String>> m_denyData;
 
-	private long m_users;
+	private StringBuffer m_usersList;
+
+	private long m_usersTotal;
 	private long m_usersNotes;
 	private long m_usersWeb;
 	private long m_usersNotesWeb;
@@ -31,14 +34,16 @@ public class UsersInfo {
 	private ParsedError m_pe;
 
 	private void reset( ) {
-		m_users = 0;
+		m_usersTotal = 0;
 		m_usersNotes = 0;
 		m_usersWeb = 0;
 		m_usersNotesWeb = 0;
 		m_usersPNI = 0;
 		m_usersMail = 0;
 		m_usersConflict = 0;
-		
+
+		m_usersList = new StringBuffer();
+
 		m_allowData = new HashMap<String, List<String>>();
 		m_allowData.put(GROUPS, new ArrayList<String>());
 		m_allowData.put(USERS, new ArrayList<String>());
@@ -49,14 +54,14 @@ public class UsersInfo {
 
 		m_pe = null;
 	}
-	
+
 	public boolean process(Database ab, String server, Document serverDoc) {
 		boolean res = false;
-		
+
 		reset();
 
 		try {
-			usersCount(ab, server);
+			usersList(ab, server);
 			accessDeniedCount(ab, serverDoc);
 			res = true;
 		} catch (NotesException e) {
@@ -65,7 +70,7 @@ public class UsersInfo {
 
 		return res;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private void accessDeniedCount(Database database, Document serverDoc) throws NotesException {
 		View viewGroups = database.getView("($VIMGroups)");
@@ -142,39 +147,45 @@ public class UsersInfo {
 		return data;
 	}
 
-	private void usersCount(Database ab, String server) throws NotesException {
+	private void usersList(Database ab, String server) throws NotesException {
 		View view = ab.getView("People");
 		view.setAutoUpdate(false);
 
-		Document doc = view.getFirstDocument();
-		while (doc != null) {
-			Document nextDoc = view.getNextDocument(doc);
+		for (int i = 0; i <= 5000; i++) {
+			Document doc = view.getFirstDocument();
+			while (doc != null) {
+				Document nextDoc = view.getNextDocument(doc);
 
-			if (!doc.isDeleted() && doc.isValid()) {
-				boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
-				boolean isWeb = doc.hasItem("HTTPPassword") && !doc.getItemValueString("HTTPPassword").isEmpty();
-				String mailSystem = doc.getItemValueString("MailSystem");
-				boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
+				if (!doc.isDeleted() && doc.isValid()) {
+					boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
+					boolean isWeb = doc.hasItem("HTTPPassword") && !doc.getItemValueString("HTTPPassword").isEmpty();
+					String mailSystem = doc.getItemValueString("MailSystem");
+					boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
 
-				m_users++;
-				if (isNotes && !isWeb) m_usersNotes++;
-				if (!isNotes && isWeb) m_usersWeb++;
-				if (isNotes && isWeb) m_usersNotesWeb++;
-				if (doc.getItemValueString("FullName").contains("/O=PNI")) m_usersPNI++;
-				if (isMail) m_usersMail++;
-				if (doc.hasItem("$Conflict")) m_usersConflict++;
+					m_usersTotal++;
+					if (isNotes && !isWeb) m_usersNotes++;
+					if (!isNotes && isWeb) m_usersWeb++;
+					if (isNotes && isWeb) m_usersNotesWeb++;
+					if (doc.getItemValueString("FullName").contains("/O=PNI")) m_usersPNI++;
+					if (isMail) m_usersMail++;
+					if (doc.hasItem("$Conflict")) m_usersConflict++;
+
+					String userLine = doc.getUniversalID() + "|" + StringUtils.encodeValue(doc.getItemValueString("LastName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("Suffix")) + "|" + StringUtils.encodeValue(doc.getItemValueString("FirstName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("MiddleInitial"));
+					userLine += (nextDoc != null) ? "~" : "";
+					m_usersList.append(userLine);
+				}
+
+				doc.recycle();
+				doc = nextDoc;
 			}
-
-			doc.recycle();
-			doc = nextDoc;
 		}
-		
+
 		view.setAutoUpdate(true);
 		view.recycle();
 	}
 
-	public long getUsers() {
-		return m_users;
+	public long getUsersTotal() {
+		return m_usersTotal;
 	}
 	public long getUsersNotes() {
 		return m_usersNotes;
@@ -193,6 +204,9 @@ public class UsersInfo {
 	}
 	public long getUsersConflict() {
 		return m_usersConflict;
+	}
+	public StringBuffer getUsersList() {
+		return m_usersList;
 	}
 	public long getAllowCount() {
 		return m_allowData.get(USERS).size();
