@@ -29,8 +29,6 @@ public class UsersInfo {
 
 	private StringBuffer m_usersList;
 
-	private long m_usersManager;
-	private long m_usersDesigner;
 	private long m_usersEditor;
 	private long m_usersReader;
 	private long m_usersAuthor;
@@ -176,6 +174,14 @@ public class UsersInfo {
 			}
 			db = dir.getNextDatabase();
 		}
+		
+		dir.recycle();
+	}
+	
+	private void recycleDbList() throws NotesException {
+		for(Database database : m_DbList) {
+			database.recycle();
+		}
 	}
 
 	private void usersList(Session session, Database ab, String server) throws NotesException {
@@ -205,18 +211,12 @@ public class UsersInfo {
 						replicaId = database.getReplicaID();
 					}
 
-					if (access == 6) {
+					if (access >= 4) {
 						break;
 					}
 				}
 				
-				if (access == ACL.LEVEL_MANAGER) {
-					m_usersManager++;
-				}
-				else if (access == ACL.LEVEL_DESIGNER) {
-					m_usersDesigner++;
-				}
-				else if (access == ACL.LEVEL_EDITOR) {
+				if (access >= ACL.LEVEL_EDITOR) {
 					m_usersEditor++;
 				}
 				else if (access == ACL.LEVEL_AUTHOR) {
@@ -248,17 +248,13 @@ public class UsersInfo {
 			doc.recycle();
 			doc = nextDoc;
 		}
+		
+		recycleDbList();
 
 		view.setAutoUpdate(true);
 		view.recycle();
 	}
 
-	public long getUsersManager() {
-		return m_usersManager;
-	}
-	public long getUsersDesigner() {
-		return m_usersDesigner;
-	}
 	public long getUsersEditor() {
 		return m_usersEditor;
 	}

@@ -157,8 +157,6 @@ public class Report {
 
 		UsersInfo ui = new UsersInfo();
 		if (ui.process(m_session, ab, m_server, serverDoc)) {
-			buf.append("&usersManager=" + Long.toString(ui.getUsersManager()));
-			buf.append("&usersDesigner=" + Long.toString(ui.getUsersDesigner()));
 			buf.append("&usersEditor=" + Long.toString(ui.getUsersEditor()));
 			buf.append("&usersAuthor=" + Long.toString(ui.getUsersAuthor()));
 			buf.append("&usersReader=" + Long.toString(ui.getUsersReader()));
