@@ -156,7 +156,14 @@ public class Report {
 		StringBuffer buf = new StringBuffer();
 
 		UsersInfo ui = new UsersInfo();
-		if (ui.process(ab, m_server, serverDoc)) {
+		if (ui.process(m_session, ab, m_server, serverDoc)) {
+			buf.append("&usersManager=" + Long.toString(ui.getUsersManager()));
+			buf.append("&usersDesigner=" + Long.toString(ui.getUsersDesigner()));
+			buf.append("&usersEditor=" + Long.toString(ui.getUsersEditor()));
+			buf.append("&usersAuthor=" + Long.toString(ui.getUsersAuthor()));
+			buf.append("&usersReader=" + Long.toString(ui.getUsersReader()));
+			buf.append("&usersDepositor=" + Long.toString(ui.getUsersDepositor()));
+			buf.append("&usersNoAccess=" + Long.toString(ui.getUsersNoAccess()));
 			buf.append("&usersTotal=" + Long.toString(ui.getUsersTotal()));
 			buf.append("&usersNotes=" + Long.toString(ui.getUsersNotes()));
 			buf.append("&usersWeb=" + Long.toString(ui.getUsersWeb()));
