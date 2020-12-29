@@ -14,9 +14,10 @@ import prominic.util.StringUtils;
 
 public class UsersInfo {
 	private StringBuffer m_usersList;
-
-	private long m_usersAllowServer;
-	private long m_usersDenyServer;
+	private NamesUtil m_namesUtil;
+	
+	private long m_usersAllow;
+	private long m_usersDeny;
 	
 	private long m_usersEditor;
 	private long m_usersReader;
@@ -42,10 +43,11 @@ public class UsersInfo {
 		m_usersPNI = 0;
 		m_usersMail = 0;
 		m_usersConflict = 0;
-		m_usersAllowServer = 0;
-		m_usersDenyServer = 0;
+		m_usersAllow = 0;
+		m_usersDeny = 0;
 
 		m_usersList = new StringBuffer();
+		m_namesUtil = new NamesUtil();
 
 		m_pe = null;
 	}
@@ -56,8 +58,11 @@ public class UsersInfo {
 		reset();
 
 		try {
+			m_namesUtil.initialize(ab);
+
+			accessDeniedCount(serverDoc);
+
 			usersList(session, ab, server);
-			accessDeniedCount(ab, serverDoc);
 			res = true;
 		} catch (NotesException e) {
 			m_pe = new ParsedError(e);
@@ -67,17 +72,14 @@ public class UsersInfo {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void accessDeniedCount(Database database, Document serverDoc) throws NotesException {
-		NamesUtil gr = new NamesUtil();
-		gr.initialize(database);
-		
+	private void accessDeniedCount(Document serverDoc) throws NotesException {
 		Vector<String> members = serverDoc.getItemValue("AllowAccess");
-		Set<String> resolvedMembers = gr.resolveMixedList(members);
-		m_usersAllowServer = resolvedMembers.size();
+		Set<String> resolvedMembers = m_namesUtil.resolveMixedList(members);
+		m_usersAllow = resolvedMembers.size();
 
 		members = serverDoc.getItemValue("DenyAccess");
-		resolvedMembers = gr.resolveMixedList(members);
-		m_usersDenyServer = resolvedMembers.size();
+		resolvedMembers = m_namesUtil.resolveMixedList(members);
+		m_usersDeny = resolvedMembers.size();
 	}
 
 	private void usersList(Session session, Database ab, String server) throws NotesException {
@@ -179,11 +181,11 @@ public class UsersInfo {
 	public StringBuffer getUsersList() {
 		return m_usersList;
 	}
-	public long getUsersAllowServer() {
-		return m_usersAllowServer;
+	public long getUsersAllow() {
+		return m_usersAllow;
 	}
-	public long getUsersDenyServer() {
-		return m_usersDenyServer;
+	public long getUsersDeny() {
+		return m_usersDeny;
 	}
 	public ParsedError getParsedError() {
 		return m_pe;

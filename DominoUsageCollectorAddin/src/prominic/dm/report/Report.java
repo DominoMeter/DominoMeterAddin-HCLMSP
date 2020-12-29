@@ -169,8 +169,8 @@ public class Report {
 			buf.append("&usersPNI=" + Long.toString(ui.getUsersPNI()));
 			buf.append("&usersMail=" + Long.toString(ui.getUsersMail()));
 			buf.append("&usersConflict=" + Long.toString(ui.getUsersConflict()));
-			buf.append("&usersAllowServer=" + Long.toString(ui.getUsersAllowServer()));
-			buf.append("&usersDenyServer=" + Long.toString(ui.getUsersDenyServer()));
+			buf.append("&usersAllow=" + Long.toString(ui.getUsersAllow()));
+			buf.append("&usersDeny=" + Long.toString(ui.getUsersDeny()));
 			buf.append("&richtextUsersList=" + ui.getUsersList());
 			buf.append("&UsersListHashCode=" + ui.getUsersList().toString().hashCode());
 		}

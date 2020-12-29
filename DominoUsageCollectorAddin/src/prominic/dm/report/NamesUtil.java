@@ -32,7 +32,7 @@ public class NamesUtil {
 		while (doc != null) {
 			Document docNext = view1.getNextDocument(doc);
 			
-			String listName = doc.getItemValueString("ListName");
+			String listName = doc.getItemValueString("ListName").toLowerCase();
 			@SuppressWarnings("unchecked")
 			Vector<String> members = doc.getItemValue("Members");
 			m_groupOrig.put(listName, members);
@@ -49,7 +49,7 @@ public class NamesUtil {
 			Document nextDoc = view2.getNextDocument(doc);
 			
 			if (!doc.isDeleted() && doc.isValid()) {
-				String fullName = doc.getItemValueString("FullName");
+				String fullName = doc.getItemValueString("FullName").toLowerCase();
 				
 				if (!fullName.isEmpty()) {
 					m_persons.add(fullName);
@@ -73,19 +73,20 @@ public class NamesUtil {
 		Set<String> list = new HashSet<String>();
 		
 		for(String member : members) {
+			String memberL = member.toLowerCase();
 			// group ?
-			if (m_groupOrig.containsKey(member)) {
+			if (m_groupOrig.containsKey(memberL)) {
 				Set<String> groupMembers = this.resolveGroup(member);
 				list.addAll(groupMembers);
 			}
-			else if (m_persons.contains(member)) {
-				list.add(member);
+			else if (m_persons.contains(memberL)) {
+				list.add(memberL);
 			}
 		}
 		
-		System.out.println("resolveMixedList");
-		System.out.println(list.toString());
-
+		System.out.println("ORIGIN:" + members.toString());
+		System.out.println("PROCESSED:" + list.toString());
+		
 		return list;
 	}
 	
@@ -95,9 +96,9 @@ public class NamesUtil {
 	public Set<String> resolveGroup(String groupName) throws NotesException {
 		m_processedEl = new Vector<String>();
 		Set<String> members = resolveGroupWalk(groupName);
-		
-		System.out.println("resolveGroup " + groupName);
-		System.out.println(members.toString());
+
+		System.out.println("GROUP RESOLVED: " + groupName);
+		System.out.println("PROCESSED:" + members.toString());
 		
 		return members;
 	}
@@ -107,6 +108,8 @@ public class NamesUtil {
 	 */
 	private Set<String> resolveGroupWalk(String elName) throws NotesException {
 		// 1. skip already processed element (avoid constant loop)
+		elName = elName.toLowerCase();
+		
 		if (m_processedEl.contains(elName)) {
 			return null;
 		}
@@ -128,12 +131,13 @@ public class NamesUtil {
 		Vector<String> members = m_groupOrig.get(elName);
 		for(String member : members) {
 			// group and not processed yet
-			if (m_groupOrig.containsKey(member) && !m_processedEl.contains(member)) {
+			String memberL = member.toLowerCase();
+			if (m_groupOrig.containsKey(memberL) && !m_processedEl.contains(memberL)) {
 				Set<String> subGroupResolved = resolveGroupWalk(member);
 				memberResolved.addAll(subGroupResolved);
 			}
-			else if (m_persons.contains(member)) {
-				memberResolved.add(member);
+			else if (m_persons.contains(memberL)) {
+				memberResolved.add(memberL);
 			}
 		}
 		m_elResolved.put(elName, memberResolved);
@@ -141,4 +145,7 @@ public class NamesUtil {
 		return memberResolved;
 	}
 	
+	public List<String> getAllPersons() {
+		return m_persons;
+	}
 }
