@@ -1,6 +1,7 @@
 package prominic.dm.report;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
@@ -183,6 +184,37 @@ public class UsersInfo {
 			database.recycle();
 		}
 	}
+	
+	private UserDbAccess getAccessLevelDbList(String fullName) throws NotesException {
+		int counter = 0;
+		int access = -1;
+		String replicaId = "";
+		for (int i = 0; i < m_DbList.size(); i++) {
+			counter++;
+			Database database = m_DbList.get(i);
+
+			int dbAccess = database.queryAccess(fullName);
+			if (dbAccess > access) {
+				access = dbAccess;
+				replicaId = database.getReplicaID();
+
+				// push database with higher access to top, so next users will get to it faster
+				if (i > 0) {
+					int prev = i > 1 ? i / 2 : 1;
+					Collections.swap(m_DbList, prev, i);
+				}
+			}
+
+			if (access >= 4) {
+				break;
+			}
+		}
+		
+		System.out.println(fullName);
+		System.out.println(counter);
+
+		return new UserDbAccess(replicaId, access);
+	}
 
 	private void usersList(Session session, Database ab, String server) throws NotesException {
 		View view = ab.getView("People");
@@ -201,34 +233,21 @@ public class UsersInfo {
 				boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
 
 				String fullName = doc.getItemValueString("FullName");
-				// max access
-				int access = 0;
-				String replicaId = "";
-				for(Database database : m_DbList) {
-					int dbAccess = database.queryAccess(fullName);
-					if (dbAccess > access) {
-						access = dbAccess;
-						replicaId = database.getReplicaID();
-					}
-
-					if (access >= 4) {
-						break;
-					}
-				}
+				UserDbAccess userAccess = getAccessLevelDbList(fullName);
 				
-				if (access >= ACL.LEVEL_EDITOR) {
+				if (userAccess.getAccessLevel() >= ACL.LEVEL_EDITOR) {
 					m_usersEditor++;
 				}
-				else if (access == ACL.LEVEL_AUTHOR) {
+				else if (userAccess.getAccessLevel() == ACL.LEVEL_AUTHOR) {
 					m_usersAuthor++;
 				}
-				else if (access == ACL.LEVEL_READER) {
+				else if (userAccess.getAccessLevel() == ACL.LEVEL_READER) {
 					m_usersReader++;
 				}
-				else if (access == ACL.LEVEL_DEPOSITOR) {
+				else if (userAccess.getAccessLevel() == ACL.LEVEL_DEPOSITOR) {
 					m_usersDepositor++;
 				}
-				else if (access == ACL.LEVEL_NOACCESS) {
+				else if (userAccess.getAccessLevel() == ACL.LEVEL_NOACCESS) {
 					m_usersNoAccess++;
 				}
 
@@ -240,7 +259,7 @@ public class UsersInfo {
 				if (isMail) m_usersMail++;
 				if (doc.hasItem("$Conflict")) m_usersConflict++;
 
-				String userLine = doc.getUniversalID() + "|" + StringUtils.encodeValue(doc.getItemValueString("LastName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("Suffix")) + "|" + StringUtils.encodeValue(doc.getItemValueString("FirstName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("MiddleInitial")) + "|" + replicaId + "|" + Integer.toString(access);
+				String userLine = doc.getUniversalID() + "|" + StringUtils.encodeValue(doc.getItemValueString("LastName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("Suffix")) + "|" + StringUtils.encodeValue(doc.getItemValueString("FirstName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("MiddleInitial")) + "|" + userAccess.getDbReplicaID() + "|" + Integer.toString(userAccess.getAccessLevel());
 				userLine += (nextDoc != null) ? "~" : "";
 				m_usersList.append(userLine);
 			}
