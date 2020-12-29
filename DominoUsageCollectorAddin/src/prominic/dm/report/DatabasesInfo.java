@@ -1,12 +1,11 @@
 package prominic.dm.report;
 
 import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.Vector;
 
 import lotus.domino.Session;
-import lotus.domino.Database;
-import lotus.domino.DocumentCollection;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
 
@@ -40,16 +39,14 @@ public class DatabasesInfo {
 		reset();
 
 		try {
-			Database catalogDb = session.getDatabase(server, "catalog.nsf");
-			if (catalogDb == null || !catalogDb.isOpen()) {
-				throw new Exception("Catalog Database - not initialized");
-			};
+			Catalog catalog = new Catalog(session);
+			catalog.initialize();
+			if (!catalog.valid()) {
+				throw new Exception("catalog.nsf - not initialized");				
+			}
 
-			DocumentCollection col = catalogDb.search("@IsAvailable(ReplicaID) & @IsUnavailable(RepositoryType)");
-			Document doc = col.getFirstDocument();
-			while (doc != null) {
-				Document nextDoc = col.getNextDocument(doc);
-
+			ArrayList<Document> col = catalog.getNoteFiles();
+			for(Document doc : col) {
 				String serverDoc = doc.getItemValueString("Server");
 				if (server.equalsIgnoreCase(serverDoc)) {
 					String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
@@ -83,13 +80,10 @@ public class DatabasesInfo {
 						m_anonymousAccess.add(pathName);
 					}
 				}
-
-				doc.recycle();
-				doc = nextDoc;
 			}
 			
-			col.recycle();
-			catalogDb.recycle();
+			// recycle Database and Documents
+			catalog.recycle();
 			
 			res = true;
 		} catch (NotesException e) {
