@@ -66,6 +66,14 @@ public class NamesUtil {
 		view2.recycle();
 	}
 	
+	public boolean isGroup(String el) {
+		return m_groupOrig.containsKey(el.toLowerCase()) ;
+	}
+	
+	public boolean isPerson(String el) {
+		return m_persons.contains(el.toLowerCase()) ;
+	}
+	
 	/*
 	 * Resolve list with mixed entries: person, groups, servers etc
 	 */
@@ -84,9 +92,6 @@ public class NamesUtil {
 			}
 		}
 		
-		System.out.println("ORIGIN:" + members.toString());
-		System.out.println("PROCESSED:" + list.toString());
-		
 		return list;
 	}
 	
@@ -97,9 +102,6 @@ public class NamesUtil {
 		m_processedEl = new Vector<String>();
 		Set<String> members = resolveGroupWalk(groupName);
 
-		System.out.println("GROUP RESOLVED: " + groupName);
-		System.out.println("PROCESSED:" + members.toString());
-		
 		return members;
 	}
 	

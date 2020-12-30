@@ -47,6 +47,9 @@ public class Report {
 			String ndd = m_session.getEnvironmentString("Directory", true);
 			String url = m_endpoint.concat("/report?openagent");
 
+			Catalog catalog = new Catalog(m_session);
+			catalog.initialize();
+			
 			// 1. initialize data for report
 			Date stepStart = new Date();
 			StringBuffer data = new StringBuffer();
@@ -56,12 +59,12 @@ public class Report {
 
 			// 2. users
 			stepStart = new Date();
-			data.append(usersInfo(ab, serverDoc));
+			data.append(usersInfo(catalog, ab, serverDoc));
 			data.append("&numStep2=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 3. databases
 			stepStart = new Date();
-			data.append(getDatabaseInfo());
+			data.append(getDatabaseInfo(catalog));
 			data.append("&numStep3=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 4. dir assistance
@@ -139,6 +142,7 @@ public class Report {
 			data.append("&numDuration=" + numDuration);
 
 			serverDoc.recycle();
+			catalog.recycle();
 
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
@@ -152,11 +156,11 @@ public class Report {
 		return false;
 	}
 
-	private String usersInfo(Database ab, Document serverDoc) {
+	private String usersInfo(Catalog catalog, Database ab, Document serverDoc) {
 		StringBuffer buf = new StringBuffer();
 
 		UsersInfo ui = new UsersInfo();
-		if (ui.process(m_session, ab, m_server, serverDoc)) {
+		if (ui.process(m_session, catalog, ab, m_server, serverDoc)) {
 			buf.append("&usersEditor=" + Long.toString(ui.getUsersEditor()));
 			buf.append("&usersAuthor=" + Long.toString(ui.getUsersAuthor()));
 			buf.append("&usersReader=" + Long.toString(ui.getUsersReader()));
@@ -323,11 +327,11 @@ public class Report {
 	/*
 	 * read database info
 	 */
-	private String getDatabaseInfo() throws NotesException {
+	private String getDatabaseInfo(Catalog catalog) throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
 		DatabasesInfo dbInfo = new DatabasesInfo();
-		if (dbInfo.process(m_session, m_server)) {
+		if (dbInfo.process(catalog, m_session)) {
 			buf.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
 			buf.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
 			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));

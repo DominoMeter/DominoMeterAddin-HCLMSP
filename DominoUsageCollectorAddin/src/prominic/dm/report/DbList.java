@@ -42,11 +42,11 @@ public class DbList {
 
 	public void promoteDb(int i) {
 		if (i == 0) return;
-		int prev = i > 1 ? i / 2 : 1;
+		int prev = i > 1 ? i / 2 : 0;
 		Collections.swap(m_DbList, prev, i);
 	}
 
-	public UserDbAccess getAccessLevelDbList(String fullName) throws NotesException {
+	public UserDbAccess getUserDbAccess(String fullName) throws NotesException {
 		int access = -1;
 		String replicaId = "";
 		for (int i = 0; i < m_DbList.size(); i++) {

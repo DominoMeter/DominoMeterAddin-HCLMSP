@@ -1,7 +1,6 @@
 package prominic.dm.report;
 
 import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -33,58 +32,50 @@ public class DatabasesInfo {
 	/*
 	 * count NSF, NTF, Mail and App for defined Application server
 	 */
-	public boolean process(Session session, String server) {
+	public boolean process(Catalog catalog, Session session) {
 		boolean res = false;
 
 		reset();
 
 		try {
-			Catalog catalog = new Catalog(session);
-			catalog.initialize();
 			if (!catalog.valid()) {
 				throw new Exception("catalog.nsf - not initialized");				
 			}
 
 			ArrayList<Document> col = catalog.getNoteFiles();
 			for(Document doc : col) {
-				String serverDoc = doc.getItemValueString("Server");
-				if (server.equalsIgnoreCase(serverDoc)) {
-					String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
-					String pathName = doc.getItemValueString("PathName").toLowerCase();
+				String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
+				String pathName = doc.getItemValueString("PathName").toLowerCase();
 
-					if (pathName.equalsIgnoreCase("names.nsf") || pathName.equalsIgnoreCase("admin4.nsf") || pathName.equalsIgnoreCase("log.nsf") || pathName.equalsIgnoreCase("catalog.nsf")) {
-						@SuppressWarnings("unchecked")
-						Vector<String> replicaId = session.evaluate("@Text(ReplicaId;\"*\")", doc);
-						m_dbReplica.put(pathName, replicaId.get(0));
-					}
-					
-					if (pathName.endsWith(".ntf")) {
-						m_ntf++;
+				if (pathName.equalsIgnoreCase("names.nsf") || pathName.equalsIgnoreCase("admin4.nsf") || pathName.equalsIgnoreCase("log.nsf") || pathName.equalsIgnoreCase("catalog.nsf")) {
+					@SuppressWarnings("unchecked")
+					Vector<String> replicaId = session.evaluate("@Text(ReplicaId;\"*\")", doc);
+					m_dbReplica.put(pathName, replicaId.get(0));
+				}
+
+				if (pathName.endsWith(".ntf")) {
+					m_ntf++;
+				}
+				else {
+					String dbInheritTemplateNameLower = dbInheritTemplateName.toLowerCase();
+					if (dbInheritTemplateNameLower.startsWith("std") && dbInheritTemplateNameLower.endsWith("mail")) {
+						m_mail++;
 					}
 					else {
-						String dbInheritTemplateNameLower = dbInheritTemplateName.toLowerCase();
-						if (dbInheritTemplateNameLower.startsWith("std") && dbInheritTemplateNameLower.endsWith("mail")) {
-							m_mail++;
-						}
-						else {
-							m_app++;
-						}
-					}
-
-					if (!dbInheritTemplateName.isEmpty()) {
-						Integer count = m_templatesUsage.containsKey(dbInheritTemplateName) ? m_templatesUsage.get(dbInheritTemplateName) : 0;
-						m_templatesUsage.put(dbInheritTemplateName, Integer.valueOf(count + 1));	
-					}
-
-					if (hasAnonymous(doc)) {
-						m_anonymousAccess.add(pathName);
+						m_app++;
 					}
 				}
+
+				if (!dbInheritTemplateName.isEmpty()) {
+					Integer count = m_templatesUsage.containsKey(dbInheritTemplateName) ? m_templatesUsage.get(dbInheritTemplateName) : 0;
+					m_templatesUsage.put(dbInheritTemplateName, Integer.valueOf(count + 1));	
+				}
+
+				if (hasAnonymous(doc)) {
+					m_anonymousAccess.add(pathName);
+				}
 			}
-			
-			// recycle Database and Documents
-			catalog.recycle();
-			
+
 			res = true;
 		} catch (NotesException e) {
 			m_pe = new ParsedError(e);
@@ -134,7 +125,7 @@ public class DatabasesInfo {
 	public HashMap<String, Integer> getTemplateUsage() {
 		return m_templatesUsage;
 	}
-	
+
 	public HashMap<String, String> getDbReplica() {
 		return m_dbReplica;
 	}
@@ -142,7 +133,7 @@ public class DatabasesInfo {
 	public ArrayList<String> getAnonymousAccess() {
 		return m_anonymousAccess;
 	}
-	
+
 	public ParsedError getParsedError() {
 		return m_pe;
 	}

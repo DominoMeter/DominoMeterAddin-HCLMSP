@@ -15,10 +15,10 @@ import prominic.util.StringUtils;
 public class UsersInfo {
 	private StringBuffer m_usersList;
 	private NamesUtil m_namesUtil;
-	
+
 	private long m_usersAllow;
 	private long m_usersDeny;
-	
+
 	private long m_usersEditor;
 	private long m_usersReader;
 	private long m_usersAuthor;
@@ -45,6 +45,11 @@ public class UsersInfo {
 		m_usersConflict = 0;
 		m_usersAllow = 0;
 		m_usersDeny = 0;
+		m_usersEditor = 0;
+		m_usersAuthor = 0;
+		m_usersReader = 0;
+		m_usersDepositor = 0;
+		m_usersNoAccess = 0;
 
 		m_usersList = new StringBuffer();
 		m_namesUtil = new NamesUtil();
@@ -52,7 +57,7 @@ public class UsersInfo {
 		m_pe = null;
 	}
 
-	public boolean process(Session session, Database ab, String server, Document serverDoc) {
+	public boolean process(Session session, Catalog catalog, Database ab, String server, Document serverDoc) {
 		boolean res = false;
 
 		reset();
@@ -62,7 +67,7 @@ public class UsersInfo {
 
 			accessDeniedCount(serverDoc);
 
-			usersList(session, ab, server);
+			usersList(session, catalog, ab, server);
 			res = true;
 		} catch (NotesException e) {
 			m_pe = new ParsedError(e);
@@ -82,12 +87,16 @@ public class UsersInfo {
 		m_usersDeny = resolvedMembers.size();
 	}
 
-	private void usersList(Session session, Database ab, String server) throws NotesException {
+	private void usersList(Session session, Catalog catalog, Database ab, String server) throws NotesException {
 		View view = ab.getView("People");
 		view.setAutoUpdate(false);
 
-		DbList dbList = new DbList(session);
-		dbList.initialize();
+		// use DbDirectory if Catalong is not defined for some reason
+		DbList dbList = null;
+		if (!catalog.valid()) {
+			dbList = new DbList(session);
+			dbList.initialize();
+		}
 
 		Document doc = view.getFirstDocument();
 		while (doc != null) {
@@ -100,8 +109,14 @@ public class UsersInfo {
 				boolean isMail = (mailSystem.equals("1") || mailSystem.equals("6")) && doc.getItemValueString("MailServer").equalsIgnoreCase(server) && !doc.getItemValueString("MailFile").isEmpty();
 
 				String fullName = doc.getItemValueString("FullName");
-				UserDbAccess userAccess = dbList.getAccessLevelDbList(fullName);
-				
+				UserDbAccess userAccess = null;
+				if (catalog.valid()) {
+					userAccess = catalog.getUserDbAccess(fullName, m_namesUtil);
+				}
+				else {
+					userAccess = dbList.getUserDbAccess(fullName);	
+				}
+
 				if (userAccess.getAccessLevel() >= ACL.LEVEL_EDITOR) {
 					m_usersEditor++;
 				}
@@ -134,8 +149,10 @@ public class UsersInfo {
 			doc.recycle();
 			doc = nextDoc;
 		}
-		
-		dbList.recycle();
+
+		if (dbList != null) {
+			dbList.recycle();	
+		}
 
 		view.setAutoUpdate(true);
 		view.recycle();
@@ -156,7 +173,6 @@ public class UsersInfo {
 	public long getUsersNoAccess() {
 		return m_usersNoAccess;
 	}
-	
 	public long getUsersTotal() {
 		return m_usersTotal;
 	}
