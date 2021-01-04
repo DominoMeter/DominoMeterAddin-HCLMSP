@@ -22,6 +22,7 @@ import prominic.dm.api.Ping;
 import prominic.io.Bash;
 import prominic.io.EchoClient;
 import prominic.io.RESTClient;
+import prominic.util.FileLogger;
 import prominic.util.FileUtils;
 import prominic.util.MD5Checksum;
 import prominic.util.ParsedError;
@@ -41,16 +42,20 @@ public class Report {
 
 	public boolean send(Database ab, String version) {
 		try {
+			FileLogger.log("report.start");
+
 			Date dateStart = new Date();
 
 			m_pe = null;
 			String ndd = m_session.getEnvironmentString("Directory", true);
 			String url = m_endpoint.concat("/report?openagent");
 
+			FileLogger.log("report.catalog.initialize");
 			Catalog catalog = new Catalog(m_session);
 			catalog.initialize();
-			
+
 			// 1. initialize data for report
+			FileLogger.log("report.basic");
 			Date stepStart = new Date();
 			StringBuffer data = new StringBuffer();
 			StringBuffer keyword = Keyword.getValue(m_endpoint, m_server, "all");
@@ -58,16 +63,19 @@ public class Report {
 			data.append("numStep1=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 2. users
+			FileLogger.log("report.user");
 			stepStart = new Date();
 			data.append(usersInfo(catalog, ab, serverDoc));
 			data.append("&numStep2=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 3. databases
+			FileLogger.log("report.database");
 			stepStart = new Date();
 			data.append(getDatabaseInfo(catalog));
 			data.append("&numStep3=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 4. dir assistance
+			FileLogger.log("report.da");
 			stepStart = new Date();
 			if (isDA(serverDoc)) {
 				data.append("&da=1");
@@ -75,34 +83,40 @@ public class Report {
 			data.append("&numStep4=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 5. system data
+			FileLogger.log("report.system");
 			stepStart = new Date();
 			data.append(getSystemInfo(ab, version));
 			data.append("&numStep5=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 6. notes.ini, we could get variables using API call
+			FileLogger.log("report.notesini");
 			stepStart = new Date();
 			data.append(getNotesINI(keyword));
 			data.append("&numStep6=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 7. server document items
+			FileLogger.log("report.serverdoc");
 			stepStart = new Date();
 			data.append(getServerItems(serverDoc, keyword));
 			data.append("&numStep7=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 8. program documents
+			FileLogger.log("report.programdoc");
 			stepStart = new Date();
 			data.append("&programs=" + StringUtils.encodeValue(getProgram(ab)));
 			data.append("&numStep8=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 9. id files on server
+			FileLogger.log("report.idfiles");
 			stepStart = new Date();
 			String idFiles = getIdFiles(ndd);
 			if (!idFiles.isEmpty()) {
-				data.append("&idfiles=" + idFiles);	
+				data.append("&idfiles=" + idFiles);
 			}
 			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 10. services
+			FileLogger.log("report.services");
 			stepStart = new Date();
 			String services = this.getServices();
 			if (!services.isEmpty()) {
@@ -111,6 +125,7 @@ public class Report {
 			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 11. Linux specific data
+			FileLogger.log("report.linux");
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(this.getLinuxInfo());
@@ -118,6 +133,7 @@ public class Report {
 			data.append("&numStep11=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 12. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
+			FileLogger.log("report.nsd");
 			stepStart = new Date();
 			String nsd = getNSD(ndd);
 			if (!nsd.isEmpty()) {
@@ -126,27 +142,31 @@ public class Report {
 			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 13. In case if connection is done via HTTP we still need to check if HTTPS works
+			FileLogger.log("report.httpcheck");
 			stepStart = new Date();
 			data.append(checkHTTPSConnection());
 			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 14. Jedi
+			FileLogger.log("report.jedi");
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
-				data.append(jedi());	
+				data.append(jedi());
 			}
 			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 100. to measure how long it takes to calculate needed data
+			FileLogger.log("report.end");
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
 
 			serverDoc.recycle();
 			catalog.recycle();
 
+			FileLogger.log("report.send");
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			return res.toString().equals("OK");
-		} 
+		}
 		catch (NotesException e) {
 			m_pe = new ParsedError(e);
 		}
@@ -214,7 +234,7 @@ public class Report {
 						echoClient.shutdownOutput();
 						String jediInfo = echoClient.readBufferReader();
 						res += "&JediInfo=" + StringUtils.encodeValue(jediInfo);
-						
+
 						echoClient.stopConnection();
 					}
 					else {
@@ -311,7 +331,7 @@ public class Report {
 		buf.append("&version=" + version);
 		buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));
 		buf.append("&templateVersion=" + getDatabaseVersionNumber(ab));
-		
+
 		String host = "";
 		try {
 			InetAddress local = InetAddress.getLocalHost();
@@ -380,7 +400,7 @@ public class Report {
 			String variable = variables[i].toLowerCase();
 			String iniValue = m_session.getEnvironmentString(variable, true);
 			if (iniValue.length() > 0) {
-				buf.append("&" + variable + "=" + StringUtils.encodeValue(iniValue));	
+				buf.append("&" + variable + "=" + StringUtils.encodeValue(iniValue));
 			}
 		}
 
@@ -437,7 +457,7 @@ public class Report {
 			if (index1 >= 0) {
 				index1 += "DAOS".length();
 				int index2 = buf.indexOf("Not", index1);
-				int index3 = buf.indexOf("Enabled", index1);	
+				int index3 = buf.indexOf("Enabled", index1);
 				if( index2 >= index3) {
 					buf.append("&daos=1");
 				};
@@ -447,15 +467,15 @@ public class Report {
 			if (index1 >= 0) {
 				index1 += "Transactional".length();
 				int index2 = buf.indexOf("Not", index1);
-				int index3 = buf.indexOf("Enabled", index1);	
+				int index3 = buf.indexOf("Enabled", index1);
 				if (index2 >= index3) {
-					buf.append("&transactional_logging=1");	
+					buf.append("&transactional_logging=1");
 				}
 			}
 
 			// SHOW TASKS
 			console = m_session.sendConsoleCommand("", "!sh tasks");
-			buf.append("&sh_tasks=" + StringUtils.encodeValue(console));		
+			buf.append("&sh_tasks=" + StringUtils.encodeValue(console));
 			if (console.contains("Traveler")) {
 				buf.append("&traveler=1");
 			}
@@ -465,12 +485,12 @@ public class Report {
 
 			// SHOW HEARTBEAT
 			console = m_session.sendConsoleCommand("", "!sh heartbeat");
-			buf.append("&sh_heartbeat=" + StringUtils.encodeValue(console));		
+			buf.append("&sh_heartbeat=" + StringUtils.encodeValue(console));
 			if (console.contains("seconds")) {
 				String elapsed_time = console.substring(console.lastIndexOf(":") + 2, console.lastIndexOf("seconds") - 1);
 				buf.append("&numElapsedTime=" + elapsed_time);
 			}
-			
+
 		} catch (NotesException e) {
 			Log.sendError(m_server, m_endpoint, e);
 		}
