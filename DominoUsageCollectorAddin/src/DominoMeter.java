@@ -1,8 +1,10 @@
 import java.util.Calendar;
-import lotus.domino.NotesFactory;
-import lotus.domino.Session;
+import java.util.logging.Level;
+
 import lotus.domino.Database;
 import lotus.domino.NotesException;
+import lotus.domino.NotesFactory;
+import lotus.domino.Session;
 import lotus.notes.addins.JavaServerAddin;
 import lotus.notes.internal.MessageQueue;
 import prominic.dm.api.Config;
@@ -11,11 +13,12 @@ import prominic.dm.api.Ping;
 import prominic.dm.report.Report;
 import prominic.dm.update.ProgramConfig;
 import prominic.dm.update.UpdateRobot;
+import prominic.util.FileLogger;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "107";
-	final String			JADDIN_DATE				= "2021-01-04 12:00 CET";
+	final String			JADDIN_DATE				= "2021-01-06 12:00 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -38,6 +41,7 @@ public class DominoMeter extends JavaServerAddin {
 	private String 			endpoint				= "";
 	private String 			version					= "";
 	private int				failedCounter			= 0;
+	private FileLogger		fileLogger				= null;
 
 	// constructor if parameters are provided
 	public DominoMeter(String[] args) {
@@ -48,17 +52,30 @@ public class DominoMeter extends JavaServerAddin {
 	public DominoMeter() {
 	}
 
+	@Override
 	public void runNotes() {
-		// 1. minimal system requirement
-		try {
-			String jvmVersion = System.getProperty("java.specification.version", "0");
-			if (Double.parseDouble(jvmVersion) < 1.6) {
-				logMessage("Current Java Virtual Machine version " + jvmVersion + " must be 1.6 or higher");
-				return;
-			}
-		} catch (Exception e) {
-			logMessage("Unable to detect the Java Virtual Machine version number: " + e.getMessage());
+		fileLogger = new FileLogger();
+
+		if (args == null) {
+			logMessage("You must provide an endpoint to send data, see instructions below");
+			showHelp();
 			return;
+		}
+
+		// endpoint
+		endpoint = args[0];
+		if ("dev".equalsIgnoreCase(endpoint)) {
+			endpoint = "https://prominic-dev.dominometer.com/duca.nsf";
+		}
+		else if("prod".equalsIgnoreCase(endpoint)) {
+			endpoint = "https://prominic.dominometer.com/duca.nsf";
+		}
+		else if("belsoft".equalsIgnoreCase(endpoint)) {
+			endpoint = "https://belsoft.dominometer.com/duca.nsf";
+		}
+
+		if (args.length > 1) {
+			setLogLevel(args[1]);
 		}
 
 		runLoop();
@@ -66,26 +83,19 @@ public class DominoMeter extends JavaServerAddin {
 
 	@SuppressWarnings("deprecation")
 	private void runLoop() {
+		fileLogger.fine("main.runLoop.start");
 		StringBuffer qBuffer = new StringBuffer(1024);
 
 		try {
-			// Set the Java thread name to the class name (default would be "Thread-n")		
+			setAddinState("Initializing");
+			fileLogger.fine("main.runLoop.initialize");
+
+			// Set the Java thread name to the class name (default would be "Thread-n")
 			this.setName(JADDIN_NAME);
 			this.dominoTaskID = createAddinStatusLine(this.JADDIN_NAME);
-			setAddinState("Initializing");
 
 			session = NotesFactory.createSession();
 			ab = session.getDatabase(session.getServerName(), "names.nsf");
-			endpoint = args[0];
-			if (endpoint.equalsIgnoreCase("dev")) {
-				endpoint = "https://prominic-dev.dominometer.com/duca.nsf";
-			}
-			else if(endpoint.equalsIgnoreCase("prod")) {
-				endpoint = "https://prominic.dominometer.com/duca.nsf";
-			}
-			else if(endpoint.equalsIgnoreCase("belsoft")) {
-				endpoint = "https://belsoft.dominometer.com/duca.nsf";
-			}
 			server = session.getServerName();
 			version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
 
@@ -118,10 +128,10 @@ public class DominoMeter extends JavaServerAddin {
 			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME);
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
-			if (check) sendReport();	
+			if (check) sendReport();
 
 			UpdateRobot ur = new UpdateRobot();
-			if (check) updateVersion(ur, pc, config.getJAR());	
+			if (check) updateVersion(ur, pc, config.getJAR());
 			ur.cleanOldVersions(server, endpoint, version);
 
 			while (this.addInRunning() && (messageQueueState != MessageQueue.ERR_MQ_QUITTING)) {
@@ -135,19 +145,24 @@ public class DominoMeter extends JavaServerAddin {
 				resolveMessageQueueState(qBuffer, ur, pc, config);
 
 				if (this.AddInHasMinutesElapsed(interval)) {
+					fileLogger.fine("main.runLoop.AddInHasMinutesElapsed");
 					if (checkConnection()) {
+						fileLogger.fine("main.runLoop.routine");
 						loadConfig(config);
 						sendReport();
-						updateVersion(ur, pc, config.getJAR());	
+						updateVersion(ur, pc, config.getJAR());
 					}
-				}				
+				}
 			}
 		} catch(Exception e) {
+			fileLogger.severe(e);
 			e.printStackTrace();
 		}
 	}
 
 	private boolean checkConnection() {
+		fileLogger.fine("main.checkConnection");
+
 		Ping ping = new Ping();
 		if (ping.check(endpoint, server)) {
 			failedCounter = 0;
@@ -159,16 +174,18 @@ public class DominoMeter extends JavaServerAddin {
 		logMessage("connection (*FAILED*) with: " + endpoint);
 		logMessage("> counter: " + Integer.toString(failedCounter));
 		if (ping.getParsedError() != null) {
-			logMessage("> " + ping.getParsedError().getMessage());	
+			logMessage("> " + ping.getParsedError().getMessage());
 		}
 
 		if (failedCounter > 24) {
-			this.stopAddin();		
+			this.stopAddin();
 		}
 		return false;
 	}
 
 	private void resolveMessageQueueState(StringBuffer qBuffer, UpdateRobot ur, ProgramConfig pc, Config config) {
+		fileLogger.fine("main.resolveMessageQueueState");
+
 		String cmd = qBuffer.toString().trim();
 		if (cmd.isEmpty()) return;
 
@@ -193,7 +210,24 @@ public class DominoMeter extends JavaServerAddin {
 		}
 	}
 
+	private void setLogLevel(String level) {
+		if ("fine".equals(level)) {
+			fileLogger.setLevel(Level.FINE);
+		}
+		else if("info".equals(level)) {
+			fileLogger.setLevel(Level.INFO);
+		}
+		else if("warning".equals(level)) {
+			fileLogger.setLevel(Level.WARNING);
+		}
+		else if("severe".equals(level)) {
+			fileLogger.setLevel(Level.SEVERE);
+		}
+	}
+
 	private boolean loadConfig(Config config) {
+		fileLogger.fine("main.loadConfig");
+
 		boolean res = config.load(endpoint, server);
 		if (res && config.getInterval() > 0) {
 			interval = config.getInterval();
@@ -203,6 +237,8 @@ public class DominoMeter extends JavaServerAddin {
 
 	private boolean updateVersion(UpdateRobot ur, ProgramConfig pc, String jar) {
 		setAddinState("UpdateRobot");
+		fileLogger.fine("main.updateVersion");
+
 		String newAddinFile = ur.applyNewVersion(session, server, endpoint, jar, version);
 		if (newAddinFile.isEmpty()) {
 			if (ur.getParsedError() != null) {
@@ -220,9 +256,11 @@ public class DominoMeter extends JavaServerAddin {
 
 	private boolean sendReport() {
 		setAddinState("Report");
-		Report report = new Report(session, server, endpoint);
-		boolean res = report.send(ab, version);
+		fileLogger.fine("main.sendReport");
 
+		Report report = new Report(session, server, endpoint, fileLogger);
+
+		boolean res = report.send(ab, version);
 		if (!res) {
 			Log.sendError(server, endpoint, report.getParsedError());
 		}
@@ -231,18 +269,24 @@ public class DominoMeter extends JavaServerAddin {
 	}
 
 	private void showInfo() {
-		logMessage("version " + this.JADDIN_VERSION);
+		fileLogger.fine("main.showInfo");
+
+		logMessage("version    " + this.JADDIN_VERSION);
 		logMessage("build date " + this.JADDIN_DATE);
-		logMessage("endpoint " + this.endpoint);
-		logMessage("interval " + Integer.toString(this.interval) + " minutes");
+		logMessage("endpoint   " + this.endpoint);
+		logMessage("interval   " + Integer.toString(this.interval) + " minutes");
+		logMessage("logging    " + fileLogger.getLevel().getName());
 	}
 
 	private void showHelp() {
+		fileLogger.fine("main.showHelp");
+
 		int year = Calendar.getInstance().get(Calendar.YEAR);
 		logMessage("*** Usage ***");
-		AddInLogMessageText("[load]");
-		AddInLogMessageText("	load runjava DominoMeter <endpoint>");
-		AddInLogMessageText("[tell DominoMeter]");
+		AddInLogMessageText("load runjava DominoMeter <endpoint> [logLevel]");
+		AddInLogMessageText("	<endpoint> - required. url to send data (f.x. https://prominic.dominometer.com/duca.nsf)");
+		AddInLogMessageText("	[logLevel] - optional. 'fine', 'info', 'warning', 'severe' (default is 'warning')");
+		AddInLogMessageText("tell DominoMeter <command>");
 		AddInLogMessageText("	quit       Unload DominoMeter");
 		AddInLogMessageText("	help       Show help information (or -h)");
 		AddInLogMessageText("	info	   Show version and more of DominoMeter (or -i)");
@@ -256,6 +300,7 @@ public class DominoMeter extends JavaServerAddin {
 	/**
 	 * This method is called by the Java runtime during garbage collection.
 	 */
+	@Override
 	public void finalize() {
 		terminate();
 
@@ -265,18 +310,19 @@ public class DominoMeter extends JavaServerAddin {
 	/**
 	 * Write a log message to the Domino console. The message string will be prefixed with the add-in name
 	 * followed by a column, e.g. <code>"AddinName: xxxxxxxx"</code>
-	 * 
+	 *
 	 * @param	message		Message to be displayed
 	 */
 	private final void logMessage(String message) {
+		fileLogger.info(this.JADDIN_NAME + ": " + message);
 		AddInLogMessageText(this.JADDIN_NAME + ": " + message, 0);
 	}
 
 	/**
 	 * Create the Domino task status line which is shown in <code>"show tasks"</code> command.
-	 * 
+	 *
 	 * Note: This method is also called by the JAddinThread and the user add-in
-	 * 
+	 *
 	 * @param	name	Name of task
 	 * @return	Domino task ID
 	 */
@@ -286,9 +332,9 @@ public class DominoMeter extends JavaServerAddin {
 
 	/**
 	 * Delete the Domino task status line.
-	 * 
+	 *
 	 * Note: This method is also called by the JAddinThread and the user add-in
-	 * 
+	 *
 	 * @param	id	Domino task id
 	 */
 	public final void deleteAddinStatusLine(int id) {
@@ -298,7 +344,7 @@ public class DominoMeter extends JavaServerAddin {
 
 	/**
 	 * Set the text of the add-in which is shown in command <code>"show tasks"</code>.
-	 * 
+	 *
 	 * @param	text	Text to be set
 	 */
 	private final void setAddinState(String text) {
@@ -311,9 +357,9 @@ public class DominoMeter extends JavaServerAddin {
 
 	/**
 	 * Set the text of the add-in which is shown in command <code>"show tasks"</code>.
-	 * 
+	 *
 	 * Note: This method is also called by the JAddinThread and the user add-in
-	 * 
+	 *
 	 * @param	id		Domino task id
 	 * @param	message	Text to be set
 	 */
@@ -339,7 +385,7 @@ public class DominoMeter extends JavaServerAddin {
 				this.session.recycle();
 			}
 			if (this.mq != null) {
-				this.mq.close(0);	
+				this.mq.close(0);
 			}
 
 			logMessage("UNLOADED (OK) " + version);
@@ -347,4 +393,5 @@ public class DominoMeter extends JavaServerAddin {
 			logMessage("UNLOADED (**FAILED**) " + version);
 		}
 	}
+
 }

@@ -29,20 +29,22 @@ import prominic.util.ParsedError;
 import prominic.util.StringUtils;
 
 public class Report {
-	private Session m_session = null;
-	private String m_server = null;
-	private String m_endpoint = null;
+	private Session m_session;
+	private String m_server;
+	private String m_endpoint;
 	private ParsedError m_pe = null;
+	private FileLogger m_fileLogger;
 
-	public Report(Session session, String server, String endpoint) {
+	public Report(Session session, String server, String endpoint, FileLogger fileLogger) {
 		m_session = session;
 		m_server = server;
 		m_endpoint = endpoint;
+		m_fileLogger = fileLogger;
 	}
 
 	public boolean send(Database ab, String version) {
 		try {
-			FileLogger.log("report.start");
+			m_fileLogger.fine("report.send.start");
 
 			Date dateStart = new Date();
 
@@ -50,12 +52,12 @@ public class Report {
 			String ndd = m_session.getEnvironmentString("Directory", true);
 			String url = m_endpoint.concat("/report?openagent");
 
-			FileLogger.log("report.catalog.initialize");
+			m_fileLogger.fine("report.send.catalog");
 			Catalog catalog = new Catalog(m_session);
 			catalog.initialize();
 
 			// 1. initialize data for report
-			FileLogger.log("report.basic");
+			m_fileLogger.fine("report.send.initialize");
 			Date stepStart = new Date();
 			StringBuffer data = new StringBuffer();
 			StringBuffer keyword = Keyword.getValue(m_endpoint, m_server, "all");
@@ -63,19 +65,19 @@ public class Report {
 			data.append("numStep1=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 2. users
-			FileLogger.log("report.user");
+			m_fileLogger.fine("report.send.users");
 			stepStart = new Date();
 			data.append(usersInfo(catalog, ab, serverDoc));
 			data.append("&numStep2=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 3. databases
-			FileLogger.log("report.database");
+			m_fileLogger.fine("report.send.databases");
 			stepStart = new Date();
 			data.append(getDatabaseInfo(catalog));
 			data.append("&numStep3=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 4. dir assistance
-			FileLogger.log("report.da");
+			m_fileLogger.fine("report.send.da");
 			stepStart = new Date();
 			if (isDA(serverDoc)) {
 				data.append("&da=1");
@@ -83,31 +85,31 @@ public class Report {
 			data.append("&numStep4=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 5. system data
-			FileLogger.log("report.system");
+			m_fileLogger.fine("report.send.system");
 			stepStart = new Date();
 			data.append(getSystemInfo(ab, version));
 			data.append("&numStep5=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 6. notes.ini, we could get variables using API call
-			FileLogger.log("report.notesini");
+			m_fileLogger.fine("report.send.notesini");
 			stepStart = new Date();
 			data.append(getNotesINI(keyword));
 			data.append("&numStep6=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 7. server document items
-			FileLogger.log("report.serverdoc");
+			m_fileLogger.fine("report.send.serverdoc");
 			stepStart = new Date();
 			data.append(getServerItems(serverDoc, keyword));
 			data.append("&numStep7=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 8. program documents
-			FileLogger.log("report.programdoc");
+			m_fileLogger.fine("report.send.programdoc");
 			stepStart = new Date();
 			data.append("&programs=" + StringUtils.encodeValue(getProgram(ab)));
 			data.append("&numStep8=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 9. id files on server
-			FileLogger.log("report.idfiles");
+			m_fileLogger.fine("report.send.idfiles");
 			stepStart = new Date();
 			String idFiles = getIdFiles(ndd);
 			if (!idFiles.isEmpty()) {
@@ -116,7 +118,7 @@ public class Report {
 			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 10. services
-			FileLogger.log("report.services");
+			m_fileLogger.fine("report.send.services");
 			stepStart = new Date();
 			String services = this.getServices();
 			if (!services.isEmpty()) {
@@ -125,7 +127,7 @@ public class Report {
 			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 11. Linux specific data
-			FileLogger.log("report.linux");
+			m_fileLogger.fine("report.send.linux");
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(this.getLinuxInfo());
@@ -133,7 +135,7 @@ public class Report {
 			data.append("&numStep11=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 12. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
-			FileLogger.log("report.nsd");
+			m_fileLogger.fine("report.send.nsd");
 			stepStart = new Date();
 			String nsd = getNSD(ndd);
 			if (!nsd.isEmpty()) {
@@ -142,13 +144,13 @@ public class Report {
 			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 13. In case if connection is done via HTTP we still need to check if HTTPS works
-			FileLogger.log("report.httpcheck");
+			m_fileLogger.fine("report.send.httpcheck");
 			stepStart = new Date();
 			data.append(checkHTTPSConnection());
 			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 14. Jedi
-			FileLogger.log("report.jedi");
+			m_fileLogger.fine("report.send.jedi");
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(jedi());
@@ -156,21 +158,26 @@ public class Report {
 			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 100. to measure how long it takes to calculate needed data
-			FileLogger.log("report.end");
+			m_fileLogger.fine("report.send.finalize");
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
 
 			serverDoc.recycle();
 			catalog.recycle();
 
-			FileLogger.log("report.send");
+			m_fileLogger.fine("report.post.data");
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
+
+			m_fileLogger.fine("report.post.result: " + res.toString());
+			m_fileLogger.fine("report.send.end");
 			return res.toString().equals("OK");
 		}
 		catch (NotesException e) {
+			m_fileLogger.severe(e);
 			m_pe = new ParsedError(e);
 		}
 		catch (Exception e) {
+			m_fileLogger.severe(e);
 			m_pe = new ParsedError(e);
 		}
 		return false;
@@ -210,13 +217,15 @@ public class Report {
 
 		StringBuffer partitionsxml = FileUtils.readFileContent("/opt/prominic/jedi/etc/partitions.xml");
 		if (partitionsxml != null) {
+			m_fileLogger.fine("- report.send.jedi.partitionsxml");
 			res += "&FilePartitionsxml=" + StringUtils.encodeValue(partitionsxml.toString());
 		}
 
 		StringBuffer jdicfg = FileUtils.readFileContent("/opt/prominic/jedi/etc/jdi.cfg");
 		if (jdicfg != null) {
-			res += "&FileJdiCfg=" + StringUtils.encodeValue(jdicfg.toString());
+			m_fileLogger.fine("- report.send.jedi.jdicfg");
 
+			res += "&FileJdiCfg=" + StringUtils.encodeValue(jdicfg.toString());
 			int start = jdicfg.indexOf("server.text.port=");
 			if (start > 0) {
 				start += "server.text.port=".length();
@@ -225,19 +234,27 @@ public class Report {
 					int port = Integer.parseInt(jdicfg.substring(start, end));
 
 					EchoClient echoClient = new EchoClient();
+					m_fileLogger.fine("- report.send.jedi.startConnection:before");
 					boolean connect = echoClient.startConnection("127.0.0.1", port);
-					if (connect) {
-						echoClient.sendMessage("Glogin admin pass");
-						echoClient.sendMessage("Gstatus");
-						echoClient.sendMessage("Glogout");
+					m_fileLogger.fine("- report.send.jedi.startConnection:after");
 
+					if (connect) {
+						m_fileLogger.fine("- report.send.jedi.sendMessage:Glogin admin pass");
+						echoClient.sendMessage("Glogin admin pass");
+						m_fileLogger.fine("- report.send.jedi.sendMessage:Gstatus");
+						echoClient.sendMessage("Gstatus");
+						m_fileLogger.fine("- report.send.jedi.sendMessage:Glogout");
+						echoClient.sendMessage("Glogout");
+						m_fileLogger.fine("- report.send.jedi.shutdownOutput");
 						echoClient.shutdownOutput();
 						String jediInfo = echoClient.readBufferReader();
 						res += "&JediInfo=" + StringUtils.encodeValue(jediInfo);
 
+						m_fileLogger.fine("- report.send.jedi.stopConnection");
 						echoClient.stopConnection();
 					}
 					else {
+						m_fileLogger.fine("- report.send.jedi.connection:failed");
 						Log.sendError(m_server, m_endpoint, echoClient.getParsedError());
 					}
 				}
@@ -492,6 +509,7 @@ public class Report {
 			}
 
 		} catch (NotesException e) {
+			m_fileLogger.severe(e);
 			Log.sendError(m_server, m_endpoint, e);
 		}
 
@@ -541,7 +559,6 @@ public class Report {
 
 		return false;
 	}
-
 
 	private String getProgram(Database database) throws NotesException {
 		StringBuffer buf = new StringBuffer();
