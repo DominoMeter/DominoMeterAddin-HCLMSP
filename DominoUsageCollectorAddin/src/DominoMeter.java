@@ -201,32 +201,6 @@ public class DominoMeter extends JavaServerAddin {
 		}
 	}
 
-	private boolean checkConnection() {
-		fileLogger.info("CheckConnection");
-
-		Ping ping = new Ping();
-		boolean res = ping.check(endpoint, server);
-		fileLogger.info(String.valueOf(res));
-
-		if (res) {
-			failedCounter = 0;
-			return true;
-		};
-
-		failedCounter++;
-
-		logMessage("connection (*FAILED*) with: " + endpoint);
-		logMessage("> counter: " + Integer.toString(failedCounter));
-		if (ping.getParsedError() != null) {
-			logMessage("> " + ping.getParsedError().getMessage());
-		}
-
-		if (failedCounter > 24) {
-			this.stopAddin();
-		}
-		return false;
-	}
-
 	private void resolveMessageQueueState(StringBuffer qBuffer, UpdateRobot ur, ProgramConfig pc, Config config) {
 		String cmd = qBuffer.toString().trim();
 		if (cmd.isEmpty()) return;
@@ -256,11 +230,37 @@ public class DominoMeter extends JavaServerAddin {
 		fileLogger.setLevel(Integer.parseInt(level));
 	}
 
+	private boolean checkConnection() {
+		fileLogger.info("CheckConnection");
+
+		Ping ping = new Ping();
+		boolean res = ping.check(endpoint, server);
+		fileLogger.info("- " + String.valueOf(res));
+
+		if (res) {
+			failedCounter = 0;
+			return true;
+		};
+
+		failedCounter++;
+
+		logMessage("connection (*FAILED*) with: " + endpoint);
+		logMessage("> counter: " + Integer.toString(failedCounter));
+		if (ping.getParsedError() != null) {
+			logMessage("> " + ping.getParsedError().getMessage());
+		}
+
+		if (failedCounter > 24) {
+			this.stopAddin();
+		}
+		return false;
+	}
+
 	private boolean loadConfig(Config config) {
 		fileLogger.info("LoadConfig");
 
 		boolean res = config.load(endpoint, server);
-		fileLogger.info(String.valueOf(res));
+		fileLogger.info("- " + String.valueOf(res));
 		if (res && config.getInterval() > 0) {
 			interval = config.getInterval();
 		}
@@ -275,9 +275,9 @@ public class DominoMeter extends JavaServerAddin {
 		if (newAddinFile.isEmpty()) {
 			if (ur.getParsedError() != null) {
 				Log.sendError(server, endpoint, ur.getParsedError());
+				fileLogger.severe(ur.getParsedError().getMessage());
 			}
 
-			fileLogger.info(String.valueOf(false));
 			return false;
 		}
 
@@ -285,7 +285,7 @@ public class DominoMeter extends JavaServerAddin {
 		Log.sendLog(server, endpoint, version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");
 		this.stopAddin();
 
-		fileLogger.info(String.valueOf(true));
+		fileLogger.info("- " + String.valueOf(true));
 		return true;
 	}
 
@@ -296,7 +296,7 @@ public class DominoMeter extends JavaServerAddin {
 		Report report = new Report(session, server, endpoint, fileLogger);
 
 		boolean res = report.send(ab, version);
-		fileLogger.info(String.valueOf(res));
+		fileLogger.info("- " + String.valueOf(res));
 		if (!res) {
 			Log.sendError(server, endpoint, report.getParsedError());
 		}
