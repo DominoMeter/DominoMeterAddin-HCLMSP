@@ -6,15 +6,17 @@ import java.util.Vector;
 import lotus.domino.ACL;
 import lotus.domino.Database;
 import lotus.domino.Document;
+import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-import lotus.domino.View;
+import prominic.util.FileLogger;
 import prominic.util.ParsedError;
 import prominic.util.StringUtils;
 
 public class UsersInfo {
 	private StringBuffer m_usersList;
 	private NamesUtil m_namesUtil;
+	private FileLogger m_fileLogger;
 
 	private long m_usersAllow;
 	private long m_usersDeny;
@@ -57,6 +59,10 @@ public class UsersInfo {
 		m_pe = null;
 	}
 
+	public UsersInfo(FileLogger fileLogger) {
+		m_fileLogger = fileLogger;
+	}
+
 	public boolean process(Session session, Catalog catalog, Database ab, String server, Document serverDoc) {
 		boolean res = false;
 
@@ -64,12 +70,11 @@ public class UsersInfo {
 
 		try {
 			m_namesUtil.initialize(ab);
-
 			accessDeniedCount(serverDoc);
-
 			usersList(session, catalog, ab, server);
 			res = true;
 		} catch (NotesException e) {
+			m_fileLogger.severe(e);
 			m_pe = new ParsedError(e);
 		}
 
@@ -88,9 +93,6 @@ public class UsersInfo {
 	}
 
 	private void usersList(Session session, Catalog catalog, Database ab, String server) throws NotesException {
-		View view = ab.getView("People");
-		view.setAutoUpdate(false);
-
 		// use DbDirectory if Catalong is not defined for some reason
 		DbList dbList = null;
 		if (!catalog.valid()) {
@@ -98,9 +100,10 @@ public class UsersInfo {
 			dbList.initialize();
 		}
 
-		Document doc = view.getFirstDocument();
+		DocumentCollection people = this.m_namesUtil.getPeople();
+		Document doc = people.getFirstDocument();
 		while (doc != null) {
-			Document nextDoc = view.getNextDocument(doc);
+			Document nextDoc = people.getNextDocument(doc);
 
 			if (!doc.isDeleted() && doc.isValid()) {
 				boolean isNotes = doc.hasItem("Certificate") && !doc.getItemValueString("Certificate").isEmpty();
@@ -114,7 +117,7 @@ public class UsersInfo {
 					userAccess = catalog.getUserDbAccess(fullName, m_namesUtil);
 				}
 				else {
-					userAccess = dbList.getUserDbAccess(fullName);	
+					userAccess = dbList.getUserDbAccess(fullName);
 				}
 
 				if (userAccess.getAccessLevel() >= ACL.LEVEL_EDITOR) {
@@ -151,11 +154,8 @@ public class UsersInfo {
 		}
 
 		if (dbList != null) {
-			dbList.recycle();	
+			dbList.recycle();
 		}
-
-		view.setAutoUpdate(true);
-		view.recycle();
 	}
 
 	public long getUsersEditor() {

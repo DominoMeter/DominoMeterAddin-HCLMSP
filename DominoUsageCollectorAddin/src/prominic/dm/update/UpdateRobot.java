@@ -4,16 +4,19 @@ import java.io.File;
 
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-
-import prominic.dm.api.Log;
 import prominic.io.RESTClient;
-import prominic.util.FileUtils;
+import prominic.util.FileLogger;
 import prominic.util.ParsedError;
 import prominic.util.StringUtils;
 
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
 	private ParsedError m_pe = null;
+	private FileLogger m_fileLogger;
+
+	public UpdateRobot(FileLogger fileLogger) {
+		m_fileLogger = fileLogger;
+	}
 
 	public String applyNewVersion(Session session, String server, String endpoint, String fileURL, String activeVersion) {
 		try {
@@ -36,7 +39,7 @@ public class UpdateRobot {
 
 			File f = new File(folder);
 			if (!f.exists()) {
-				f.mkdir();				
+				f.mkdir();
 			}
 
 			String filePath = folder + File.separator + configVersion;
@@ -95,46 +98,12 @@ public class UpdateRobot {
 		} catch (Exception e) {
 			m_pe = new ParsedError(e);
 		}
-		
+
 		return "";
 	}
 
-	/*
-	 * Clean out old versions
-	 */
-	public void cleanOldVersions(String server, String endpoint, String curVersion) {
-		try {
-			File dir = new File("DominoMeterAddin");
-			if (!dir.isDirectory()) return;
-
-			File files[] = FileUtils.startsWith(dir, "DominoMeter");
-			if (files.length <= 5) return;
-
-			int count = 0;
-			StringBuffer deletedFiles = new StringBuffer();
-			files = FileUtils.sortFilesByModified(files, false);
-			for (int i = 5; i < files.length; i++) {
-				File file = files[i];
-				if (!file.getName().equalsIgnoreCase(curVersion)) {
-					file.delete();
-					if (count > 0) {
-						deletedFiles.append(", ");
-					}
-					deletedFiles.append(file.getName());
-					count++;
-				}
-			}
-
-			if (count>0)
-				Log.sendLog(server, endpoint, "Removed outdates versions (" + Integer.toString(count) + ")", deletedFiles.toString());
-
-		} catch (Exception e) {
-			Log.sendError(server, endpoint, new ParsedError(e));
-			e.printStackTrace();
-		}
-	}
-
 	private void log(Object msg) {
+		m_fileLogger.info(msg.toString());
 		System.out.println("[UpdateRobot] " + msg.toString());
 	}
 

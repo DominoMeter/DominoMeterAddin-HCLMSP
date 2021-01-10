@@ -9,12 +9,14 @@ import java.util.Vector;
 
 import lotus.domino.Database;
 import lotus.domino.Document;
+import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
 import lotus.domino.View;
 
 public class NamesUtil {
 	Database m_database = null;
-	List<String> m_persons = null;
+	DocumentCollection m_people = null;
+	List<String> m_fullNameList = null;
 	HashMap<String, Vector<String>> m_groupOrig = null;
 	HashMap<String, Set<String>> m_elResolved = null;
 	Vector<String> m_processedEl = null;
@@ -27,59 +29,55 @@ public class NamesUtil {
 		// 1. group origin
 		View view1 = database.getView("($VIMGroups)");
 		view1.setAutoUpdate(false);
-		
+
 		Document doc = view1.getFirstDocument();
 		while (doc != null) {
 			Document docNext = view1.getNextDocument(doc);
-			
+
 			String listName = doc.getItemValueString("ListName").toLowerCase();
 			@SuppressWarnings("unchecked")
 			Vector<String> members = doc.getItemValue("Members");
 			m_groupOrig.put(listName, members);
-			
+
 			doc.recycle();
 			doc = docNext;
 		}
-		
-		m_persons = new ArrayList<String>();
-		View view2 = database.getView("People");
-		view2.setAutoUpdate(false);
-		doc = view2.getFirstDocument();
+
+		m_fullNameList = new ArrayList<String>();
+		m_people = database.search("Type = \"Person\"", null, 0);
+		doc = m_people.getFirstDocument();
 		while (doc != null) {
-			Document nextDoc = view2.getNextDocument(doc);
-			
+			Document nextDoc = m_people.getNextDocument(doc);
+
 			if (!doc.isDeleted() && doc.isValid()) {
 				String fullName = doc.getItemValueString("FullName").toLowerCase();
-				
 				if (!fullName.isEmpty()) {
-					m_persons.add(fullName);
+					m_fullNameList.add(fullName);
 				}
 			}
-			
+
 			doc.recycle();
 			doc = nextDoc;
 		}
-		
+
 		view1.setAutoUpdate(true);
 		view1.recycle();
-		view2.setAutoUpdate(true);
-		view2.recycle();
 	}
-	
+
 	public boolean isGroup(String el) {
 		return m_groupOrig.containsKey(el.toLowerCase()) ;
 	}
-	
+
 	public boolean isPerson(String el) {
-		return m_persons.contains(el.toLowerCase()) ;
+		return m_fullNameList.contains(el.toLowerCase()) ;
 	}
-	
+
 	/*
 	 * Resolve list with mixed entries: person, groups, servers etc
 	 */
 	public Set<String> resolveMixedList(Vector<String> members) throws NotesException {
 		Set<String> list = new HashSet<String>();
-		
+
 		for(String member : members) {
 			String memberL = member.toLowerCase();
 			// group ?
@@ -87,31 +85,30 @@ public class NamesUtil {
 				Set<String> groupMembers = this.resolveGroup(member);
 				list.addAll(groupMembers);
 			}
-			else if (m_persons.contains(memberL)) {
+			else if (m_fullNameList.contains(memberL)) {
 				list.add(memberL);
 			}
 		}
-		
+
 		return list;
 	}
-	
+
 	/*
 	 * Resolve group by name
 	 */
 	public Set<String> resolveGroup(String groupName) throws NotesException {
 		m_processedEl = new Vector<String>();
 		Set<String> members = resolveGroupWalk(groupName);
-
 		return members;
 	}
-	
+
 	/*
 	 * Resolve group
 	 */
 	private Set<String> resolveGroupWalk(String elName) throws NotesException {
 		// 1. skip already processed element (avoid constant loop)
 		elName = elName.toLowerCase();
-		
+
 		if (m_processedEl.contains(elName)) {
 			return null;
 		}
@@ -138,16 +135,20 @@ public class NamesUtil {
 				Set<String> subGroupResolved = resolveGroupWalk(member);
 				memberResolved.addAll(subGroupResolved);
 			}
-			else if (m_persons.contains(memberL)) {
+			else if (m_fullNameList.contains(memberL)) {
 				memberResolved.add(memberL);
 			}
 		}
 		m_elResolved.put(elName, memberResolved);
-		
+
 		return memberResolved;
 	}
-	
-	public List<String> getAllPersons() {
-		return m_persons;
+
+	public DocumentCollection getPeople() {
+		return m_people;
+	}
+
+	public List<String> getFullNameList() {
+		return m_fullNameList;
 	}
 }

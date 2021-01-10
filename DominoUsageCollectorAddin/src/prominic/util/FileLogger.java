@@ -1,98 +1,80 @@
 package prominic.util;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
+import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class FileLogger {
-	private Logger m_logger;
-	private SimpleFormatter m_formatter;
-	private Throwable m_throw = null;
+	int m_level;	// 0 - debug; 1 - info; 2 - exception; otherwise - off
+	SimpleDateFormat m_formatter = new SimpleDateFormat("MM/dd/yyyy, HH:mm:ss");
 
 	public FileLogger() {
-		initialize(Level.WARNING);
+		initialize(2);
 	}
 
-	public FileLogger(Level level) {
+	public FileLogger(int level) {
 		initialize(level);
 	}
 
-	private void initialize(Level level) {
-		this.m_logger = Logger.getLogger(FileLogger.class.getName());
-		this.m_logger.setLevel(level);
-
-		this.m_formatter = new SimpleFormatter();
-		System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$tF %1$tT] %5$s %n");
+	private void initialize(int level) {
+		setLevel(level);
 	}
 
-	public void setLevel(Level level) {
-		m_logger.setLevel(level);
+	public void setLevel(int level) {
+		m_level = level;
 	}
 
-	public Level getLevel() {
-		return m_logger.getLevel();
+	public int getLevel() {
+		return m_level;
 	}
 
-	private void write(String msg, String fileName, Level level) {
-		m_throw = null;
-		writeToFile(msg, fileName, level);
+	public String getLevelLabel() {
+		if (m_level == 0) return "debug";
+		if (m_level == 1) return "info";
+		if (m_level == 2) return "exception";
+		return "off";
 	}
 
-	private void write(Throwable thrown, String fileName, Level level) {
-		m_throw = thrown;
-		String msg = thrown.getLocalizedMessage();
-		if (msg == null || msg.isEmpty()) {
-			msg = "an undefined exception was thrown";
-		}
-		writeToFile(msg, fileName, level);
-	}
+	private void writeToFile(String msg, Throwable thrown, int level, String c) {
+		if (level < getLevel()) return;
 
-	private void writeToFile(String msg, String fileName, Level level) {
 		try {
-			if (level.intValue() < m_logger.getLevel().intValue() || level.intValue() == Level.OFF.intValue()) {
-				return;
+			SimpleDateFormat formatterFileName = new SimpleDateFormat("yyyy-MM");
+			String fileName = "dominometer-" + formatterFileName.format(new Date()) + ".log";
+
+			PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("DominoMeterAddin/" + fileName, true)));
+
+			String logLine = c + m_formatter.format(new Date()) + " " + msg;
+			out.println(logLine);
+
+			if (thrown != null) {
+				thrown.printStackTrace(out);
 			}
 
-			FileHandler fh = new FileHandler("DominoMeterAddin/" + fileName, 500000, 1, true);
-			m_logger.addHandler(fh);
-			m_logger.setUseParentHandlers(false);
-
-			fh.setFormatter(m_formatter);
-
-			if (m_throw != null) {
-				m_logger.log(level, msg, m_throw);
-			}
-			else {
-				m_logger.log(level, msg);
-			}
-
-			fh.close();
-		} catch (SecurityException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+			out.close();
+		} catch (IOException e) {}
 	}
 
 	public void severe(Exception e) {
-		write(e, "severe.log", Level.SEVERE);
+		String msg = e.getLocalizedMessage();
+		if (msg == null || msg.isEmpty()) {
+			msg = "an undefined exception was thrown";
+		}
+		writeToFile(msg, e, 2, "!");
 	}
 
 	public void severe(String msg) {
-		write(msg, "severe.log", Level.SEVERE);
-	}
-
-	public void warning(String msg) {
-		write(msg, "warning.log", Level.WARNING);
+		writeToFile(msg, null, 2, "!");
 	}
 
 	public void info(String msg) {
-		write(msg, "info.log", Level.INFO);
+		writeToFile(msg, null, 1, " ");
 	}
 
-	public void fine(String msg) {
-		write(msg, "fine.log", Level.FINE);
+	public void debug(String msg) {
+		writeToFile(msg, null, 0, "@");
 	}
 }

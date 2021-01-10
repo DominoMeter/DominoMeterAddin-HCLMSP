@@ -1,5 +1,5 @@
+import java.io.File;
 import java.util.Calendar;
-import java.util.logging.Level;
 
 import lotus.domino.Database;
 import lotus.domino.NotesException;
@@ -14,11 +14,13 @@ import prominic.dm.report.Report;
 import prominic.dm.update.ProgramConfig;
 import prominic.dm.update.UpdateRobot;
 import prominic.util.FileLogger;
+import prominic.util.FileUtils;
+import prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "107";
-	final String			JADDIN_DATE				= "2021-01-06 12:00 CET";
+	final String			JADDIN_DATE				= "2021-01-07 01:00 CET (v8)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -83,12 +85,12 @@ public class DominoMeter extends JavaServerAddin {
 
 	@SuppressWarnings("deprecation")
 	private void runLoop() {
-		fileLogger.fine("main.runLoop.start");
 		StringBuffer qBuffer = new StringBuffer(1024);
 
 		try {
 			setAddinState("Initializing");
-			fileLogger.fine("main.runLoop.initialize");
+			fileLogger.info("--------------------------------------");
+			fileLogger.info("Initializing");
 
 			// Set the Java thread name to the class name (default would be "Thread-n")
 			this.setName(JADDIN_NAME);
@@ -130,9 +132,11 @@ public class DominoMeter extends JavaServerAddin {
 
 			if (check) sendReport();
 
-			UpdateRobot ur = new UpdateRobot();
+			UpdateRobot ur = new UpdateRobot(fileLogger);
 			if (check) updateVersion(ur, pc, config.getJAR());
-			ur.cleanOldVersions(server, endpoint, version);
+
+			cleanOutdatedFiles(".jar");
+			cleanOutdatedFiles(".log");
 
 			while (this.addInRunning() && (messageQueueState != MessageQueue.ERR_MQ_QUITTING)) {
 				/* gives control to other task in non preemptive os*/
@@ -145,9 +149,9 @@ public class DominoMeter extends JavaServerAddin {
 				resolveMessageQueueState(qBuffer, ur, pc, config);
 
 				if (this.AddInHasMinutesElapsed(interval)) {
-					fileLogger.fine("main.runLoop.AddInHasMinutesElapsed");
+					cleanOutdatedFiles(".log");
+
 					if (checkConnection()) {
-						fileLogger.fine("main.runLoop.routine");
 						loadConfig(config);
 						sendReport();
 						updateVersion(ur, pc, config.getJAR());
@@ -160,11 +164,51 @@ public class DominoMeter extends JavaServerAddin {
 		}
 	}
 
+	/*
+	 * Clean old jar and log files
+	 * We keep last 5 jar files and last 5 log files
+	 */
+	public void cleanOutdatedFiles(String ext) {
+		try {
+			File dir = new File("DominoMeterAddin");
+			if (!dir.isDirectory()) return;
+
+			File files[] = FileUtils.endsWith(dir, ext);
+			if (files.length <= 5) return;
+
+			int count = 0;
+			StringBuffer deletedFiles = new StringBuffer();
+			files = FileUtils.sortFilesByModified(files, false);
+			for (int i = 5; i < files.length; i++) {
+				File file = files[i];
+				if (!file.getName().equalsIgnoreCase(version)) {
+					file.delete();
+					if (count > 0) deletedFiles.append(", ");
+					deletedFiles.append(file.getName());
+					count++;
+				}
+			}
+
+			if (count>0) {
+				fileLogger.info("Removed files (" + Integer.toString(count) + "): " + deletedFiles.toString());
+				Log.sendLog(server, endpoint, "Removed files (" + Integer.toString(count) + ")", deletedFiles.toString());
+			}
+
+		} catch (Exception e) {
+			fileLogger.severe(e);
+			Log.sendError(server, endpoint, new ParsedError(e));
+			e.printStackTrace();
+		}
+	}
+
 	private boolean checkConnection() {
-		fileLogger.fine("main.checkConnection");
+		fileLogger.info("CheckConnection");
 
 		Ping ping = new Ping();
-		if (ping.check(endpoint, server)) {
+		boolean res = ping.check(endpoint, server);
+		fileLogger.info(String.valueOf(res));
+
+		if (res) {
 			failedCounter = 0;
 			return true;
 		};
@@ -184,8 +228,6 @@ public class DominoMeter extends JavaServerAddin {
 	}
 
 	private void resolveMessageQueueState(StringBuffer qBuffer, UpdateRobot ur, ProgramConfig pc, Config config) {
-		fileLogger.fine("main.resolveMessageQueueState");
-
 		String cmd = qBuffer.toString().trim();
 		if (cmd.isEmpty()) return;
 
@@ -211,24 +253,14 @@ public class DominoMeter extends JavaServerAddin {
 	}
 
 	private void setLogLevel(String level) {
-		if ("fine".equals(level)) {
-			fileLogger.setLevel(Level.FINE);
-		}
-		else if("info".equals(level)) {
-			fileLogger.setLevel(Level.INFO);
-		}
-		else if("warning".equals(level)) {
-			fileLogger.setLevel(Level.WARNING);
-		}
-		else if("severe".equals(level)) {
-			fileLogger.setLevel(Level.SEVERE);
-		}
+		fileLogger.setLevel(Integer.parseInt(level));
 	}
 
 	private boolean loadConfig(Config config) {
-		fileLogger.fine("main.loadConfig");
+		fileLogger.info("LoadConfig");
 
 		boolean res = config.load(endpoint, server);
+		fileLogger.info(String.valueOf(res));
 		if (res && config.getInterval() > 0) {
 			interval = config.getInterval();
 		}
@@ -237,13 +269,15 @@ public class DominoMeter extends JavaServerAddin {
 
 	private boolean updateVersion(UpdateRobot ur, ProgramConfig pc, String jar) {
 		setAddinState("UpdateRobot");
-		fileLogger.fine("main.updateVersion");
+		fileLogger.info("UpdateRobot");
 
 		String newAddinFile = ur.applyNewVersion(session, server, endpoint, jar, version);
 		if (newAddinFile.isEmpty()) {
 			if (ur.getParsedError() != null) {
 				Log.sendError(server, endpoint, ur.getParsedError());
 			}
+
+			fileLogger.info(String.valueOf(false));
 			return false;
 		}
 
@@ -251,16 +285,18 @@ public class DominoMeter extends JavaServerAddin {
 		Log.sendLog(server, endpoint, version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");
 		this.stopAddin();
 
+		fileLogger.info(String.valueOf(true));
 		return true;
 	}
 
 	private boolean sendReport() {
 		setAddinState("Report");
-		fileLogger.fine("main.sendReport");
+		fileLogger.info("Report");
 
 		Report report = new Report(session, server, endpoint, fileLogger);
 
 		boolean res = report.send(ab, version);
+		fileLogger.info(String.valueOf(res));
 		if (!res) {
 			Log.sendError(server, endpoint, report.getParsedError());
 		}
@@ -269,23 +305,19 @@ public class DominoMeter extends JavaServerAddin {
 	}
 
 	private void showInfo() {
-		fileLogger.fine("main.showInfo");
-
 		logMessage("version    " + this.JADDIN_VERSION);
 		logMessage("build date " + this.JADDIN_DATE);
 		logMessage("endpoint   " + this.endpoint);
 		logMessage("interval   " + Integer.toString(this.interval) + " minutes");
-		logMessage("logging    " + fileLogger.getLevel().getName());
+		logMessage("logging    " + fileLogger.getLevelLabel());
 	}
 
 	private void showHelp() {
-		fileLogger.fine("main.showHelp");
-
 		int year = Calendar.getInstance().get(Calendar.YEAR);
 		logMessage("*** Usage ***");
 		AddInLogMessageText("load runjava DominoMeter <endpoint> [logLevel]");
 		AddInLogMessageText("	<endpoint> - required. url to send data (f.x. https://prominic.dominometer.com/duca.nsf)");
-		AddInLogMessageText("	[logLevel] - optional. 'fine', 'info', 'warning', 'severe' (default is 'warning')");
+		AddInLogMessageText("	[logLevel] - optional. '0 - debug', '1- info', '2 - severe' (default), otherwise 'off'");
 		AddInLogMessageText("tell DominoMeter <command>");
 		AddInLogMessageText("	quit       Unload DominoMeter");
 		AddInLogMessageText("	help       Show help information (or -h)");
@@ -302,6 +334,7 @@ public class DominoMeter extends JavaServerAddin {
 	 */
 	@Override
 	public void finalize() {
+		fileLogger.info("finalize");
 		terminate();
 
 		super.finalize();
@@ -314,7 +347,7 @@ public class DominoMeter extends JavaServerAddin {
 	 * @param	message		Message to be displayed
 	 */
 	private final void logMessage(String message) {
-		fileLogger.info(this.JADDIN_NAME + ": " + message);
+		fileLogger.info(message);
 		AddInLogMessageText(this.JADDIN_NAME + ": " + message, 0);
 	}
 
@@ -390,8 +423,8 @@ public class DominoMeter extends JavaServerAddin {
 
 			logMessage("UNLOADED (OK) " + version);
 		} catch (NotesException e) {
+			fileLogger.info("finalize");
 			logMessage("UNLOADED (**FAILED**) " + version);
 		}
 	}
-
 }
