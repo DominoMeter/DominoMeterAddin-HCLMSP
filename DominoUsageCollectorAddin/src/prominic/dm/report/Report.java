@@ -4,9 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.Vector;
+
+import javax.net.ssl.SSLContext;
 
 import lotus.domino.Database;
 import lotus.domino.Document;
@@ -316,6 +319,18 @@ public class Report {
 		buf.append("&version=" + version);
 		buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));
 		buf.append("&templateVersion=" + getDatabaseVersionNumber(ab));
+
+		String SSLcipher = "";
+		String SupportedCipherSuites = "";
+		try {
+			SSLcipher = StringUtils.join(SSLContext.getDefault().getSupportedSSLParameters().getProtocols(), ";");
+			SupportedCipherSuites = StringUtils.join(SSLContext.getDefault().getSocketFactory().getSupportedCipherSuites(), ";");
+		} catch (NoSuchAlgorithmException e1) {
+			SSLcipher = "n/a";
+			SupportedCipherSuites = "n/a";
+		}
+		buf.append("&SSLcipher=" + SSLcipher);
+		buf.append("&SupportedCipherSuites=" + SupportedCipherSuites);
 
 		String host = "";
 		try {

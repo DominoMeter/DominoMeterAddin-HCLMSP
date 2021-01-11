@@ -42,7 +42,10 @@ public class NamesUtil {
 			doc.recycle();
 			doc = docNext;
 		}
+		view1.setAutoUpdate(true);
+		view1.recycle();
 
+		// 2. users
 		m_fullNameList = new ArrayList<String>();
 		m_people = database.search("Type = \"Person\"", null, 0);
 		doc = m_people.getFirstDocument();
@@ -59,9 +62,6 @@ public class NamesUtil {
 			doc.recycle();
 			doc = nextDoc;
 		}
-
-		view1.setAutoUpdate(true);
-		view1.recycle();
 	}
 
 	public boolean isGroup(String el) {
@@ -150,5 +150,11 @@ public class NamesUtil {
 
 	public List<String> getFullNameList() {
 		return m_fullNameList;
+	}
+
+	public void recycle() throws NotesException {
+		if (m_people != null) {
+			m_people.recycle();
+		}
 	}
 }

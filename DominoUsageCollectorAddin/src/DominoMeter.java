@@ -19,8 +19,8 @@ import prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "107";
-	final String			JADDIN_DATE				= "2021-01-07 01:00 CET (v8)";
+	final String			JADDIN_VERSION			= "109";
+	final String			JADDIN_DATE				= "2021-01-11 01:00 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -134,9 +134,7 @@ public class DominoMeter extends JavaServerAddin {
 
 			UpdateRobot ur = new UpdateRobot(fileLogger);
 			if (check) updateVersion(ur, pc, config.getJAR());
-
 			cleanOutdatedFiles(".jar");
-			cleanOutdatedFiles(".log");
 
 			while (this.addInRunning() && (messageQueueState != MessageQueue.ERR_MQ_QUITTING)) {
 				/* gives control to other task in non preemptive os*/
@@ -278,6 +276,7 @@ public class DominoMeter extends JavaServerAddin {
 				fileLogger.severe(ur.getParsedError().getMessage());
 			}
 
+			fileLogger.info("- " + String.valueOf(false));
 			return false;
 		}
 
@@ -316,15 +315,15 @@ public class DominoMeter extends JavaServerAddin {
 		int year = Calendar.getInstance().get(Calendar.YEAR);
 		logMessage("*** Usage ***");
 		AddInLogMessageText("load runjava DominoMeter <endpoint> [logLevel]");
-		AddInLogMessageText("	<endpoint> - required. url to send data (f.x. https://prominic.dominometer.com/duca.nsf)");
-		AddInLogMessageText("	[logLevel] - optional. '0 - debug', '1- info', '2 - severe' (default), otherwise 'off'");
+		AddInLogMessageText("   <endpoint> - required. url to send data (f.x. https://prominic.dominometer.com/duca.nsf)");
+		AddInLogMessageText("   [logLevel] - optional. '0 - debug', '1- info', '2 - severe' (default), otherwise 'off'");
 		AddInLogMessageText("tell DominoMeter <command>");
-		AddInLogMessageText("	quit       Unload DominoMeter");
-		AddInLogMessageText("	help       Show help information (or -h)");
-		AddInLogMessageText("	info	   Show version and more of DominoMeter (or -i)");
-		AddInLogMessageText("	update     Check for a new version (or -u)");
-		AddInLogMessageText("	report     Send report (or -r)");
-		AddInLogMessageText("	config     Reload config for addin (or -c)");
+		AddInLogMessageText("   quit       Unload DominoMeter");
+		AddInLogMessageText("   help       Show help information (or -h)");
+		AddInLogMessageText("   info       Show version and more of DominoMeter (or -i)");
+		AddInLogMessageText("   update     Check for a new version (or -u)");
+		AddInLogMessageText("   report     Send report (or -r)");
+		AddInLogMessageText("   config     Reload config for addin (or -c)");
 		AddInLogMessageText("Copyright (C) Prominic.NET, Inc. 2020" + (year > 2020 ? " - " + Integer.toString(year) : ""));
 		AddInLogMessageText("See https://dominometer.com for more details.");
 	}

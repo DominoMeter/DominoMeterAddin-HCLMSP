@@ -72,6 +72,7 @@ public class UsersInfo {
 			m_namesUtil.initialize(ab);
 			accessDeniedCount(serverDoc);
 			usersList(session, catalog, ab, server);
+			m_namesUtil.recycle();
 			res = true;
 		} catch (NotesException e) {
 			m_fileLogger.severe(e);
@@ -93,7 +94,7 @@ public class UsersInfo {
 	}
 
 	private void usersList(Session session, Catalog catalog, Database ab, String server) throws NotesException {
-		// use DbDirectory if Catalong is not defined for some reason
+		// use DbDirectory if Catalog is not defined for some reason
 		DbList dbList = null;
 		if (!catalog.valid()) {
 			dbList = new DbList(session);

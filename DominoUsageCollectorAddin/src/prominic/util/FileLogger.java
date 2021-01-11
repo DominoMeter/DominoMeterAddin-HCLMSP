@@ -1,6 +1,7 @@
 package prominic.util;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -8,11 +9,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class FileLogger {
+	long ONE_MB = 1048576;
 	int m_level;	// 0 - debug; 1 - info; 2 - exception; otherwise - off
 	SimpleDateFormat m_formatter = new SimpleDateFormat("MM/dd/yyyy, HH:mm:ss");
 
 	public FileLogger() {
-		initialize(2);
+		initialize(1);
 	}
 
 	public FileLogger(int level) {
@@ -45,7 +47,17 @@ public class FileLogger {
 			SimpleDateFormat formatterFileName = new SimpleDateFormat("yyyy-MM");
 			String fileName = "dominometer-" + formatterFileName.format(new Date()) + ".log";
 
-			PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("DominoMeterAddin/" + fileName, true)));
+			File f = new File("DominoMeterAddin/" + fileName);
+
+			FileWriter fw;
+			if (f.exists() && f.length() > 5 * ONE_MB) {
+				fw = new FileWriter(f);
+			}
+			else {
+				fw = new FileWriter(f, true);
+			}
+
+			PrintWriter out = new PrintWriter(new BufferedWriter(fw));
 
 			String logLine = c + m_formatter.format(new Date()) + " " + msg;
 			out.println(logLine);
