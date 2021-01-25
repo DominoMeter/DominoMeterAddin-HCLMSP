@@ -445,6 +445,9 @@ public class DominoMeter extends JavaServerAddin {
 		thread.interrupt();
 		while(thread.isAlive()) {
 			try {
+				if (counter % 50 == 0) {
+					logMessage("ReportThread: is waiting to end some operations, please... ");
+				}
 				counter++;
 				sleep(100);
 			} catch (InterruptedException e) {
@@ -456,6 +459,6 @@ public class DominoMeter extends JavaServerAddin {
 				return;
 			}
 		}
-		logMessage("ReportThread: has been stopped nicely");
+		logMessage("ReportThread: has been stopped nicely. Amount of sleep (100): " + String.valueOf(counter));
 	}
 }
