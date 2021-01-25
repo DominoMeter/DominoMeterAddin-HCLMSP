@@ -444,12 +444,8 @@ public class DominoMeter extends JavaServerAddin {
 		long counter = 0;
 		thread.interrupt();
 		while(thread.isAlive()) {
-			if (counter % 10 == 0) {
-				logMessage("ReportThread: stopping (" + String.valueOf(10 * counter) + " seconds)");
-			}
-			counter++;
-
 			try {
+				counter++;
 				sleep(100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();

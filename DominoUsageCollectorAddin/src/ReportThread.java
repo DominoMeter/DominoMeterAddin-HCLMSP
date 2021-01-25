@@ -64,12 +64,6 @@ public class ReportThread extends NotesThread {
 			m_catalog.initialize();
 			if (this.isInterrupted()) return;
 
-			logMessage("endless loop: ON");
-			while(!this.isInterrupted()) {
-				// endless loop
-			}
-			logMessage("endless loop: OFF");
-
 			String ndd = m_session.getEnvironmentString("Directory", true);
 			String url = m_endpoint.concat("/report?openagent");
 
