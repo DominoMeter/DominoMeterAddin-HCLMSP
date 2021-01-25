@@ -10,7 +10,6 @@ import lotus.notes.internal.MessageQueue;
 import prominic.dm.api.Config;
 import prominic.dm.api.Log;
 import prominic.dm.api.Ping;
-import prominic.dm.report.Report;
 import prominic.dm.update.ProgramConfig;
 import prominic.dm.update.UpdateRobot;
 import prominic.util.FileLogger;
@@ -20,7 +19,7 @@ import prominic.util.ParsedError;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "109";
-	final String			JADDIN_DATE				= "2021-01-11 01:00 CET";
+	final String			JADDIN_DATE				= "2021-01-25 23:00 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -45,13 +44,11 @@ public class DominoMeter extends JavaServerAddin {
 	private int				failedCounter			= 0;
 	private FileLogger		fileLogger				= null;
 
+	private ReportThread 	thread					= null;
+
 	// constructor if parameters are provided
 	public DominoMeter(String[] args) {
 		this.args = args;
-	}
-
-	// constructor if no parameters
-	public DominoMeter() {
 	}
 
 	@Override
@@ -140,7 +137,12 @@ public class DominoMeter extends JavaServerAddin {
 				/* gives control to other task in non preemptive os*/
 				OSPreemptOccasionally();
 
-				setAddinState("Idle");
+				if (thread != null && thread.isAlive()) {
+					setAddinState("Report");
+				}
+				else {
+					setAddinState("Idle");
+				}
 
 				// check for command from console
 				messageQueueState = mq.get(qBuffer, MQ_MAX_MSGSIZE, MessageQueue.MQ_WAIT_FOR_MSG, 1000);
@@ -215,12 +217,14 @@ public class DominoMeter extends JavaServerAddin {
 			if (!res) logMessage("version is up to date");
 		}
 		else if ("-r".equals(cmd) || "report".equals(cmd)) {
-			boolean res = sendReport();
-			logMessage(res ? "report (OK)" : "report (*FAILED*)");
+			sendReport();
 		}
 		else if ("-c".equals(cmd) || "config".equals(cmd)) {
 			boolean res = loadConfig(config);
 			logMessage(res ? "updated (OK)" : "updated (*FAILED*)");
+		}
+		else {
+			logMessage("invalid command (use -h or help to get details)");
 		}
 	}
 
@@ -288,19 +292,15 @@ public class DominoMeter extends JavaServerAddin {
 		return true;
 	}
 
-	private boolean sendReport() {
-		setAddinState("Report");
-		fileLogger.info("Report");
-
-		Report report = new Report(session, server, endpoint, fileLogger);
-
-		boolean res = report.send(ab, version);
-		fileLogger.info("- " + String.valueOf(res));
-		if (!res) {
-			Log.sendError(server, endpoint, report.getParsedError());
+	private void sendReport() {
+		if (thread == null || !thread.isAlive()) {
+			this.logMessage("New ReportThread - started");
+			thread = new ReportThread(server, endpoint, version, fileLogger);
+			thread.start();
 		}
-
-		return res;
+		else {
+			this.logMessage("one instance of ReportThread - already running");
+		}
 	}
 
 	private void showInfo() {
@@ -326,17 +326,6 @@ public class DominoMeter extends JavaServerAddin {
 		AddInLogMessageText("   config     Reload config for addin (or -c)");
 		AddInLogMessageText("Copyright (C) Prominic.NET, Inc. 2020" + (year > 2020 ? " - " + Integer.toString(year) : ""));
 		AddInLogMessageText("See https://dominometer.com for more details.");
-	}
-
-	/**
-	 * This method is called by the Java runtime during garbage collection.
-	 */
-	@Override
-	public void finalize() {
-		fileLogger.info("finalize");
-		terminate();
-
-		super.finalize();
 	}
 
 	/**
@@ -404,9 +393,30 @@ public class DominoMeter extends JavaServerAddin {
 	}
 
 	/**
+	 * This method is called by the Java runtime during garbage collection.
+	 */
+	@Override
+	public void finalize() {
+		this.logMessage("finalize");
+		fileLogger.info("finalize");
+		terminate();
+
+		super.finalize();
+	}
+
+	@Override
+	public void termThread() {
+		System.out.println("MainThread: termThread");
+		stopReportThread();
+
+		super.termThread();
+	}
+
+	/**
 	 * Terminate all variables
 	 */
 	private void terminate() {
+		this.logMessage("terminate");
 		try {
 			AddInDeleteStatusLine(dominoTaskID);
 
@@ -425,5 +435,31 @@ public class DominoMeter extends JavaServerAddin {
 			fileLogger.info("finalize");
 			logMessage("UNLOADED (**FAILED**) " + version);
 		}
+	}
+
+	private void stopReportThread() {
+		logMessage("ReportThread: stopping");
+		if (thread == null || !thread.isAlive()) return;
+
+		long counter = 0;
+		thread.interrupt();
+		while(thread.isAlive()) {
+			if (counter % 10 == 0) {
+				logMessage("ReportThread: stopping (" + String.valueOf(10 * counter) + " seconds)");
+			}
+			counter++;
+
+			try {
+				sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			// 2 hours
+			if (counter > 72000) {
+				return;
+			}
+		}
+		logMessage("ReportThread: is stopped nicely");
 	}
 }

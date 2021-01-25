@@ -1,5 +1,3 @@
-package prominic.dm.report;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -15,6 +13,8 @@ import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.NoteCollection;
 import lotus.domino.NotesException;
+import lotus.domino.NotesFactory;
+import lotus.domino.NotesThread;
 import lotus.domino.Session;
 import lotus.domino.View;
 import lotus.domino.ViewEntry;
@@ -22,83 +22,107 @@ import lotus.domino.ViewEntryCollection;
 import prominic.dm.api.Keyword;
 import prominic.dm.api.Log;
 import prominic.dm.api.Ping;
+import prominic.dm.report.Catalog;
+import prominic.dm.report.DatabasesInfo;
+import prominic.dm.report.UsersInfo;
 import prominic.io.Bash;
 import prominic.io.EchoClient;
 import prominic.io.RESTClient;
 import prominic.util.FileLogger;
 import prominic.util.FileUtils;
 import prominic.util.MD5Checksum;
-import prominic.util.ParsedError;
 import prominic.util.StringUtils;
 
-public class Report {
-	private Session m_session;
-	private String m_server;
-	private String m_endpoint;
-	private ParsedError m_pe = null;
-	private FileLogger m_fileLogger;
+public class ReportThread extends NotesThread {
+	String m_server;
+	String m_endpoint;
+	String m_version;
+	FileLogger m_fileLogger;
 
-	public Report(Session session, String server, String endpoint, FileLogger fileLogger) {
-		m_session = session;
+	Catalog m_catalog = null;
+	Session m_session = null;
+	Database m_ab = null;
+	Document m_serverDoc = null;
+
+	public ReportThread(String server, String endpoint, String version, FileLogger fileLogger) {
 		m_server = server;
 		m_endpoint = endpoint;
+		m_version = version;
 		m_fileLogger = fileLogger;
 	}
 
-	public boolean send(Database ab, String version) {
+	@Override
+	public void runNotes() {
 		try {
+			logMessage("started");
 			Date dateStart = new Date();
 
-			m_pe = null;
+			m_session = NotesFactory.createSession();
+			m_ab = m_session.getDatabase(m_server, "names.nsf");
+			m_serverDoc = m_ab.getView("($ServersLookup)").getDocumentByKey(m_server, true);
+			m_catalog = new Catalog(m_session);
+			m_catalog.initialize();
+			if (this.isInterrupted()) return;
+
+			logMessage("endless loop: ON");
+			while(!this.isInterrupted()) {
+				// endless loop
+			}
+			logMessage("endless loop: OFF");
+
 			String ndd = m_session.getEnvironmentString("Directory", true);
 			String url = m_endpoint.concat("/report?openagent");
-
-			Catalog catalog = new Catalog(m_session);
-			catalog.initialize();
 
 			// 1. initialize data for report
 			Date stepStart = new Date();
 			StringBuffer data = new StringBuffer();
 			StringBuffer keyword = Keyword.getValue(m_endpoint, m_server, "all");
-			Document serverDoc = ab.getView("($ServersLookup)").getDocumentByKey(m_server, true);
 			data.append("numStep1=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 2. users
 			stepStart = new Date();
-			data.append(usersInfo(catalog, ab, serverDoc));
+			data.append(usersInfo(m_ab));
 			data.append("&numStep2=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 3. databases
 			stepStart = new Date();
-			data.append(getDatabaseInfo(catalog));
+			data.append(getDatabaseInfo());
 			data.append("&numStep3=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 4. dir assistance
 			stepStart = new Date();
-			if (isDA(serverDoc)) {
+			if (isDA()) {
 				data.append("&da=1");
 			}
 			data.append("&numStep4=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 5. system data
 			stepStart = new Date();
-			data.append(getSystemInfo(ab, version));
+			data.append(getSystemInfo(m_ab, m_version));
 			data.append("&numStep5=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 6. notes.ini, we could get variables using API call
 			stepStart = new Date();
 			data.append(getNotesINI(keyword));
 			data.append("&numStep6=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 7. server document items
 			stepStart = new Date();
-			data.append(getServerItems(serverDoc, keyword));
+			data.append(getServerItems(keyword));
 			data.append("&numStep7=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 8. program documents
 			stepStart = new Date();
-			data.append("&programs=" + StringUtils.encodeValue(getProgram(ab)));
+			data.append("&programs=" + StringUtils.encodeValue(getProgram(m_ab)));
 			data.append("&numStep8=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 9. id files on server
 			stepStart = new Date();
@@ -107,6 +131,7 @@ public class Report {
 				data.append("&idfiles=" + idFiles);
 			}
 			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 10. services
 			stepStart = new Date();
@@ -115,6 +140,7 @@ public class Report {
 				data.append(services);
 			}
 			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 11. Linux specific data
 			stepStart = new Date();
@@ -122,6 +148,7 @@ public class Report {
 				data.append(this.getLinuxInfo());
 			}
 			data.append("&numStep11=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 12. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
 			stepStart = new Date();
@@ -130,11 +157,13 @@ public class Report {
 				data.append(nsd);
 			}
 			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 13. In case if connection is done via HTTP we still need to check if HTTPS works
 			stepStart = new Date();
 			data.append(checkHTTPSConnection());
 			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 14. Jedi
 			stepStart = new Date();
@@ -142,34 +171,29 @@ public class Report {
 				data.append(jedi());
 			}
 			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
-
-			serverDoc.recycle();
-			catalog.recycle();
+			if (this.isInterrupted()) return;
 
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
-
-			return res.toString().equals("OK");
+			logMessage("Result: " + res.toString());
 		}
 		catch (NotesException e) {
 			m_fileLogger.severe(e);
-			m_pe = new ParsedError(e);
 		}
 		catch (Exception e) {
 			m_fileLogger.severe(e);
-			m_pe = new ParsedError(e);
 		}
-		return false;
 	}
 
-	private String usersInfo(Catalog catalog, Database ab, Document serverDoc) {
+	private String usersInfo(Database ab) {
 		StringBuffer buf = new StringBuffer();
 
 		UsersInfo ui = new UsersInfo(m_fileLogger);
-		if (ui.process(m_session, catalog, ab, m_server, serverDoc)) {
+		if (ui.process(m_session, m_catalog, ab, m_server, m_serverDoc)) {
 			buf.append("&usersEditor=" + Long.toString(ui.getUsersEditor()));
 			buf.append("&usersAuthor=" + Long.toString(ui.getUsersAuthor()));
 			buf.append("&usersReader=" + Long.toString(ui.getUsersReader()));
@@ -347,11 +371,11 @@ public class Report {
 	/*
 	 * read database info
 	 */
-	private String getDatabaseInfo(Catalog catalog) throws NotesException {
+	private String getDatabaseInfo() throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
 		DatabasesInfo dbInfo = new DatabasesInfo();
-		if (dbInfo.process(catalog, m_session)) {
+		if (dbInfo.process(m_catalog, m_session)) {
 			buf.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
 			buf.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
 			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));
@@ -410,16 +434,16 @@ public class Report {
 	/*
 	 * read variables from server document
 	 */
-	private String getServerItems(Document doc, StringBuffer keyword) throws NotesException {
-		if (doc == null) return "";
+	private String getServerItems(StringBuffer keyword) throws NotesException {
+		if (m_serverDoc == null) return "";
 
 		StringBuffer buf = new StringBuffer();
 		String[] variables = getKeywordAsArray(keyword, "Server=");
 		if (variables == null) return "";
 		for(int i = 0; i < variables.length; i++) {
 			String variable = variables[i].toLowerCase();
-			if (doc.hasItem(variable)) {
-				String v = doc.getFirstItem(variable).getText();
+			if (m_serverDoc.hasItem(variable)) {
+				String v = m_serverDoc.getFirstItem(variable).getText();
 				buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
 			}
 		}
@@ -447,9 +471,11 @@ public class Report {
 
 		// SHOW SERVER
 		try {
+			if (this.isInterrupted()) return "";
 			String console = m_session.sendConsoleCommand("", "!sh server");
 			buf.append("&sh_server=" + StringUtils.encodeValue(console));
 
+			if (this.isInterrupted()) return "";
 			console = m_session.sendConsoleCommand("", "!sh cluster");
 			buf.append("&sh_cluster=" + StringUtils.encodeValue(console));
 
@@ -474,6 +500,7 @@ public class Report {
 			}
 
 			// SHOW TASKS
+			if (this.isInterrupted()) return "";
 			console = m_session.sendConsoleCommand("", "!sh tasks");
 			buf.append("&sh_tasks=" + StringUtils.encodeValue(console));
 			if (console.contains("Traveler")) {
@@ -484,6 +511,7 @@ public class Report {
 			}
 
 			// SHOW HEARTBEAT
+			if (this.isInterrupted()) return "";
 			console = m_session.sendConsoleCommand("", "!sh heartbeat");
 			buf.append("&sh_heartbeat=" + StringUtils.encodeValue(console));
 			if (console.contains("seconds")) {
@@ -526,15 +554,15 @@ public class Report {
 	/*
 	 * Detects if DA is configured
 	 */
-	private boolean isDA(Document serverDoc) throws NotesException {
+	private boolean isDA() throws NotesException {
 		// Names=Names1 [, Names2 [, Names3]]
 		String names = m_session.getEnvironmentString("Names", true);
 		if (names.length() > 5) {
 			return true;
 		}
 
-		if (serverDoc != null) {
-			String da = serverDoc.getItemValueString("MasterAddressBook");
+		if (m_serverDoc != null) {
+			String da = m_serverDoc.getItemValueString("MasterAddressBook");
 			if (!da.isEmpty()) {
 				return true;
 			}
@@ -574,7 +602,58 @@ public class Report {
 		return buf.toString();
 	}
 
-	public ParsedError getParsedError() {
-		return m_pe;
+	private void logMessage(Exception e) {
+		e.printStackTrace();
+		m_fileLogger.severe(e);
+	}
+
+	private void logMessage(String msg) {
+		m_fileLogger.info("ReportThread: " + msg);
+		System.out.println("ReportThread: " + msg);
+	}
+
+	/**
+	 * This method is called by the Java runtime during garbage collection.
+	 */
+	@Override
+	public void finalize() {
+		logMessage("finalize");
+
+		terminate();
+
+		super.finalize();
+	}
+
+	@Override
+	public void termThread() {
+		logMessage("termThread");
+
+		super.termThread();
+	}
+
+	/**
+	 * Terminate all variables
+	 */
+	private void terminate() {
+		try {
+			if (m_catalog != null) {
+				m_catalog.recycle();
+			}
+
+			if (m_serverDoc != null) {
+				m_serverDoc.recycle();
+			}
+
+			if (this.m_ab != null) {
+				this.m_ab.recycle();
+			}
+			if (this.m_session != null) {
+				this.m_session.recycle();
+			}
+
+			logMessage("UNLOADED (OK)");
+		} catch (NotesException e) {
+			logMessage(e);
+		}
 	}
 }
