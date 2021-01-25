@@ -294,12 +294,12 @@ public class DominoMeter extends JavaServerAddin {
 
 	private void sendReport() {
 		if (thread == null || !thread.isAlive()) {
-			this.logMessage("New ReportThread - started");
+			logMessage("ReportThread - started");
 			thread = new ReportThread(server, endpoint, version, fileLogger);
 			thread.start();
 		}
 		else {
-			this.logMessage("one instance of ReportThread - already running");
+			this.logMessage("ReportThread - already running");
 		}
 	}
 
@@ -315,8 +315,8 @@ public class DominoMeter extends JavaServerAddin {
 		int year = Calendar.getInstance().get(Calendar.YEAR);
 		logMessage("*** Usage ***");
 		AddInLogMessageText("load runjava DominoMeter <endpoint> [logLevel]");
-		AddInLogMessageText("   <endpoint> - required. url to send data (f.x. https://prominic.dominometer.com/duca.nsf)");
-		AddInLogMessageText("   [logLevel] - optional. '0 - debug', '1- info', '2 - severe' (default), otherwise 'off'");
+		AddInLogMessageText("   <endpoint> - required. url to send data");
+		AddInLogMessageText("   [logLevel] - optional. '0 - debug', '1- info', '2 - severe' (default)");
 		AddInLogMessageText("tell DominoMeter <command>");
 		AddInLogMessageText("   quit       Unload DominoMeter");
 		AddInLogMessageText("   help       Show help information (or -h)");
@@ -397,8 +397,8 @@ public class DominoMeter extends JavaServerAddin {
 	 */
 	@Override
 	public void finalize() {
-		this.logMessage("finalize");
-		fileLogger.info("finalize");
+		logMessage("MainThread: finalize");
+
 		terminate();
 
 		super.finalize();
@@ -406,7 +406,7 @@ public class DominoMeter extends JavaServerAddin {
 
 	@Override
 	public void termThread() {
-		System.out.println("MainThread: termThread");
+		logMessage("MainThread: termThread");
 		stopReportThread();
 
 		super.termThread();
@@ -416,7 +416,7 @@ public class DominoMeter extends JavaServerAddin {
 	 * Terminate all variables
 	 */
 	private void terminate() {
-		this.logMessage("terminate");
+		this.logMessage("MainThread: terminate");
 		try {
 			AddInDeleteStatusLine(dominoTaskID);
 
@@ -456,6 +456,6 @@ public class DominoMeter extends JavaServerAddin {
 				return;
 			}
 		}
-		logMessage("ReportThread: is stopped nicely");
+		logMessage("ReportThread: has been stopped nicely");
 	}
 }
