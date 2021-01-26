@@ -181,10 +181,10 @@ public class ReportThread extends NotesThread {
 			logMessage("finished: " + res.toString());
 		}
 		catch (NotesException e) {
-			m_fileLogger.severe(e);
+			logSevere(e);
 		}
 		catch (Exception e) {
-			m_fileLogger.severe(e);
+			logSevere(e);
 		}
 	}
 
@@ -232,9 +232,8 @@ public class ReportThread extends NotesThread {
 			buf.append("&richtextUsersList=" + ui.getUsersList());
 			buf.append("&UsersListHashCode=" + ui.getUsersList().toString().hashCode());
 		} catch (NotesException e) {
-			this.logMessage(e);
+			logSevere(e);
 		}
-
 
 		return buf.toString();
 	}
@@ -462,8 +461,7 @@ public class ReportThread extends NotesThread {
 			buf.append("&dbReplica=" + StringUtils.encodeValue(dbReplica.toString()));
 			buf.append("&anonymousAccessDbList=" + StringUtils.encodeValue(StringUtils.join(anonymousAccess, ";")));
 		} catch (NotesException e) {
-			m_fileLogger.severe(e);
-			Log.sendError(m_server, m_endpoint, e);
+			logSevere(e);
 		}
 
 		return buf.toString();
@@ -598,8 +596,7 @@ public class ReportThread extends NotesThread {
 			}
 
 		} catch (NotesException e) {
-			m_fileLogger.severe(e);
-			Log.sendError(m_server, m_endpoint, e);
+			logSevere(e);
 		}
 
 		return buf.toString();
@@ -695,25 +692,21 @@ public class ReportThread extends NotesThread {
 
 			col.recycle();
 		} catch (NotesException e) {
-			logMessage(e);
+			logSevere(e);
 		}
 	}
 
-	private void logMessage(Exception e) {
-		e.printStackTrace();
+	private void logSevere(Exception e) {
 		m_fileLogger.severe(e);
 		Log.sendError(m_server, m_endpoint, e);
 	}
 
 	private void logMessage(String msg) {
 		m_fileLogger.info("ReportThread: " + msg);
-		System.out.println("ReportThread: " + msg);
 	}
 
 	@Override
 	public void termThread() {
-		logMessage("termThread");
-
 		terminate();
 
 		super.termThread();

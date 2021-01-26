@@ -18,7 +18,7 @@ import prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "109";
+	final String			JADDIN_VERSION			= "110";
 	final String			JADDIN_DATE				= "2021-01-26 23:00 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
@@ -296,10 +296,6 @@ public class DominoMeter extends JavaServerAddin {
 		if (thread == null || !thread.isAlive()) {
 			thread = new ReportThread(server, endpoint, version, fileLogger);
 			thread.start();
-
-			if (manual) {
-				this.logMessage("ReportThread: started");
-			}
 		}
 		else {
 			if (manual) {
@@ -399,10 +395,7 @@ public class DominoMeter extends JavaServerAddin {
 
 	@Override
 	public void termThread() {
-		logMessage("MainThread: termThread");
-
 		terminate();
-
 		super.termThread();
 	}
 
@@ -410,7 +403,6 @@ public class DominoMeter extends JavaServerAddin {
 	 * Terminate all variables
 	 */
 	private void terminate() {
-		this.logMessage("MainThread: terminate");
 		try {
 			terminateReportThread();
 
@@ -446,7 +438,7 @@ public class DominoMeter extends JavaServerAddin {
 				sleep(100);
 
 				if (counter % 50 == 0) {
-					logMessage("ReportThread: is waiting to end some operations, please... ");
+					logMessage("ReportThread: is stopping, please wait...");
 				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
