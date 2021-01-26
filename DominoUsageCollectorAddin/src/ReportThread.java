@@ -3,7 +3,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.TimeZone;
 import java.util.Vector;
 
@@ -11,6 +13,7 @@ import javax.net.ssl.SSLContext;
 
 import lotus.domino.Database;
 import lotus.domino.Document;
+import lotus.domino.DocumentCollection;
 import lotus.domino.NoteCollection;
 import lotus.domino.NotesException;
 import lotus.domino.NotesFactory;
@@ -22,8 +25,7 @@ import lotus.domino.ViewEntryCollection;
 import prominic.dm.api.Keyword;
 import prominic.dm.api.Log;
 import prominic.dm.api.Ping;
-import prominic.dm.report.Catalog;
-import prominic.dm.report.DatabasesInfo;
+import prominic.dm.report.NamesUtil;
 import prominic.dm.report.UsersInfo;
 import prominic.io.Bash;
 import prominic.io.EchoClient;
@@ -34,15 +36,17 @@ import prominic.util.MD5Checksum;
 import prominic.util.StringUtils;
 
 public class ReportThread extends NotesThread {
-	String m_server;
-	String m_endpoint;
-	String m_version;
-	FileLogger m_fileLogger;
+	private String m_server;
+	private String m_endpoint;
+	private String m_version;
+	private FileLogger m_fileLogger;
 
-	Catalog m_catalog = null;
-	Session m_session = null;
-	Database m_ab = null;
-	Document m_serverDoc = null;
+	private Session m_session = null;
+	private Database m_ab = null;
+	private Database m_catalog = null;
+	private ArrayList<Document> m_catalogList = null;
+	private Document m_serverDoc = null;
+	NamesUtil m_namesUtil = null;
 
 	public ReportThread(String server, String endpoint, String version, FileLogger fileLogger) {
 		m_server = server;
@@ -59,9 +63,10 @@ public class ReportThread extends NotesThread {
 
 			m_session = NotesFactory.createSession();
 			m_ab = m_session.getDatabase(m_server, "names.nsf");
+			m_catalog = m_session.getDatabase(null, "catalog.nsf", false);
+			initCatalog();
 			m_serverDoc = m_ab.getView("($ServersLookup)").getDocumentByKey(m_server, true);
-			m_catalog = new Catalog(m_session);
-			m_catalog.initialize();
+
 			if (this.isInterrupted()) return;
 
 			String ndd = m_session.getEnvironmentString("Directory", true);
@@ -186,8 +191,30 @@ public class ReportThread extends NotesThread {
 	private String usersInfo(Database ab) {
 		StringBuffer buf = new StringBuffer();
 
-		UsersInfo ui = new UsersInfo(m_fileLogger);
-		if (ui.process(m_session, m_catalog, ab, m_server, m_serverDoc)) {
+		m_namesUtil = new NamesUtil();
+		m_namesUtil.initialize(m_ab);
+		if (this.isInterrupted()) return "";
+
+		try {
+			UsersInfo ui = new UsersInfo(m_session, m_catalogList, m_namesUtil);
+
+			// allow/deny access
+			ui.allowDenyAccess(m_serverDoc);
+			if (this.isInterrupted()) return "";
+
+			// check every users
+			DocumentCollection people = this.m_namesUtil.getPeople();
+			Document doc = people.getFirstDocument();
+			while (doc != null && this.isInterrupted()) {
+				Document nextDoc = people.getNextDocument(doc);
+
+				ui.checkUserAccess(doc);
+
+				doc.recycle();
+				doc = nextDoc;
+			}
+			if (this.isInterrupted()) return "";
+
 			buf.append("&usersEditor=" + Long.toString(ui.getUsersEditor()));
 			buf.append("&usersAuthor=" + Long.toString(ui.getUsersAuthor()));
 			buf.append("&usersReader=" + Long.toString(ui.getUsersReader()));
@@ -204,10 +231,10 @@ public class ReportThread extends NotesThread {
 			buf.append("&usersDeny=" + Long.toString(ui.getUsersDeny()));
 			buf.append("&richtextUsersList=" + ui.getUsersList());
 			buf.append("&UsersListHashCode=" + ui.getUsersList().toString().hashCode());
+		} catch (NotesException e) {
+			this.logMessage(e);
 		}
-		else {
-			Log.sendError(m_server, m_endpoint, ui.getParsedError());
-		}
+
 
 		return buf.toString();
 	}
@@ -365,21 +392,78 @@ public class ReportThread extends NotesThread {
 	/*
 	 * read database info
 	 */
-	private String getDatabaseInfo() throws NotesException {
+	private String getDatabaseInfo() {
+		if (m_catalogList == null || m_catalogList.size() == 0) {
+			m_fileLogger.severe("catalog.nsf - not initialized");
+		};
+
+		String items[] = {"ManagerList", "DesignerList", "EditorList", "AuthorList", "ReaderList", "DepositorList"};
+
+		HashMap<String, String> dbReplica = new HashMap<String, String>();
+		HashMap<String, Integer> templatesUsage = new HashMap<String, Integer>();
+		ArrayList<String> anonymousAccess = new ArrayList<String>();
+		int ntf = 0;
+		int mail = 0;
+		int app = 0;
+
 		StringBuffer buf = new StringBuffer();
 
-		DatabasesInfo dbInfo = new DatabasesInfo();
-		if (dbInfo.process(m_catalog, m_session)) {
-			buf.append("&numNTF=" + Long.toString(dbInfo.getNTF()));
-			buf.append("&numNSF=" + Long.toString(dbInfo.getNSF()));
-			buf.append("&numMail=" + Long.toString(dbInfo.getMail()));
-			buf.append("&numApp=" + Long.toString(dbInfo.getApp()));
-			buf.append("&templateUsage=" + StringUtils.encodeValue(dbInfo.getTemplateUsage().toString()));
-			buf.append("&dbReplica=" + StringUtils.encodeValue(dbInfo.getDbReplica().toString()));
-			buf.append("&anonymousAccessDbList=" + StringUtils.encodeValue(StringUtils.join(dbInfo.getAnonymousAccess(), ";")));
-		}
-		else {
-			Log.sendError(m_server, m_endpoint, dbInfo.getParsedError());
+		try {
+			for(Document doc : m_catalogList) {
+				if (this.isInterrupted()) return "";
+
+				String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
+				String pathName = doc.getItemValueString("PathName").toLowerCase();
+
+				if (pathName.equalsIgnoreCase("names.nsf") || pathName.equalsIgnoreCase("admin4.nsf") || pathName.equalsIgnoreCase("log.nsf") || pathName.equalsIgnoreCase("catalog.nsf")) {
+					@SuppressWarnings("unchecked")
+					Vector<String> replicaId = m_session.evaluate("@Text(ReplicaId;\"*\")", doc);
+					dbReplica.put(pathName, replicaId.get(0));
+				}
+
+				if (pathName.endsWith(".ntf")) {
+					ntf++;
+				}
+				else {
+					String dbInheritTemplateNameLower = dbInheritTemplateName.toLowerCase();
+					if (dbInheritTemplateNameLower.startsWith("std") && dbInheritTemplateNameLower.endsWith("mail")) {
+						mail++;
+					}
+					else {
+						app++;
+					}
+				}
+
+				if (!dbInheritTemplateName.isEmpty()) {
+					Integer count = templatesUsage.containsKey(dbInheritTemplateName) ? templatesUsage.get(dbInheritTemplateName) : 0;
+					templatesUsage.put(dbInheritTemplateName, Integer.valueOf(count + 1));
+				}
+
+				// anonymous access
+				for(int i = 0; i < items.length; i++) {
+					@SuppressWarnings("unchecked")
+					Vector<String> list = doc.getItemValue(items[i]);
+					for(int j = 0; j < list.size(); j++) {
+						String entry = list.get(j);
+						if (entry.startsWith("Anonymous")) {
+							anonymousAccess.add(pathName);
+							j = list.size();
+							i = items.length;
+						}
+					}
+				}
+			}
+
+			buf.append("&numNTF=" + Long.toString(ntf));
+			buf.append("&numNSF=" + Long.toString(app + mail));
+			buf.append("&numMail=" + Long.toString(mail));
+			buf.append("&numApp=" + Long.toString(app));
+			buf.append("&templateUsage=" + StringUtils.encodeValue(templatesUsage.toString()));
+			buf.append("&dbReplica=" + StringUtils.encodeValue(dbReplica.toString()));
+			buf.append("&anonymousAccessDbList=" + StringUtils.encodeValue(StringUtils.join(anonymousAccess, ";")));
+		} catch (NotesException e) {
+			m_fileLogger.severe(e);
+			Log.sendError(m_server, m_endpoint, e);
 		}
 
 		return buf.toString();
@@ -596,9 +680,29 @@ public class ReportThread extends NotesThread {
 		return buf.toString();
 	}
 
+	// read db document from catalog.nsf
+	private void initCatalog() {
+		try {
+			if (m_catalog == null || !m_catalog.isOpen()) return;
+
+			m_catalogList = new ArrayList<Document>();
+			DocumentCollection col = m_catalog.search("@IsAvailable(ReplicaID) & @IsUnavailable(RepositoryType) & Server=\"" + m_server+"\"");
+			Document doc = col.getFirstDocument();
+			while (doc != null) {
+				m_catalogList.add(doc);
+				doc = col.getNextDocument();
+			}
+
+			col.recycle();
+		} catch (NotesException e) {
+			logMessage(e);
+		}
+	}
+
 	private void logMessage(Exception e) {
 		e.printStackTrace();
 		m_fileLogger.severe(e);
+		Log.sendError(m_server, m_endpoint, e);
 	}
 
 	private void logMessage(String msg) {
@@ -630,6 +734,16 @@ public class ReportThread extends NotesThread {
 	 */
 	private void terminate() {
 		try {
+			if (m_catalogList != null && m_catalogList.size() > 0) {
+				for(Document doc : m_catalogList) {
+					doc.recycle();
+				}
+			};
+
+			if (m_namesUtil != null) {
+				m_namesUtil.recycle();
+			}
+
 			if (m_catalog != null) {
 				m_catalog.recycle();
 			}

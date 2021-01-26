@@ -21,47 +21,49 @@ public class NamesUtil {
 	HashMap<String, Set<String>> m_elResolved = null;
 	Vector<String> m_processedEl = null;
 
-	public void initialize(Database database) throws NotesException {
+	public void initialize(Database database) {
 		m_database = database;
 		m_elResolved = new HashMap<String, Set<String>>();
 		m_groupOrig = new HashMap<String, Vector<String>>();
-
-		// 1. group origin
-		View view1 = database.getView("($VIMGroups)");
-		view1.setAutoUpdate(false);
-
-		Document doc = view1.getFirstDocument();
-		while (doc != null) {
-			Document docNext = view1.getNextDocument(doc);
-
-			String listName = doc.getItemValueString("ListName").toLowerCase();
-			@SuppressWarnings("unchecked")
-			Vector<String> members = doc.getItemValue("Members");
-			m_groupOrig.put(listName, members);
-
-			doc.recycle();
-			doc = docNext;
-		}
-		view1.setAutoUpdate(true);
-		view1.recycle();
-
-		// 2. users
 		m_fullNameList = new ArrayList<String>();
-		m_people = database.search("Type = \"Person\"", null, 0);
-		doc = m_people.getFirstDocument();
-		while (doc != null) {
-			Document nextDoc = m_people.getNextDocument(doc);
 
-			if (!doc.isDeleted() && doc.isValid()) {
-				String fullName = doc.getItemValueString("FullName").toLowerCase();
-				if (!fullName.isEmpty()) {
-					m_fullNameList.add(fullName);
-				}
+		try {
+			// 1. group origin
+			View view1 = database.getView("($VIMGroups)");
+			view1.setAutoUpdate(false);
+
+			Document doc = view1.getFirstDocument();
+			while (doc != null) {
+				Document docNext = view1.getNextDocument(doc);
+
+				String listName = doc.getItemValueString("ListName").toLowerCase();
+				@SuppressWarnings("unchecked")
+				Vector<String> members = doc.getItemValue("Members");
+				m_groupOrig.put(listName, members);
+
+				doc.recycle();
+				doc = docNext;
 			}
+			view1.setAutoUpdate(true);
+			view1.recycle();
 
-			doc.recycle();
-			doc = nextDoc;
-		}
+			// 2. users
+			m_people = database.search("Type = \"Person\"", null, 0);
+			doc = m_people.getFirstDocument();
+			while (doc != null) {
+				Document nextDoc = m_people.getNextDocument(doc);
+
+				if (!doc.isDeleted() && doc.isValid()) {
+					String fullName = doc.getItemValueString("FullName").toLowerCase();
+					if (!fullName.isEmpty()) {
+						m_fullNameList.add(fullName);
+					}
+				}
+
+				doc.recycle();
+				doc = nextDoc;
+			}
+		} catch (NotesException e) {}
 	}
 
 	public boolean isGroup(String el) {

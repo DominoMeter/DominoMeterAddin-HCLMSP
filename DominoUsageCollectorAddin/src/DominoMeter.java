@@ -445,11 +445,12 @@ public class DominoMeter extends JavaServerAddin {
 		thread.interrupt();
 		while(thread.isAlive()) {
 			try {
+				counter++;
+				sleep(100);
+
 				if (counter % 50 == 0) {
 					logMessage("ReportThread: is waiting to end some operations, please... ");
 				}
-				counter++;
-				sleep(100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
