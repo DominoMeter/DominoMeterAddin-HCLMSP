@@ -19,7 +19,7 @@ import prominic.util.ParsedError;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "109";
-	final String			JADDIN_DATE				= "2021-01-25 23:00 CET";
+	final String			JADDIN_DATE				= "2021-01-26 23:00 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -127,7 +127,7 @@ public class DominoMeter extends JavaServerAddin {
 			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME);
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
-			if (check) sendReport();
+			if (check) sendReport(false);
 
 			UpdateRobot ur = new UpdateRobot(fileLogger);
 			if (check) updateVersion(ur, pc, config.getJAR());
@@ -153,7 +153,7 @@ public class DominoMeter extends JavaServerAddin {
 
 					if (checkConnection()) {
 						loadConfig(config);
-						sendReport();
+						sendReport(false);
 						updateVersion(ur, pc, config.getJAR());
 					}
 				}
@@ -217,7 +217,7 @@ public class DominoMeter extends JavaServerAddin {
 			if (!res) logMessage("version is up to date");
 		}
 		else if ("-r".equals(cmd) || "report".equals(cmd)) {
-			sendReport();
+			sendReport(true);
 		}
 		else if ("-c".equals(cmd) || "config".equals(cmd)) {
 			boolean res = loadConfig(config);
@@ -292,14 +292,19 @@ public class DominoMeter extends JavaServerAddin {
 		return true;
 	}
 
-	private void sendReport() {
+	private void sendReport(boolean manual) {
 		if (thread == null || !thread.isAlive()) {
-			logMessage("ReportThread - started");
 			thread = new ReportThread(server, endpoint, version, fileLogger);
 			thread.start();
+
+			if (manual) {
+				this.logMessage("ReportThread: started");
+			}
 		}
 		else {
-			this.logMessage("ReportThread - already running");
+			if (manual) {
+				this.logMessage("ReportThread: already running");
+			}
 		}
 	}
 
@@ -392,22 +397,11 @@ public class DominoMeter extends JavaServerAddin {
 		AddInSetStatusLine(id, message);
 	}
 
-	/**
-	 * This method is called by the Java runtime during garbage collection.
-	 */
-	@Override
-	public void finalize() {
-		logMessage("MainThread: finalize");
-
-		terminate();
-
-		super.finalize();
-	}
-
 	@Override
 	public void termThread() {
 		logMessage("MainThread: termThread");
-		stopReportThread();
+
+		terminate();
 
 		super.termThread();
 	}
@@ -418,6 +412,8 @@ public class DominoMeter extends JavaServerAddin {
 	private void terminate() {
 		this.logMessage("MainThread: terminate");
 		try {
+			terminateReportThread();
+
 			AddInDeleteStatusLine(dominoTaskID);
 
 			if (this.ab != null) {
@@ -437,9 +433,10 @@ public class DominoMeter extends JavaServerAddin {
 		}
 	}
 
-	private void stopReportThread() {
-		logMessage("ReportThread: stopping");
+	private void terminateReportThread() {
 		if (thread == null || !thread.isAlive()) return;
+
+		logMessage("ReportThread: is alive, stopping...");
 
 		long counter = 0;
 		thread.interrupt();
@@ -460,6 +457,6 @@ public class DominoMeter extends JavaServerAddin {
 				return;
 			}
 		}
-		logMessage("ReportThread: has been stopped nicely. Amount of sleep (100): " + String.valueOf(counter));
+		logMessage("ReportThread: has been stopped nicely");
 	}
 }

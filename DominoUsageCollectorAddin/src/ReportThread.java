@@ -178,7 +178,7 @@ public class ReportThread extends NotesThread {
 			if (this.isInterrupted()) return;
 
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
-			logMessage("Result: " + res.toString());
+			logMessage("finished: " + res.toString());
 		}
 		catch (NotesException e) {
 			m_fileLogger.severe(e);
@@ -205,7 +205,7 @@ public class ReportThread extends NotesThread {
 			// check every users
 			DocumentCollection people = this.m_namesUtil.getPeople();
 			Document doc = people.getFirstDocument();
-			while (doc != null && this.isInterrupted()) {
+			while (doc != null && !this.isInterrupted()) {
 				Document nextDoc = people.getNextDocument(doc);
 
 				ui.checkUserAccess(doc);
@@ -710,21 +710,11 @@ public class ReportThread extends NotesThread {
 		System.out.println("ReportThread: " + msg);
 	}
 
-	/**
-	 * This method is called by the Java runtime during garbage collection.
-	 */
-	@Override
-	public void finalize() {
-		logMessage("finalize");
-
-		terminate();
-
-		super.finalize();
-	}
-
 	@Override
 	public void termThread() {
 		logMessage("termThread");
+
+		terminate();
 
 		super.termThread();
 	}
@@ -758,10 +748,6 @@ public class ReportThread extends NotesThread {
 			if (this.m_session != null) {
 				this.m_session.recycle();
 			}
-
-			logMessage("UNLOADED (OK)");
-		} catch (NotesException e) {
-			logMessage(e);
-		}
+		} catch (NotesException e) {}
 	}
 }
