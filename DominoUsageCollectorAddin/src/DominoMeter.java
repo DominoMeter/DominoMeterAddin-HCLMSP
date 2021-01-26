@@ -51,6 +51,9 @@ public class DominoMeter extends JavaServerAddin {
 		this.args = args;
 	}
 
+	public DominoMeter() {
+	}
+
 	@Override
 	public void runNotes() {
 		fileLogger = new FileLogger();
@@ -294,7 +297,7 @@ public class DominoMeter extends JavaServerAddin {
 
 	private void sendReport(boolean manual) {
 		if (thread == null || !thread.isAlive()) {
-			thread = new ReportThread(server, endpoint, version, fileLogger);
+			thread = new ReportThread(server, endpoint, version, fileLogger, manual);
 			thread.start();
 		}
 		else {

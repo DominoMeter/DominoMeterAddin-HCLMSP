@@ -66,8 +66,8 @@ public class FileLogger {
 				thrown.printStackTrace(out);
 			}
 
-			fw.close();
 			out.close();
+			fw.close();
 		} catch (IOException e) {}
 	}
 

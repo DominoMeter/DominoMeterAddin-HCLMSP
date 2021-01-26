@@ -40,6 +40,7 @@ public class ReportThread extends NotesThread {
 	private String m_endpoint;
 	private String m_version;
 	private FileLogger m_fileLogger;
+	private boolean m_manual = false;
 
 	private Session m_session = null;
 	private Database m_ab = null;
@@ -48,11 +49,12 @@ public class ReportThread extends NotesThread {
 	private Document m_serverDoc = null;
 	NamesUtil m_namesUtil = null;
 
-	public ReportThread(String server, String endpoint, String version, FileLogger fileLogger) {
+	public ReportThread(String server, String endpoint, String version, FileLogger fileLogger, boolean manual) {
 		m_server = server;
 		m_endpoint = endpoint;
 		m_version = version;
 		m_fileLogger = fileLogger;
+		m_manual = manual;
 	}
 
 	@Override
@@ -178,7 +180,7 @@ public class ReportThread extends NotesThread {
 			if (this.isInterrupted()) return;
 
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
-			logMessage("finished: " + res.toString());
+			logMessage("finished (" + res.toString() + ")");
 		}
 		catch (NotesException e) {
 			logSevere(e);
@@ -703,10 +705,17 @@ public class ReportThread extends NotesThread {
 
 	private void logMessage(String msg) {
 		m_fileLogger.info("ReportThread: " + msg);
+		if (m_manual) {
+			System.out.println("ReportThread: " + msg);
+		}
 	}
 
 	@Override
 	public void termThread() {
+		if (m_manual) {
+			System.out.println("ReportThread: termThread");
+		}
+
 		terminate();
 
 		super.termThread();
