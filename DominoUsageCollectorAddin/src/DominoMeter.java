@@ -18,8 +18,8 @@ import prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "110";
-	final String			JADDIN_DATE				= "2021-01-26 23:00 CET";
+	final String			JADDIN_VERSION			= "111";
+	final String			JADDIN_DATE				= "2021-01-27 15:00 CET";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -130,11 +130,17 @@ public class DominoMeter extends JavaServerAddin {
 			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME);
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
-			if (check) sendReport(false);
-
 			UpdateRobot ur = new UpdateRobot(fileLogger);
-			if (check) updateVersion(ur, pc, config.getJAR());
+
+			// if new version is detected on load - no need to continue
+			if (check) {
+				boolean updateOnStartup = updateVersion(ur, pc, config.getJAR());
+				if (updateOnStartup) return;
+			}
+
 			cleanOutdatedFiles(".jar");
+
+			if (check) sendReport(false);
 
 			while (this.addInRunning() && (messageQueueState != MessageQueue.ERR_MQ_QUITTING)) {
 				/* gives control to other task in non preemptive os*/
@@ -413,12 +419,15 @@ public class DominoMeter extends JavaServerAddin {
 
 			if (this.ab != null) {
 				this.ab.recycle();
+				this.ab = null;
 			}
 			if (this.session != null) {
 				this.session.recycle();
+				this.session = null;
 			}
 			if (this.mq != null) {
 				this.mq.close(0);
+				this.mq = null;
 			}
 
 			logMessage("UNLOADED (OK) " + version);

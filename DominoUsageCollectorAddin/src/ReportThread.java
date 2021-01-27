@@ -734,21 +734,26 @@ public class ReportThread extends NotesThread {
 
 			if (m_namesUtil != null) {
 				m_namesUtil.recycle();
+				m_namesUtil = null;
 			}
 
 			if (m_catalog != null) {
 				m_catalog.recycle();
+				m_catalog = null;
 			}
 
 			if (m_serverDoc != null) {
 				m_serverDoc.recycle();
+				m_serverDoc = null;
 			}
 
-			if (this.m_ab != null) {
-				this.m_ab.recycle();
+			if (m_ab != null) {
+				m_ab.recycle();
+				m_ab = null;
 			}
-			if (this.m_session != null) {
-				this.m_session.recycle();
+			if (m_session != null) {
+				m_session.recycle();
+				m_session = null;
 			}
 		} catch (NotesException e) {}
 	}
