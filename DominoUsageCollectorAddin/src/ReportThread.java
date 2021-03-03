@@ -174,10 +174,10 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 15. GDB installed
+			// 15. installed utils (f.x. gdp)
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
-				data.append(gdp());
+				data.append(installedUtils());
 			}
 			data.append("&numStep15=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
@@ -198,7 +198,7 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
-	private String gdp() {
+	private String installedUtils() {
 		File gdbDir = new File("/usr/share/gdb");
 		if (gdbDir.exists()) {
 			return "&gdp=1";
