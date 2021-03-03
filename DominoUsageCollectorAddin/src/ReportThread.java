@@ -174,6 +174,14 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
+			// 15. GDB installed
+			stepStart = new Date();
+			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
+				data.append(gdp());
+			}
+			data.append("&numStep15=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
@@ -188,6 +196,14 @@ public class ReportThread extends NotesThread {
 		catch (Exception e) {
 			logSevere(e);
 		}
+	}
+
+	private String gdp() {
+		File gdbDir = new File("/usr/share/gdb");
+		if (gdbDir.exists()) {
+			return "&gdp=1";
+		}
+		return "";
 	}
 
 	private String usersInfo(Database ab) {
