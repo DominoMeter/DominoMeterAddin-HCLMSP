@@ -182,6 +182,30 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep15=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
+			// 16. check if folder(s) exist (extend with other files/folder if needed)
+			stepStart = new Date();
+			data.append(checkFilesFolders(ndd));
+			data.append("&numStep16" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
+			// 17. IDVault check
+			stepStart = new Date();
+			data.append(vault(ndd));
+			data.append("&numStep17" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
+			// 18. Panagenda
+			stepStart = new Date();
+			data.append(panagenda(ndd));
+			data.append("&numStep18" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
+			// 19. SAML
+			stepStart = new Date();
+			data.append(saml());
+			data.append("&numStep19" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
@@ -198,8 +222,60 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
+	private String saml() throws NotesException {
+		Database db = m_session.getDatabase(null, "idpcat.nsf");
+		if(db == null) return "";
+
+		return "&saml=1";
+	}
+
+	private String vault(String ndd) throws NotesException {
+		String dirName = "IBM_ID_VAULT";
+		String path = ndd + File.separator + dirName;
+		File dir = new File(path);
+		if (!dir.exists()) return "";
+
+		File files[] = FileUtils.endsWith(dir, ".nsf");
+		if (files.length == 0) return "";
+
+		HashMap<String, String> res = new HashMap<String, String>();
+		for(File file : files) {
+			Database db = m_session.getDatabase(null, file.getPath());
+			res.put(db.getFileName(), String.valueOf(db.getAllDocuments().getCount()));
+		}
+
+		return "&vaultDbList=" + StringUtils.encodeValue(res.toString());
+	}
+
+	private String panagenda(String ndd) throws NotesException {
+		String dirName = "panagenda";
+		String path = ndd + File.separator + dirName;
+		File dir = new File(path);
+		if (!dir.exists()) return "";
+
+		File files[] = FileUtils.endsWith(dir, ".nsf");
+		if (files.length == 0) return "";
+
+		HashMap<String, String> res = new HashMap<String, String>();
+		for(File file : files) {
+			Database db = m_session.getDatabase(null, file.getPath());
+			res.put(db.getFileName(), String.valueOf(db.getAllDocuments().getCount()));
+		}
+
+		return "&panagendaDbList=" + StringUtils.encodeValue(res.toString());
+	}
+
+	private String checkFilesFolders(String ndd) throws NotesException {
+		String buf;
+		String HTTP_LogDirectory = m_serverDoc.getItemValueString("HTTP_LogDirectory");
+		buf = (HTTP_LogDirectory.length() > 1 && FileUtils.folderExists(ndd + File.separator + HTTP_LogDirectory)) ? "1" : "0";
+		String res = "&HTTP_LogDirectory_Exists=" + buf;
+
+		return res;
+	}
+
 	private String installedUtils() {
-		File gdbDir = new File("/usr/share/gdb");
+		File gdbDir = new File("/usr/bin/gdb");
 		if (gdbDir.exists()) {
 			return "&gdp=1";
 		}

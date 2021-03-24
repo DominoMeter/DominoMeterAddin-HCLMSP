@@ -18,6 +18,11 @@ public class FileUtils {
 		});
 	}
 
+	public static boolean folderExists(String path) {
+		File dir = new File(path);
+		return dir.exists() && dir.isDirectory();
+	}
+
 	public static File[] startsWith(File dir, final String startsWith) {
 		return dir.listFiles(new FilenameFilter() {
 			@Override
