@@ -202,7 +202,7 @@ public class ReportThread extends NotesThread {
 
 			// 19. SAML
 			stepStart = new Date();
-			data.append(saml());
+			data.append(saml(ndd));
 			data.append("&numStep19" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
@@ -222,14 +222,16 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
-	private String saml() throws NotesException {
-		Database db = m_session.getDatabase(null, "idpcat.nsf");
-		if(db == null) return "";
+	private String saml(String ndd) throws NotesException {
+		String path = ndd + File.separator + "idpcat.nsf";
+		File file = new File(path);
+
+		if(!file.exists()) return "";
 
 		return "&saml=1";
 	}
 
-	private String vault(String ndd) throws NotesException {
+	private String vault(String ndd) {
 		String dirName = "IBM_ID_VAULT";
 		String path = ndd + File.separator + dirName;
 		File dir = new File(path);
@@ -239,15 +241,21 @@ public class ReportThread extends NotesThread {
 		if (files.length == 0) return "";
 
 		HashMap<String, String> res = new HashMap<String, String>();
+		String count;
 		for(File file : files) {
-			Database db = m_session.getDatabase(null, file.getPath());
-			res.put(db.getFileName(), String.valueOf(db.getAllDocuments().getCount()));
+			try {
+				Database db = m_session.getDatabase(null, file.getPath());
+				count = String.valueOf(db.getAllDocuments().getCount());
+			} catch (NotesException e) {
+				count = "?";
+			}
+			res.put(file.getName(), count);
 		}
 
 		return "&vaultDbList=" + StringUtils.encodeValue(res.toString());
 	}
 
-	private String panagenda(String ndd) throws NotesException {
+	private String panagenda(String ndd) {
 		String dirName = "panagenda";
 		String path = ndd + File.separator + dirName;
 		File dir = new File(path);
@@ -257,9 +265,15 @@ public class ReportThread extends NotesThread {
 		if (files.length == 0) return "";
 
 		HashMap<String, String> res = new HashMap<String, String>();
+		String count;
 		for(File file : files) {
-			Database db = m_session.getDatabase(null, file.getPath());
-			res.put(db.getFileName(), String.valueOf(db.getAllDocuments().getCount()));
+			try {
+				Database db = m_session.getDatabase(null, file.getPath());
+				count = String.valueOf(db.getAllDocuments().getCount());
+			} catch (NotesException e) {
+				count = "?";
+			}
+			res.put(file.getName(), count);
 		}
 
 		return "&panagendaDbList=" + StringUtils.encodeValue(res.toString());
