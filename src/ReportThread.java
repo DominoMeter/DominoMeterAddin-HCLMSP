@@ -6,6 +6,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.TimeZone;
 import java.util.Vector;
 
@@ -228,7 +230,17 @@ public class ReportThread extends NotesThread {
 
 		if(!file.exists()) return "";
 
-		return "&saml=1";
+		HashMap<String, String> res = new HashMap<String, String>();
+		String count;
+		try {
+			Database db = m_session.getDatabase(null, file.getPath());
+			count = String.valueOf(db.getAllDocuments().getCount());
+		} catch (NotesException e) {
+			count = "?";
+		}
+		res.put(file.getName(), count);
+
+		return "&samlDb=" + StringUtils.encodeValue(res.toString());
 	}
 
 	private String vault(String ndd) {
@@ -323,20 +335,13 @@ public class ReportThread extends NotesThread {
 			}
 			if (this.isInterrupted()) return "";
 
-			buf.append("&usersEditor=" + Long.toString(ui.getUsersEditor()));
-			buf.append("&usersAuthor=" + Long.toString(ui.getUsersAuthor()));
-			buf.append("&usersReader=" + Long.toString(ui.getUsersReader()));
-			buf.append("&usersDepositor=" + Long.toString(ui.getUsersDepositor()));
-			buf.append("&usersNoAccess=" + Long.toString(ui.getUsersNoAccess()));
-			buf.append("&usersTotal=" + Long.toString(ui.getUsersTotal()));
-			buf.append("&usersNotes=" + Long.toString(ui.getUsersNotes()));
-			buf.append("&usersWeb=" + Long.toString(ui.getUsersWeb()));
-			buf.append("&usersNotesWeb=" + Long.toString(ui.getUsersNotesWeb()));
-			buf.append("&usersPNI=" + Long.toString(ui.getUsersPNI()));
-			buf.append("&usersMail=" + Long.toString(ui.getUsersMail()));
-			buf.append("&usersConflict=" + Long.toString(ui.getUsersConflict()));
-			buf.append("&usersAllow=" + Long.toString(ui.getUsersAllow()));
-			buf.append("&usersDeny=" + Long.toString(ui.getUsersDeny()));
+			Iterator<Entry<String, Long>> it = ui.getUsersCount().entrySet().iterator();
+			while (it.hasNext()) {
+				Entry<String, Long> pair = it.next();
+				buf.append("&users" + pair.getKey() + "=" + Long.toString(pair.getValue()));
+				it.remove(); // avoids a ConcurrentModificationException
+			}
+
 			buf.append("&richtextUsersList=" + ui.getUsersList());
 			buf.append("&UsersListHashCode=" + ui.getUsersList().toString().hashCode());
 		} catch (NotesException e) {

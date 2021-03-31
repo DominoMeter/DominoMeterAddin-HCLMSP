@@ -1,11 +1,12 @@
 package prominic.dm.update;
 
 import lotus.domino.Database;
-import lotus.domino.View;
-import lotus.domino.DocumentCollection;
-import lotus.domino.Document;
 import lotus.domino.DateTime;
+import lotus.domino.Document;
+import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
+import lotus.domino.View;
+import prominic.util.FileLogger;
 
 public class ProgramConfig {
 	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoMeter (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
@@ -20,11 +21,13 @@ public class ProgramConfig {
 	private String m_server;
 	private String m_endpoint;
 	private String m_addinName;
+	private FileLogger m_fileLogger;
 
-	public ProgramConfig(String server, String endpoint, String addinName) {
+	public ProgramConfig(String server, String endpoint, String addinName, FileLogger fileLogger) {
 		m_server = server;
 		m_endpoint = endpoint;
 		m_addinName = addinName;
+		m_fileLogger = fileLogger;
 	}
 
 	/*
@@ -51,7 +54,7 @@ public class ProgramConfig {
 						else {
 							deleteDuplicate(doc);
 							doc = null;
-						}	
+						}
 					}
 					else {
 						if (!programScheduled) {
@@ -61,7 +64,7 @@ public class ProgramConfig {
 						else {
 							deleteDuplicate(doc);
 							doc = null;
-						}	
+						}
 					}
 				}
 
@@ -84,12 +87,12 @@ public class ProgramConfig {
 
 			col.recycle();
 			view.recycle();
-			
+
 			return true;
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		return false;
 	}
 
@@ -140,7 +143,7 @@ public class ProgramConfig {
 		dt.recycle();
 	}
 
-	/* 
+	/*
 	 * Create program document
 	 */
 	private Document createProgram(Database database, String enabled) throws NotesException {
@@ -165,7 +168,7 @@ public class ProgramConfig {
 
 		return doc;
 	}
-	
+
 	private String getEnabledLabel(String v) {
 		if (PROGRAM_ENABLE.equals(v)) {
 			return "Enabled";
@@ -193,7 +196,8 @@ public class ProgramConfig {
 		return "2".equals(doc.getItemValueString("Enabled"));
 	}
 
-	private void log(Object msg) {
-		System.out.println("[ProgramConfig] " + msg.toString());
+	private void log(String msg) {
+		m_fileLogger.info(msg);
+		System.out.println("[ProgramConfig] " + msg);
 	}
 }

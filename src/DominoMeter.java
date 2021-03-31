@@ -18,8 +18,8 @@ import prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "112";
-	final String			JADDIN_DATE				= "2021-03-26 15:20";
+	final String			JADDIN_VERSION			= "113";
+	final String			JADDIN_DATE				= "2021-03-30 16:40 (Flags in Comment, adjustments)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -127,7 +127,7 @@ public class DominoMeter extends JavaServerAddin {
 			loadConfig(config);
 			showInfo();
 
-			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME);
+			ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME, fileLogger);
 			pc.setState(ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 
 			UpdateRobot ur = new UpdateRobot(fileLogger);

@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import lotus.domino.ACL;
 import lotus.domino.Document;
+import lotus.domino.Item;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
 import prominic.util.StringUtils;
@@ -18,25 +19,25 @@ public class UsersInfo {
 	private NamesUtil m_namesUtil;
 	private HashMap<String, Vector<String>> m_dbACL;
 	private StringBuffer m_usersList;
+	private HashMap<String, Long> m_usersCount;
 
-	private long m_usersAllow = 0;
-	private long m_usersDeny = 0;
-
-	private long m_usersEditor = 0;
-	private long m_usersReader = 0;
-	private long m_usersAuthor = 0;
-	private long m_usersDepositor = 0;
-	private long m_usersNoAccess = 0;
-
-	private long m_usersTotal = 0;
-	private long m_usersNotes = 0;
-	private long m_usersWeb = 0;
-	private long m_usersNotesWeb = 0;
-	private long m_usersPNI = 0;
-	private long m_usersMail = 0;
-	private long m_usersConflict = 0;
+	public final static String USERS_EDITOR = "Editors";
+	public final static String USERS_AUTHOR = "Author";
+	public final static String USERS_READER = "Reader";
+	public final static String USERS_DEPOSITOR = "Depositor";
+	public final static String USERS_NOACCESS = "NoAccess";
+	public final static String USERS_TOTAL = "Total";
+	public final static String USERS_NOTES = "Notes";
+	public final static String USERS_WEB = "Web";
+	public final static String USERS_NOTESWEB = "NotesWeb";
+	public final static String USERS_PNI = "PNI";
+	public final static String USERS_MAIL = "Mail";
+	public final static String USERS_CONFLICT = "Conflict";
+	public final static String USERS_ALLOW = "Allow";
+	public final static String USERS_DENY = "Deny";
 
 	private final String m_accessItems[] = {"ManagerList", "DesignerList", "EditorList", "AuthorList", "ReaderList", "DepositorList"};
+	private final String FLAG_COMMENT = "##DominoMeter--FlagAs:";
 
 	public UsersInfo(Session session, ArrayList<Document> catalogList, NamesUtil namesUtil) {
 		m_session = session;
@@ -45,6 +46,33 @@ public class UsersInfo {
 
 		m_dbACL = new HashMap<String, Vector<String>>();
 		m_usersList = new StringBuffer();
+		createUsersCount();	// initialize default keys for m_usersCount
+	}
+
+	private void createUsersCount() {
+		m_usersCount = new HashMap<String, Long>();
+		m_usersCount.put(USERS_EDITOR, (long) 0);
+		m_usersCount.put(USERS_READER, (long) 0);
+		m_usersCount.put(USERS_DEPOSITOR, (long) 0);
+		m_usersCount.put(USERS_NOACCESS, (long) 0);
+		m_usersCount.put(USERS_TOTAL, (long) 0);
+		m_usersCount.put(USERS_NOTES, (long) 0);
+		m_usersCount.put(USERS_WEB, (long) 0);
+		m_usersCount.put(USERS_NOTESWEB, (long) 0);
+		m_usersCount.put(USERS_PNI, (long) 0);
+		m_usersCount.put(USERS_MAIL, (long) 0);
+		m_usersCount.put(USERS_CONFLICT, (long) 0);
+		m_usersCount.put(USERS_ALLOW, (long) 0);
+		m_usersCount.put(USERS_DENY, (long) 0);
+	}
+
+	private void incrementCount(String name) {
+		if (m_usersCount.containsKey(name)) {
+			m_usersCount.put(name, m_usersCount.get(name).longValue() + 1);
+		}
+		else {
+			m_usersCount.put(name, new Long(1));
+		}
 	}
 
 	public void checkUserAccess(Document doc) {
@@ -60,28 +88,31 @@ public class UsersInfo {
 			UserDbAccess userAccess = getUserDbAccess(fullName);
 
 			if (userAccess.getAccessLevel() >= ACL.LEVEL_EDITOR) {
-				m_usersEditor++;
+				incrementCount(USERS_EDITOR);
 			}
 			else if (userAccess.getAccessLevel() == ACL.LEVEL_AUTHOR) {
-				m_usersAuthor++;
+				incrementCount(USERS_AUTHOR);
 			}
 			else if (userAccess.getAccessLevel() == ACL.LEVEL_READER) {
-				m_usersReader++;
+				incrementCount(USERS_READER);
 			}
 			else if (userAccess.getAccessLevel() == ACL.LEVEL_DEPOSITOR) {
-				m_usersDepositor++;
+				incrementCount(USERS_DEPOSITOR);
 			}
 			else if (userAccess.getAccessLevel() == ACL.LEVEL_NOACCESS) {
-				m_usersNoAccess++;
+				incrementCount(USERS_NOACCESS);
 			}
 
-			m_usersTotal++;
-			if (isNotes && !isWeb) m_usersNotes++;
-			if (!isNotes && isWeb) m_usersWeb++;
-			if (isNotes && isWeb) m_usersNotesWeb++;
-			if (fullName.contains("/O=PNI")) m_usersPNI++;
-			if (isMail) m_usersMail++;
-			if (doc.hasItem("$Conflict")) m_usersConflict++;
+			incrementCount(USERS_TOTAL);
+			if (isNotes && !isWeb) incrementCount(USERS_NOTES);
+			if (!isNotes && isWeb) incrementCount(USERS_WEB);
+			if (isNotes && isWeb) incrementCount(USERS_NOTESWEB);
+			if (fullName.contains("/O=PNI")) incrementCount(USERS_PNI);
+			if (isMail) incrementCount(USERS_MAIL);
+			if (doc.hasItem("$Conflict")) incrementCount(USERS_CONFLICT);
+
+			// parse Comment for ##DominoMeter--FlagAs:<keyword>
+			verifyFlagsInComment(doc);
 
 			String userLine = doc.getUniversalID() + "|" + StringUtils.encodeValue(doc.getItemValueString("LastName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("Suffix")) + "|" + StringUtils.encodeValue(doc.getItemValueString("FirstName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("MiddleInitial")) + "|" + userAccess.getDbReplicaID() + "|" + Integer.toString(userAccess.getAccessLevel());
 			if (m_usersList.length() > 0) {
@@ -91,18 +122,43 @@ public class UsersInfo {
 		} catch (NotesException e) {}
 	}
 
+	private void verifyFlagsInComment(Document doc) {
+		try {
+			if (!doc.hasItem("Comment")) return;
+
+			Item item = doc.getFirstItem("Comment");
+			String comment = item.getText();
+			item.recycle();
+
+			int indexStart = comment.indexOf(FLAG_COMMENT);
+			if (indexStart < 0) return;
+			indexStart += FLAG_COMMENT.length();
+
+			int indexEnd = comment.indexOf(" ", indexStart);
+			if (indexEnd < 0) {
+				indexEnd = comment.indexOf(";", indexStart);
+			}
+
+			String flag = indexEnd < 0 ? comment.substring(indexStart) : comment.substring(indexStart, indexEnd);
+			if (flag.isEmpty()) return;
+
+			this.incrementCount(flag);
+			this.incrementCount("Custom");
+		} catch (NotesException e) {e.printStackTrace();}
+	}
+
 	@SuppressWarnings("unchecked")
 	public void allowDenyAccess(Document serverDoc) {
 		try {
 			// allow access
 			Vector<String> members = serverDoc.getItemValue("AllowAccess");
 			Set<String> resolvedMembers = m_namesUtil.resolveMixedList(members);
-			m_usersAllow = resolvedMembers.size();
+			m_usersCount.put(USERS_ALLOW, new Long(resolvedMembers.size()));
 
 			// deny access
 			members = serverDoc.getItemValue("DenyAccess");
 			resolvedMembers = m_namesUtil.resolveMixedList(members);
-			m_usersDeny = resolvedMembers.size();
+			m_usersCount.put(USERS_DENY, new Long(resolvedMembers.size()));
 
 		} catch (NotesException e) {}
 	}
@@ -235,48 +291,14 @@ public class UsersInfo {
 		return v;
 	}
 
-	public long getUsersEditor() {
-		return m_usersEditor;
+	public HashMap<String, Long> getUsersCount() {
+		return m_usersCount;
 	}
-	public long getUsersAuthor() {
-		return m_usersAuthor;
+
+	public long getUsersCount(String name) {
+		return m_usersCount.containsKey(name) ? m_usersCount.get(name).longValue() : 0;
 	}
-	public long getUsersReader() {
-		return m_usersReader;
-	}
-	public long getUsersDepositor() {
-		return m_usersDepositor;
-	}
-	public long getUsersNoAccess() {
-		return m_usersNoAccess;
-	}
-	public long getUsersTotal() {
-		return m_usersTotal;
-	}
-	public long getUsersNotes() {
-		return m_usersNotes;
-	}
-	public long getUsersWeb() {
-		return m_usersWeb;
-	}
-	public long getUsersNotesWeb() {
-		return m_usersNotesWeb;
-	}
-	public long getUsersPNI() {
-		return m_usersPNI;
-	}
-	public long getUsersMail() {
-		return m_usersMail;
-	}
-	public long getUsersConflict() {
-		return m_usersConflict;
-	}
-	public long getUsersAllow() {
-		return m_usersAllow;
-	}
-	public long getUsersDeny() {
-		return m_usersDeny;
-	}
+
 	public StringBuffer getUsersList() {
 		return this.m_usersList;
 	}
