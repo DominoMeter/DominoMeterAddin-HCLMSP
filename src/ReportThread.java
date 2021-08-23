@@ -208,6 +208,12 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep19" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
+			// 20. Directory Profile
+			stepStart = new Date();
+			data.append(directoryProfile(keyword));
+			data.append("&numStep20" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
@@ -222,6 +228,28 @@ public class ReportThread extends NotesThread {
 		catch (Exception e) {
 			logSevere(e);
 		}
+	}
+
+	private String directoryProfile(StringBuffer keyword) throws NotesException {
+		String[] variables = getKeywordAsArray(keyword, "DirectoryProfile=");
+		if (variables == null) return "";
+		StringBuffer buf = new StringBuffer();
+
+		Document doc = this.m_ab.getProfileDocument("DirectoryProfile", null);
+		if (doc == null) return "";
+
+		String a = doc.generateXML();
+		System.out.println(a);
+
+		for(int i = 0; i < variables.length; i++) {
+			String variable = variables[i].toLowerCase();
+			if (doc.hasItem(variable)) {
+				String v = doc.getFirstItem(variable).getText();
+				buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
+			}
+		}
+
+		return buf.toString();
 	}
 
 	private String saml(String ndd) throws NotesException {
