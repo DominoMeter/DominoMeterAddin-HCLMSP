@@ -1,6 +1,5 @@
 import java.io.File;
 import java.util.Calendar;
-
 import lotus.domino.Database;
 import lotus.domino.NotesException;
 import lotus.domino.NotesFactory;

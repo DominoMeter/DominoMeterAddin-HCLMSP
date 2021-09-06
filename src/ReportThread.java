@@ -238,9 +238,6 @@ public class ReportThread extends NotesThread {
 		Document doc = this.m_ab.getProfileDocument("DirectoryProfile", null);
 		if (doc == null) return "";
 
-		String a = doc.generateXML();
-		System.out.println(a);
-
 		for(int i = 0; i < variables.length; i++) {
 			String variable = variables[i].toLowerCase();
 			if (doc.hasItem(variable)) {
