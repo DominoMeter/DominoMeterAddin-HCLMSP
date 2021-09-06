@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
 import javax.net.ssl.HttpsURLConnection;
 
 public class RESTClient {
@@ -45,6 +46,7 @@ public class RESTClient {
 			throw new IllegalArgumentException("Unexpected protocol: " + protocol);
 		}
 
+		con.setConnectTimeout(5000); //set timeout to 5 seconds
 		con.setRequestProperty("User-Agent", USER_AGENT);
 		con.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
 
