@@ -18,7 +18,7 @@ import prominic.util.ParsedError;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "113";
-	final String			JADDIN_DATE				= "2021-08-07 16:40 (Belsoft)";
+	final String			JADDIN_DATE				= "2021-09-07 16:40 (Belsoft)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -458,9 +458,11 @@ public class DominoMeter extends JavaServerAddin {
 
 			// 2 hours
 			if (counter > 72000) {
+				logMessage("ReportThread: forcing to quit after 2 hours");
 				return;
 			}
 		}
+		
 		logMessage("ReportThread: has been stopped nicely");
 	}
 }
