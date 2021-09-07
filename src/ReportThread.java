@@ -340,11 +340,11 @@ public class ReportThread extends NotesThread {
 		StringBuffer buf = new StringBuffer();
 
 		m_namesUtil = new NamesUtil();
-		m_namesUtil.initialize(m_ab);
+		m_namesUtil.initialize(m_ab, m_fileLogger);
 		if (this.isInterrupted()) return "";
 
 		try {
-			UsersInfo ui = new UsersInfo(m_session, m_catalogList, m_namesUtil);
+			UsersInfo ui = new UsersInfo(m_session, m_catalogList, m_namesUtil, m_fileLogger);
 
 			// allow/deny access
 			ui.allowDenyAccess(m_serverDoc);

@@ -12,6 +12,7 @@ import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
 import lotus.domino.View;
+import prominic.util.FileLogger;
 
 public class NamesUtil {
 	Database m_database = null;
@@ -20,13 +21,15 @@ public class NamesUtil {
 	HashMap<String, Vector<String>> m_groupOrig = null;
 	HashMap<String, Set<String>> m_elResolved = null;
 	Vector<String> m_processedEl = null;
-
-	public void initialize(Database database) {
+	private FileLogger m_fileLogger;
+	
+	public void initialize(Database database, FileLogger fileLogger) {
 		m_database = database;
 		m_elResolved = new HashMap<String, Set<String>>();
 		m_groupOrig = new HashMap<String, Vector<String>>();
 		m_fullNameList = new ArrayList<String>();
-
+		m_fileLogger = fileLogger;
+		
 		try {
 			// 1. group origin
 			View view1 = database.getView("($VIMGroups)");
@@ -63,7 +66,9 @@ public class NamesUtil {
 				doc.recycle();
 				doc = nextDoc;
 			}
-		} catch (NotesException e) {}
+		} catch (NotesException e) {
+			m_fileLogger.severe(e);
+		}
 	}
 
 	public boolean isGroup(String el) {

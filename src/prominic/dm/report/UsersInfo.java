@@ -11,6 +11,7 @@ import lotus.domino.Document;
 import lotus.domino.Item;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
+import prominic.util.FileLogger;
 import prominic.util.StringUtils;
 
 public class UsersInfo {
@@ -20,7 +21,8 @@ public class UsersInfo {
 	private HashMap<String, Vector<String>> m_dbACL;
 	private StringBuffer m_usersList;
 	private HashMap<String, Long> m_usersCount;
-
+	private FileLogger m_fileLogger;
+	
 	public final static String USERS_EDITOR = "Editors";
 	public final static String USERS_AUTHOR = "Author";
 	public final static String USERS_READER = "Reader";
@@ -39,10 +41,11 @@ public class UsersInfo {
 	private final String m_accessItems[] = {"ManagerList", "DesignerList", "EditorList", "AuthorList", "ReaderList", "DepositorList"};
 	private final String FLAG_COMMENT = "##DominoMeter--FlagAs:";
 
-	public UsersInfo(Session session, ArrayList<Document> catalogList, NamesUtil namesUtil) {
+	public UsersInfo(Session session, ArrayList<Document> catalogList, NamesUtil namesUtil, FileLogger fileLogger) {
 		m_session = session;
 		m_namesUtil = namesUtil;
 		m_catalogList = catalogList;
+		m_fileLogger = fileLogger;
 
 		m_dbACL = new HashMap<String, Vector<String>>();
 		m_usersList = new StringBuffer();
@@ -119,7 +122,9 @@ public class UsersInfo {
 				m_usersList.append("~");
 			}
 			m_usersList.append(userLine);
-		} catch (NotesException e) {}
+		} catch (NotesException e) {
+			m_fileLogger.severe(e);
+		}
 	}
 
 	private void verifyFlagsInComment(Document doc) {
@@ -144,7 +149,10 @@ public class UsersInfo {
 
 			this.incrementCount(flag);
 			this.incrementCount("Custom");
-		} catch (NotesException e) {e.printStackTrace();}
+		} catch (NotesException e) {
+			m_fileLogger.severe(e);
+			e.printStackTrace();
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -160,7 +168,9 @@ public class UsersInfo {
 			resolvedMembers = m_namesUtil.resolveMixedList(members);
 			m_usersCount.put(USERS_DENY, new Long(resolvedMembers.size()));
 
-		} catch (NotesException e) {}
+		} catch (NotesException e) {
+			m_fileLogger.severe(e);
+		}
 	}
 
 	public UserDbAccess getUserDbAccess(String fullName) throws NotesException {
