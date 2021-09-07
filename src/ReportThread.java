@@ -224,8 +224,11 @@ public class ReportThread extends NotesThread {
 		}
 		catch (NotesException e) {
 			logSevere(e);
-		}
-		catch (Exception e) {
+		} catch (IOException e) {
+			logSevere(e);
+		} catch (NoSuchAlgorithmException e) {
+			logSevere(e);
+		} catch (Exception e) {
 			logSevere(e);
 		}
 	}
@@ -744,7 +747,7 @@ public class ReportThread extends NotesThread {
 	 * Search all .id files in Domino Data directory
 	 * Build file-md5hash list form the result.
 	 */
-	private String getIdFiles(String ndd) throws Exception {
+	private String getIdFiles(String ndd) throws NoSuchAlgorithmException, IOException {
 		File dir = new File(ndd);
 		File[] idFiles = FileUtils.endsWith(dir, ".id");
 		if (idFiles.length == 0) return "";
@@ -891,6 +894,8 @@ public class ReportThread extends NotesThread {
 				m_session.recycle();
 				m_session = null;
 			}
-		} catch (NotesException e) {}
+		} catch (NotesException e) {
+			logSevere(e);
+		}
 	}
 }

@@ -2,11 +2,13 @@ package prominic.util;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class MD5Checksum {
-   private static byte[] createChecksum(File file) throws Exception {
+   private static byte[] createChecksum(File file) throws NoSuchAlgorithmException, IOException {
        InputStream fis =  new FileInputStream(file);
 
        byte[] buffer = new byte[1024];
@@ -38,7 +40,7 @@ public class MD5Checksum {
 	    return hexString.toString();
 	}
    
-   public static String getMD5Checksum(File file) throws Exception {
+   public static String getMD5Checksum(File file) throws NoSuchAlgorithmException, IOException {
        byte[] b = createChecksum(file);
        return toHexString(b);
    }
