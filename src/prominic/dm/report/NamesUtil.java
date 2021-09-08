@@ -37,15 +37,12 @@ public class NamesUtil {
 
 			Document doc = view1.getFirstDocument();
 			while (doc != null) {
-				Document docNext = view1.getNextDocument(doc);
-
 				String listName = doc.getItemValueString("ListName").toLowerCase();
 				@SuppressWarnings("unchecked")
 				Vector<String> members = doc.getItemValue("Members");
 				m_groupOrig.put(listName, members);
 
-				doc.recycle();
-				doc = docNext;
+				doc = view1.getNextDocument(doc);
 			}
 			view1.setAutoUpdate(true);
 			view1.recycle();
