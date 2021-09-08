@@ -18,7 +18,7 @@ import prominic.util.ParsedError;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "113";
-	final String			JADDIN_DATE				= "2021-09-07 16:40 (Belsoft)";
+	final String			JADDIN_DATE				= "2021-09-08 23:40 (Belsoft #2)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -154,16 +154,22 @@ public class DominoMeter extends JavaServerAddin {
 
 				// check for command from console
 				messageQueueState = mq.get(qBuffer, MQ_MAX_MSGSIZE, MessageQueue.MQ_WAIT_FOR_MSG, 1000);
-				resolveMessageQueueState(qBuffer, ur, pc, config);
+				if (messageQueueState == MessageQueue.ERR_MQ_QUITTING) {
+					setAddinState("Quit");
+					logMessage("User entered Quit, Exit or Domino shutdown is in progress");
+				}
+				else {
+					resolveMessageQueueState(qBuffer, ur, pc, config);
 
-				if (this.AddInHasMinutesElapsed(interval)) {
-					cleanOutdatedFiles(".log");
+					if (this.AddInHasMinutesElapsed(interval)) {
+						cleanOutdatedFiles(".log");
 
-					if (checkConnection()) {
-						loadConfig(config);
-						sendReport(false);
-						updateVersion(ur, pc, config.getJAR());
-					}
+						if (checkConnection()) {
+							loadConfig(config);
+							sendReport(false);
+							updateVersion(ur, pc, config.getJAR());
+						}
+					}					
 				}
 			}
 		} catch(Exception e) {
@@ -462,7 +468,7 @@ public class DominoMeter extends JavaServerAddin {
 				return;
 			}
 		}
-		
+
 		logMessage("ReportThread: has been stopped nicely");
 	}
 }

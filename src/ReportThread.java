@@ -66,9 +66,10 @@ public class ReportThread extends NotesThread {
 			Date dateStart = new Date();
 
 			m_session = NotesFactory.createSession();
-			m_ab = m_session.getDatabase(m_server, "names.nsf");
+			m_ab = m_session.getDatabase(null, "names.nsf");
 			m_catalog = m_session.getDatabase(null, "catalog.nsf", false);
 			initCatalog();
+			if (this.isInterrupted()) return;
 			m_serverDoc = m_ab.getView("($ServersLookup)").getDocumentByKey(m_server, true);
 
 			if (this.isInterrupted()) return;
@@ -819,22 +820,23 @@ public class ReportThread extends NotesThread {
 	}
 
 	// read db document from catalog.nsf
-	private void initCatalog() {
-		try {
-			if (m_catalog == null || !m_catalog.isOpen()) return;
+	private void initCatalog() throws NotesException {
+		if (m_catalog == null || !m_catalog.isOpen()) return;
 
-			m_catalogList = new ArrayList<Document>();
-			DocumentCollection col = m_catalog.search("@IsAvailable(ReplicaID) & @IsUnavailable(RepositoryType) & Server=\"" + m_server+"\"");
-			Document doc = col.getFirstDocument();
-			while (doc != null) {
-				m_catalogList.add(doc);
-				doc = col.getNextDocument();
-			}
+		m_catalogList = new ArrayList<Document>();
+		DocumentCollection col = m_catalog.search("@IsAvailable(ReplicaID) & @IsUnavailable(RepositoryType) & Server=\"" + m_server+"\"");
+		Document doc = col.getFirstDocument();
 
-			col.recycle();
-		} catch (NotesException e) {
-			logSevere(e);
+		while (doc != null && !this.isInterrupted()) {
+			Document docNext = col.getNextDocument();
+
+			m_catalogList.add(doc);
+			doc.recycle();
+
+			doc = docNext;
 		}
+
+		col.recycle();
 	}
 
 	private void logSevere(Exception e) {
