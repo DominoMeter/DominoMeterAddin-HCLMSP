@@ -828,12 +828,8 @@ public class ReportThread extends NotesThread {
 		Document doc = col.getFirstDocument();
 
 		while (doc != null && !this.isInterrupted()) {
-			Document docNext = col.getNextDocument();
-
 			m_catalogList.add(doc);
-			doc.recycle();
-
-			doc = docNext;
+			doc = col.getNextDocument();
 		}
 
 		col.recycle();
