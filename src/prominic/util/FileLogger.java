@@ -12,25 +12,32 @@ public class FileLogger {
 	long ONE_MB = 1048576;
 	int m_level;	// 0 - debug; 1 - info; 2 - exception; otherwise - off
 	SimpleDateFormat m_formatter = new SimpleDateFormat("MM/dd/yyyy, HH:mm:ss");
+	String m_directory;
 
-	public FileLogger() {
-		initialize(1);
+	public FileLogger(String directory) {
+		setLevel(1);
+		setDirectory(directory);
 	}
-
-	public FileLogger(int level) {
-		initialize(level);
-	}
-
-	private void initialize(int level) {
-		setLevel(level);
-	}
-
+	
 	public void setLevel(int level) {
 		m_level = level;
 	}
 
 	public int getLevel() {
 		return m_level;
+	}
+
+	private void setDirectory(String directory) {
+		File dir = new File(directory);
+		if (!dir.exists()){
+			dir.mkdirs();
+		}
+
+		this.m_directory = directory;
+	}
+
+	public String getDirectory() {
+		return m_directory;
 	}
 
 	public String getLevelLabel() {
@@ -47,7 +54,7 @@ public class FileLogger {
 			SimpleDateFormat formatterFileName = new SimpleDateFormat("yyyy-MM");
 			String fileName = "dominometer-" + formatterFileName.format(new Date()) + ".log";
 
-			File f = new File("DominoMeterAddin/" + fileName);
+			File f = new File(getDirectory() + fileName);
 
 			FileWriter fw;
 			if (f.exists() && f.length() > 5 * ONE_MB) {
@@ -68,7 +75,9 @@ public class FileLogger {
 
 			out.close();
 			fw.close();
-		} catch (IOException e) {}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void severe(Exception e) {

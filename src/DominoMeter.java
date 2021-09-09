@@ -1,4 +1,5 @@
 import java.io.File;
+
 import java.util.Calendar;
 import lotus.domino.Database;
 import lotus.domino.NotesException;
@@ -18,7 +19,7 @@ import prominic.util.ParsedError;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "113";
-	final String			JADDIN_DATE				= "2021-09-08 23:40 (Belsoft #2)";
+	final String			JADDIN_DATE				= "2021-09-09 18:40 (Logging)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -55,31 +56,37 @@ public class DominoMeter extends JavaServerAddin {
 
 	@Override
 	public void runNotes() {
-		fileLogger = new FileLogger();
+		try {
+			session = NotesFactory.createSession();
 
-		if (args == null) {
-			logMessage("You must provide an endpoint to send data, see instructions below");
-			showHelp();
-			return;
-		}
+			initLogger();
 
-		// endpoint
-		endpoint = args[0];
-		if ("dev".equalsIgnoreCase(endpoint)) {
-			endpoint = "https://prominic-dev.dominometer.com/duca.nsf";
-		}
-		else if("prod".equalsIgnoreCase(endpoint)) {
-			endpoint = "https://prominic.dominometer.com/duca.nsf";
-		}
-		else if("belsoft".equalsIgnoreCase(endpoint)) {
-			endpoint = "https://belsoft.dominometer.com/duca.nsf";
-		}
+			if (args == null) {
+				logMessage("You must provide an endpoint to send data, see instructions below");
+				showHelp();
+				return;
+			}
 
-		if (args.length > 1) {
-			setLogLevel(args[1]);
-		}
+			// endpoint
+			endpoint = args[0];
+			if ("dev".equalsIgnoreCase(endpoint)) {
+				endpoint = "https://prominic-dev.dominometer.com/duca.nsf";
+			}
+			else if("prod".equalsIgnoreCase(endpoint)) {
+				endpoint = "https://prominic.dominometer.com/duca.nsf";
+			}
+			else if("belsoft".equalsIgnoreCase(endpoint)) {
+				endpoint = "https://belsoft.dominometer.com/duca.nsf";
+			}
 
-		runLoop();
+			if (args.length > 1) {
+				setLogLevel(args[1]);
+			}
+
+			runLoop();
+		} catch (NotesException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@SuppressWarnings("deprecation")
@@ -95,7 +102,6 @@ public class DominoMeter extends JavaServerAddin {
 			this.setName(JADDIN_NAME);
 			this.dominoTaskID = createAddinStatusLine(this.JADDIN_NAME);
 
-			session = NotesFactory.createSession();
 			ab = session.getDatabase(session.getServerName(), "names.nsf");
 			server = session.getServerName();
 			version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
@@ -156,26 +162,32 @@ public class DominoMeter extends JavaServerAddin {
 				messageQueueState = mq.get(qBuffer, MQ_MAX_MSGSIZE, MessageQueue.MQ_WAIT_FOR_MSG, 1000);
 				if (messageQueueState == MessageQueue.ERR_MQ_QUITTING) {
 					setAddinState("Quit");
-					logMessage("User entered Quit, Exit or Domino shutdown is in progress");
+					fileLogger.info("Quit command is sent");
+					return;
 				}
-				else {
-					resolveMessageQueueState(qBuffer, ur, pc, config);
 
-					if (this.AddInHasMinutesElapsed(interval)) {
-						cleanOutdatedFiles(".log");
+				resolveMessageQueueState(qBuffer, ur, pc, config);
 
-						if (checkConnection()) {
-							loadConfig(config);
-							sendReport(false);
-							updateVersion(ur, pc, config.getJAR());
-						}
-					}					
-				}
+				if (this.AddInHasMinutesElapsed(interval)) {
+					cleanOutdatedFiles(".log");
+
+					if (checkConnection()) {
+						loadConfig(config);
+						sendReport(false);
+						updateVersion(ur, pc, config.getJAR());
+					}
+				}					
 			}
 		} catch(Exception e) {
 			fileLogger.severe(e);
 			e.printStackTrace();
 		}
+	}
+	
+	private void initLogger() throws NotesException {
+		String separator = System.getProperty("file.separator");
+		String directory = session.getEnvironmentString("Directory", true) + separator + "DominoMeterAddin" + separator;
+		fileLogger = new FileLogger(directory);
 	}
 
 	/*
@@ -218,6 +230,8 @@ public class DominoMeter extends JavaServerAddin {
 	private void resolveMessageQueueState(StringBuffer qBuffer, UpdateRobot ur, ProgramConfig pc, Config config) {
 		String cmd = qBuffer.toString().trim();
 		if (cmd.isEmpty()) return;
+		
+		fileLogger.info(qBuffer + " command is sent");
 
 		if ("-h".equals(cmd) || "help".equals(cmd)) {
 			showHelp();
@@ -323,6 +337,7 @@ public class DominoMeter extends JavaServerAddin {
 		logMessage("build date " + this.JADDIN_DATE);
 		logMessage("endpoint   " + this.endpoint);
 		logMessage("interval   " + Integer.toString(this.interval) + " minutes");
+		logMessage("log folder " + fileLogger.getDirectory());
 		logMessage("logging    " + fileLogger.getLevelLabel());
 	}
 
@@ -409,6 +424,8 @@ public class DominoMeter extends JavaServerAddin {
 
 	@Override
 	public void termThread() {
+		logMessage("MainThread: termThread");
+
 		terminate();
 		super.termThread();
 	}
