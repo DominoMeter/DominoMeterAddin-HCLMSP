@@ -225,7 +225,7 @@ public class DominoMeter extends JavaServerAddin {
 			}
 
 		} catch (Exception e) {
-			DominoMeter.total_exception_count++;
+			incrementExceptionTotal();
 			fileLogger.severe(e);
 			Log.sendError(server, endpoint, new ParsedError(e));
 			e.printStackTrace();
@@ -345,7 +345,7 @@ public class DominoMeter extends JavaServerAddin {
 		logMessage("log folder " + fileLogger.getDirectory());
 		logMessage("logging    " + fileLogger.getLevelLabel());
 		logMessage("started    " + startDateTime);
-		logMessage("errors     " + String.valueOf(DominoMeter.total_exception_count + ReportThread.m_total_exception_count));
+		logMessage("errors     " + String.valueOf(total_exception_count));
 	}
 
 	private void showHelp() {
@@ -465,6 +465,20 @@ public class DominoMeter extends JavaServerAddin {
 			logMessage("UNLOADED (**FAILED**) " + version);
 		}
 	}
+	
+    /**
+     * Exception total (child + main threads)
+     */
+    synchronized static public void incrementExceptionTotal() {
+		total_exception_count++;
+    }
+    
+    /**
+     * Return counter from child thread
+     */
+    synchronized static public long getExceptionTotal() {
+		return total_exception_count;
+    }
 
 	private void terminateReportThread() {
 		if (thread == null || !thread.isAlive()) return;
@@ -482,13 +496,13 @@ public class DominoMeter extends JavaServerAddin {
 					logMessage("ReportThread: is stopping, please wait...");
 				}
 			} catch (InterruptedException e) {
-				DominoMeter.total_exception_count++;
+				incrementExceptionTotal();
 				fileLogger.severe(e);
 				e.printStackTrace();
 			}
 
-			// 2 hours
-			if (counter > 72000) {
+			// 1 hour (but Domino has setting to shut down after 5 mins by default)
+			if (counter > 36000) {
 				logMessage("ReportThread: forcing to quit after 2 hours");
 				return;
 			}

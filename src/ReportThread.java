@@ -10,9 +10,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TimeZone;
 import java.util.Vector;
-
 import javax.net.ssl.SSLContext;
-
 import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
@@ -50,8 +48,6 @@ public class ReportThread extends NotesThread {
 	private ArrayList<Document> m_catalogList = null;
 	private Document m_serverDoc = null;
 	NamesUtil m_namesUtil = null;
-
-	public static long m_total_exception_count = 0;
 
 	public ReportThread(String server, String endpoint, String version, FileLogger fileLogger, boolean manual) {
 		m_server = server;
@@ -224,8 +220,8 @@ public class ReportThread extends NotesThread {
 			if (this.isInterrupted()) return;
 
 			// add error counter
-			long total_exception = ReportThread.m_total_exception_count + DominoMeter.total_exception_count;
-			data.append("&errorCounter=" + String.valueOf(total_exception));
+			long total_exception = DominoMeter.getExceptionTotal();
+			data.append("&numErrorCounter=" + String.valueOf(total_exception));
 			
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			logMessage("finished (" + res.toString() + ")");
@@ -843,7 +839,7 @@ public class ReportThread extends NotesThread {
 	}
 
 	private void logSevere(Exception e) {
-		m_total_exception_count++;
+		DominoMeter.incrementExceptionTotal();
 		m_fileLogger.severe(e);
 		Log.sendError(m_server, m_endpoint, e);
 	}
