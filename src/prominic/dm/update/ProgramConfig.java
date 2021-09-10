@@ -120,7 +120,7 @@ public class ProgramConfig {
 
 		if (newEnabled.equals(PROGRAM_ENABLE)) {
 			setSchedule(database, doc, newEnabled);
-			log("program document updated. Enabled to run at: " + doc.getFirstItem("Schedule").getDateTimeValue().getLocalTime());
+			log("program document updated. Schedule to run at: " + doc.getFirstItem("Schedule").getDateTimeValue().getLocalTime());
 			toSave = true;
 		}
 
@@ -163,7 +163,7 @@ public class ProgramConfig {
 		doc.computeWithForm(true, false);
 		doc.save();
 
-		log("program document created: " + getEnabledLabel(enabled));
+		log("program document created. Schedule: " + getEnabledLabel(enabled));
 
 		return doc;
 	}
