@@ -214,15 +214,15 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep20" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
+			// 99. error counter
+			long total_exception = DominoMeter.getExceptionTotal();
+			data.append("&numErrorCounter=" + String.valueOf(total_exception));
+			
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
 			if (this.isInterrupted()) return;
 
-			// add error counter
-			long total_exception = DominoMeter.getExceptionTotal();
-			data.append("&numErrorCounter=" + String.valueOf(total_exception));
-			
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			logMessage("finished (" + res.toString() + ")");
 		}
