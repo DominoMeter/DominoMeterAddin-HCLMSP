@@ -51,6 +51,8 @@ public class ReportThread extends NotesThread {
 	private Document m_serverDoc = null;
 	NamesUtil m_namesUtil = null;
 
+	public static long m_total_exception_count = 0;
+
 	public ReportThread(String server, String endpoint, String version, FileLogger fileLogger, boolean manual) {
 		m_server = server;
 		m_endpoint = endpoint;
@@ -63,6 +65,7 @@ public class ReportThread extends NotesThread {
 	public void runNotes() {
 		try {
 			logMessage("started");
+			
 			Date dateStart = new Date();
 
 			m_session = NotesFactory.createSession();
@@ -220,6 +223,10 @@ public class ReportThread extends NotesThread {
 			data.append("&numDuration=" + numDuration);
 			if (this.isInterrupted()) return;
 
+			// add error counter
+			long total_exception = ReportThread.m_total_exception_count + DominoMeter.total_exception_count;
+			data.append("&errorCounter=" + String.valueOf(total_exception));
+			
 			StringBuffer res = RESTClient.sendPOST(url, data.toString());
 			logMessage("finished (" + res.toString() + ")");
 		}
@@ -836,6 +843,7 @@ public class ReportThread extends NotesThread {
 	}
 
 	private void logSevere(Exception e) {
+		m_total_exception_count++;
 		m_fileLogger.severe(e);
 		Log.sendError(m_server, m_endpoint, e);
 	}

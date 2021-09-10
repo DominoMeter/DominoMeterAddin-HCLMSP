@@ -1,5 +1,5 @@
 import java.io.File;
-
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import lotus.domino.Database;
 import lotus.domino.NotesException;
@@ -18,8 +18,8 @@ import prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "114";
-	final String			JADDIN_DATE				= "2021-10-09 18:40 (Error counter)";
+	final String			JADDIN_VERSION			= "115";
+	final String			JADDIN_DATE				= "2021-10-09 22:00 (Exception Counter)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -30,6 +30,8 @@ public class DominoMeter extends JavaServerAddin {
 	// this is already defined (should be = 1):
 	public static final int	MQ_WAIT_FOR_MSG = MessageQueue.MQ_WAIT_FOR_MSG;
 
+	public static long total_exception_count = 0;
+	
 	// Instance variables
 	private String[] 		args 					= null;
 	private int 			dominoTaskID			= 0;
@@ -43,6 +45,7 @@ public class DominoMeter extends JavaServerAddin {
 	private String 			version					= "";
 	private int				failedCounter			= 0;
 	private FileLogger		fileLogger				= null;
+	private String 			startDateTime			= "";
 
 	private ReportThread 	thread					= null;
 
@@ -58,6 +61,7 @@ public class DominoMeter extends JavaServerAddin {
 	public void runNotes() {
 		try {
 			session = NotesFactory.createSession();
+			startDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 
 			initLogger();
 
@@ -221,6 +225,7 @@ public class DominoMeter extends JavaServerAddin {
 			}
 
 		} catch (Exception e) {
+			DominoMeter.total_exception_count++;
 			fileLogger.severe(e);
 			Log.sendError(server, endpoint, new ParsedError(e));
 			e.printStackTrace();
@@ -339,6 +344,8 @@ public class DominoMeter extends JavaServerAddin {
 		logMessage("interval   " + Integer.toString(this.interval) + " minutes");
 		logMessage("log folder " + fileLogger.getDirectory());
 		logMessage("logging    " + fileLogger.getLevelLabel());
+		logMessage("started    " + startDateTime);
+		logMessage("errors     " + String.valueOf(DominoMeter.total_exception_count + ReportThread.m_total_exception_count));
 	}
 
 	private void showHelp() {
@@ -475,6 +482,7 @@ public class DominoMeter extends JavaServerAddin {
 					logMessage("ReportThread: is stopping, please wait...");
 				}
 			} catch (InterruptedException e) {
+				DominoMeter.total_exception_count++;
 				fileLogger.severe(e);
 				e.printStackTrace();
 			}
