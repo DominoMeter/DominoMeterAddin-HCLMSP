@@ -97,9 +97,8 @@ public class ProgramConfig {
 	}
 
 	private void deleteDuplicate(Document doc) throws NotesException {
-		String enabled = doc.getItemValueString("Enabled");
 		doc.remove(true);
-		log("program document deleted: " + getEnabledLabel(enabled));
+		log("program document deleted (duplicate)");
 	}
 
 	private Document updateProgram(Database database, Document doc, String newEnabled) throws NotesException {
@@ -110,18 +109,18 @@ public class ProgramConfig {
 		if (!cmdLine.equalsIgnoreCase(doc.getItemValueString("CmdLine"))) {
 			doc.replaceItemValue("CmdLine", cmdLine);
 			toSave = true;
-			log("program document updated: " + getEnabledLabel(enabled) + ". CmdLine: " + cmdLine);
+			log("program document updated. CmdLine: " + cmdLine);
 		}
 
 		if (!newEnabled.equals(doc.getItemValueString("Enabled"))) {
 			doc.replaceItemValue("Enabled", newEnabled);
 			toSave = true;
-			log("program document updated: " + getEnabledLabel(enabled) + " -> " + getEnabledLabel(newEnabled));
+			log("program document updated. Schedule change: " + getEnabledLabel(enabled) + " -> " + getEnabledLabel(newEnabled));
 		}
 
 		if (newEnabled.equals(PROGRAM_ENABLE)) {
 			setSchedule(database, doc, newEnabled);
-			log("program document updated: " + getEnabledLabel(newEnabled) + ". Run at: " + doc.getFirstItem("Schedule").getDateTimeValue().getLocalTime());
+			log("program document updated. Enabled to run at: " + doc.getFirstItem("Schedule").getDateTimeValue().getLocalTime());
 			toSave = true;
 		}
 
