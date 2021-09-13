@@ -1,10 +1,11 @@
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import lotus.domino.Database;
-import lotus.domino.NotesException;
 import lotus.domino.NotesFactory;
 import lotus.domino.Session;
+import lotus.domino.Database;
+import lotus.domino.Name;
+import lotus.domino.NotesException;
 import lotus.notes.addins.JavaServerAddin;
 import lotus.notes.internal.MessageQueue;
 import prominic.dm.api.Config;
@@ -18,8 +19,8 @@ import prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "115";
-	final String			JADDIN_DATE				= "2021-10-09 22:30 (Exceptions)";
+	final String			JADDIN_VERSION			= "116";
+	final String			JADDIN_DATE				= "2021-13-09 15:30 (Exceptions, ServerName)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -338,6 +339,17 @@ public class DominoMeter extends JavaServerAddin {
 	}
 
 	private void showInfo() {
+		String abbreviate;
+		try {
+			Name nServer = session.createName(session.getServerName());
+			abbreviate = nServer.getAbbreviated();
+		} catch (NotesException e) {
+			abbreviate = this.server;
+			incrementExceptionTotal();
+			e.printStackTrace();
+		}
+		
+		logMessage("server     " + abbreviate);
 		logMessage("version    " + this.JADDIN_VERSION);
 		logMessage("build date " + this.JADDIN_DATE);
 		logMessage("endpoint   " + this.endpoint);
