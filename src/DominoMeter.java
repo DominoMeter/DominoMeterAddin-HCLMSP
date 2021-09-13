@@ -47,6 +47,7 @@ public class DominoMeter extends JavaServerAddin {
 	private int				failedCounter			= 0;
 	private FileLogger		fileLogger				= null;
 	private String 			startDateTime			= "";
+	private String 			bufState				= "";
 
 	private ReportThread 	thread					= null;
 
@@ -422,23 +423,10 @@ public class DominoMeter extends JavaServerAddin {
 		if (this.dominoTaskID == 0)
 			return;
 
-		AddInSetStatusLine(this.dominoTaskID, text);
-	}
-
-	/**
-	 * Set the text of the add-in which is shown in command <code>"show tasks"</code>.
-	 *
-	 * Note: This method is also called by the JAddinThread and the user add-in
-	 *
-	 * @param	id		Domino task id
-	 * @param	message	Text to be set
-	 */
-	public final void setAddinState(int id, String message) {
-
-		if (id == 0)
-			return;
-
-		AddInSetStatusLine(id, message);
+		if (!text.equals(this.bufState)) {
+			AddInSetStatusLine(this.dominoTaskID, text);
+			bufState = text;
+		}
 	}
 
 	@Override
