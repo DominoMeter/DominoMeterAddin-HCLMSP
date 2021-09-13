@@ -3,9 +3,9 @@ Collects usage of Domino servers running in the HCL MSP program
 
 # Installation
 - build JAR file from project
-- put it into ProminicAddin folder
-- register file in the notes.ini (JAVAUSERCLASSES=.\ProminicAddin\DominoUsageCollectorAddin-44.jar). Take into account separator could be ; (semicolon, Windows, OS/2) or : (colon UNIX).
-- run command: Load runjava DominoUsageCollectorAddin endpoint
+- put it into DominoMeterAddin folder
+- register file in the notes.ini (JAVAUSERCLASSES=.\DominoMeterAddin\DominoMeter-44.jar). Take into account separator could be ; (semicolon, Windows, OS/2) or : (colon UNIX).
+- run command: Load runjava DominoUsageCollectorAddin <endpoint>
 - endpoint is a prominic central engine that collect data and also provide GET/POST API. For local testing it could be f.x. 127.0.0.1/duca.nsf
 
 # DUCA.NSF (Domino Usage COllector Addin).
