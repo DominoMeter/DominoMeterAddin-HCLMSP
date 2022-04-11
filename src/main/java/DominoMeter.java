@@ -9,20 +9,20 @@ import lotus.domino.Name;
 import lotus.domino.NotesException;
 import lotus.notes.addins.JavaServerAddin;
 import lotus.notes.internal.MessageQueue;
-import prominic.dm.api.Config;
-import prominic.dm.api.Log;
-import prominic.dm.api.Ping;
-import prominic.dm.update.ProgramConfig;
-import prominic.dm.update.UpdateRobot;
-import prominic.io.RESTClient;
-import prominic.util.FileLogger;
-import prominic.util.FileUtils;
-import prominic.util.ParsedError;
+import net.prominic.dm.api.Config;
+import net.prominic.dm.api.Log;
+import net.prominic.dm.api.Ping;
+import net.prominic.dm.update.ProgramConfig;
+import net.prominic.dm.update.UpdateRobot;
+import net.prominic.io.RESTClient;
+import net.prominic.util.FileLogger;
+import net.prominic.util.FileUtils;
+import net.prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "117";
-	final String			JADDIN_DATE				= "2022-04-11 15:30 (Genesis)";
+	final String			JADDIN_VERSION			= "116";
+	final String			JADDIN_DATE				= "2022-04-11 15:30 (mvn, genesis)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
