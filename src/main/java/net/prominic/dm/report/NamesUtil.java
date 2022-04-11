@@ -1,6 +1,7 @@
-package prominic.dm.report;
+package net.prominic.dm.report;
 
 import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,7 +13,7 @@ import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
 import lotus.domino.View;
-import prominic.util.FileLogger;
+import net.prominic.util.FileLogger;
 
 public class NamesUtil {
 	Database m_database = null;

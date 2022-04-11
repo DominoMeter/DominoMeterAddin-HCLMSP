@@ -1,9 +1,10 @@
-package prominic.dm.api;
+package net.prominic.dm.api;
 
 import java.io.IOException;
-import prominic.io.RESTClient;
-import prominic.util.ParsedError;
-import prominic.util.StringUtils;
+
+import net.prominic.io.RESTClient;
+import net.prominic.util.ParsedError;
+import net.prominic.util.StringUtils;
 
 public class Log {
 	public static boolean sendError(String server, String endpoint, ParsedError pe) {

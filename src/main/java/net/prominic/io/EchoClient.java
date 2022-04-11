@@ -1,6 +1,7 @@
-package prominic.io;
+package net.prominic.io;
 
 import java.io.BufferedReader;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -8,7 +9,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-import prominic.util.ParsedError;
+import net.prominic.util.ParsedError;
 
 public class EchoClient {
 	private Socket socket;

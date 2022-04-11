@@ -1,4 +1,4 @@
-package prominic.dm.report;
+package net.prominic.dm.report;
 
 public final class UserDbAccess {
 	private final String DbReplicaID;

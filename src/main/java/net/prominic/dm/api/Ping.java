@@ -1,10 +1,11 @@
-package prominic.dm.api;
+package net.prominic.dm.api;
 
 import java.io.IOException;
 
-import prominic.io.RESTClient;
-import prominic.util.ParsedError;
-import prominic.util.StringUtils;
+
+import net.prominic.io.RESTClient;
+import net.prominic.util.ParsedError;
+import net.prominic.util.StringUtils;
 
 public class Ping {
 	private ParsedError m_pe = null;

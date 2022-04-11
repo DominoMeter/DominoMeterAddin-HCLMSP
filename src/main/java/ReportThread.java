@@ -1,4 +1,5 @@
 import java.io.File;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -22,18 +23,18 @@ import lotus.domino.Session;
 import lotus.domino.View;
 import lotus.domino.ViewEntry;
 import lotus.domino.ViewEntryCollection;
-import prominic.dm.api.Keyword;
-import prominic.dm.api.Log;
-import prominic.dm.api.Ping;
-import prominic.dm.report.NamesUtil;
-import prominic.dm.report.UsersInfo;
-import prominic.io.Bash;
-import prominic.io.EchoClient;
-import prominic.io.RESTClient;
-import prominic.util.FileLogger;
-import prominic.util.FileUtils;
-import prominic.util.MD5Checksum;
-import prominic.util.StringUtils;
+import net.prominic.dm.api.Keyword;
+import net.prominic.dm.api.Log;
+import net.prominic.dm.api.Ping;
+import net.prominic.dm.report.NamesUtil;
+import net.prominic.dm.report.UsersInfo;
+import net.prominic.io.Bash;
+import net.prominic.io.EchoClient;
+import net.prominic.io.RESTClient;
+import net.prominic.util.FileLogger;
+import net.prominic.util.FileUtils;
+import net.prominic.util.MD5Checksum;
+import net.prominic.util.StringUtils;
 
 public class ReportThread extends NotesThread {
 	private String m_server;

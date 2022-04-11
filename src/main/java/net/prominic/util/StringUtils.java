@@ -1,4 +1,4 @@
-package prominic.util;
+package net.prominic.util;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

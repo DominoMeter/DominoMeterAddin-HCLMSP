@@ -1,5 +1,4 @@
 import java.io.File;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Map;
@@ -15,7 +14,7 @@ import lotus.domino.Database;
 import lotus.domino.DocumentCollection;
 import lotus.domino.Document;
 import lotus.domino.NotesException;
-import prominic.io.RESTClient;
+import net.prominic.io.RESTClient;
 
 public class JSONRules {
 	private Session m_session;

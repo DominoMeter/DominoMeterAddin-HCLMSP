@@ -1,7 +1,7 @@
-package prominic.dm.api;
+package net.prominic.dm.api;
 
-import prominic.io.RESTClient;
-import prominic.util.StringUtils;
+import net.prominic.io.RESTClient;
+import net.prominic.util.StringUtils;
 
 public class Keyword {
 	public static StringBuffer getValue(String endpoint, String server, String id) {

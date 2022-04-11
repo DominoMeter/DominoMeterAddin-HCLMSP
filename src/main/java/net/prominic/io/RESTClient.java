@@ -1,4 +1,4 @@
-package prominic.io;
+package net.prominic.io;
 
 import java.io.BufferedReader;
 import java.io.FileOutputStream;

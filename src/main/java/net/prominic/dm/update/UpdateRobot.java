@@ -1,13 +1,14 @@
-package prominic.dm.update;
+package net.prominic.dm.update;
 
 import java.io.File;
 
+
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-import prominic.io.RESTClient;
-import prominic.util.FileLogger;
-import prominic.util.ParsedError;
-import prominic.util.StringUtils;
+import net.prominic.io.RESTClient;
+import net.prominic.util.FileLogger;
+import net.prominic.util.ParsedError;
+import net.prominic.util.StringUtils;
 
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
