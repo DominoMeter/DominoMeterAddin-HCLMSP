@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import lotus.domino.NotesFactory;
@@ -13,14 +14,15 @@ import prominic.dm.api.Log;
 import prominic.dm.api.Ping;
 import prominic.dm.update.ProgramConfig;
 import prominic.dm.update.UpdateRobot;
+import prominic.io.RESTClient;
 import prominic.util.FileLogger;
 import prominic.util.FileUtils;
 import prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "116";
-	final String			JADDIN_DATE				= "2021-13-09 15:30 (Exceptions, ServerName)";
+	final String			JADDIN_VERSION			= "117";
+	final String			JADDIN_DATE				= "2022-04-11 15:30 (Genesis)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -88,10 +90,34 @@ public class DominoMeter extends JavaServerAddin {
 			if (args.length > 1) {
 				setLogLevel(args[1]);
 			}
+			
+			// TODO: install Genesis
+			genesis();
 
 			runLoop();
 		} catch (NotesException e) {
 			e.printStackTrace();
+		}
+	}
+
+	private void genesis() {
+		try {
+			// find addin in catalog
+			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
+			StringBuffer buf = RESTClient.sendGET(catalog + "/app?openagent&name=genesis");
+
+			JSONRules rules = new JSONRules(session, catalog);
+			boolean res = rules.execute(buf.toString());
+			
+			if (res) {
+				logMessage("Genesis OK (installed)");
+			}
+			else {
+				logMessage("Genesis FAILED");
+				System.out.println(rules.getLogBuffer());
+			}
+		} catch (IOException e) {
+			logMessage("Install command failed: " + e.getMessage());
 		}
 	}
 
