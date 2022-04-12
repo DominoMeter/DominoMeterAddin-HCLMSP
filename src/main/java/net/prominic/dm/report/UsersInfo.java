@@ -75,7 +75,7 @@ public class UsersInfo {
 			m_usersCount.put(name, m_usersCount.get(name).longValue() + 1);
 		}
 		else {
-			m_usersCount.put(name, new Long(1));
+			m_usersCount.put(name, (long) 1);
 		}
 	}
 
@@ -162,12 +162,12 @@ public class UsersInfo {
 			// allow access
 			Vector<String> members = serverDoc.getItemValue("AllowAccess");
 			Set<String> resolvedMembers = m_namesUtil.resolveMixedList(members);
-			m_usersCount.put(USERS_ALLOW, new Long(resolvedMembers.size()));
+			m_usersCount.put(USERS_ALLOW, (long) resolvedMembers.size());
 
 			// deny access
 			members = serverDoc.getItemValue("DenyAccess");
 			resolvedMembers = m_namesUtil.resolveMixedList(members);
-			m_usersCount.put(USERS_DENY, new Long(resolvedMembers.size()));
+			m_usersCount.put(USERS_DENY, (long) resolvedMembers.size());
 
 		} catch (NotesException e) {
 			m_fileLogger.severe(e);
