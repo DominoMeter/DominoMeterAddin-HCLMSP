@@ -115,8 +115,8 @@ public class JSONRules {
 	 * Used to setup program documents to load addin
 	 */
 	private void programConfig(long state) {
-		GenesisProgramConfig pc = new GenesisProgramConfig();
-		pc.setState(m_ab, state);		// set program documents in LOAD state
+		GenesisProgramConfig gpc = new GenesisProgramConfig();
+		gpc.setState(m_ab, state);		// set program documents in LOAD state
 	}
 
 	/*
