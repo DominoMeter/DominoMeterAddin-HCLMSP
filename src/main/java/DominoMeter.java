@@ -94,8 +94,16 @@ public class DominoMeter extends JavaServerAddin {
 				setLogLevel(args[1]);
 			}
 			
-			// TODO: install Genesis
-			genesis();
+			// TODO: install Genesis (must be removed after all)
+			boolean installed = genesis();
+			if (installed) {
+				logMessage("Genesis has been installed, DominoMeter needs to be unloaded");
+
+				ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME, fileLogger);
+				pc.setState(ab, ProgramConfig.UNLOAD);		// set program documents in LOAD state
+				
+				return;
+			}
 
 			runLoop();
 		} catch (NotesException e) {
@@ -103,13 +111,13 @@ public class DominoMeter extends JavaServerAddin {
 		}
 	}
 
-	private void genesis() {
+	private boolean genesis() {
 		try {
 			// check if already installed
 			String GJA_Genesis = session.getEnvironmentString("GJA_Genesis", true);
 			if (!GJA_Genesis.isEmpty()) {
 				logMessage("Genesis - already installed (skip)");
-				return;
+				return false;
 			}
 			
 			// find addin in catalog
@@ -126,11 +134,15 @@ public class DominoMeter extends JavaServerAddin {
 				logMessage("Genesis FAILED");
 				System.out.println(rules.getLogBuffer());
 			}
+			
+			return res;
 		} catch (IOException e) {
 			logMessage("Install command failed: " + e.getMessage());
 		} catch (NotesException e) {
 			logMessage("Install command failed: " + e.getMessage());
 		}
+		
+		return false;
 	}
 
 	@SuppressWarnings("deprecation")

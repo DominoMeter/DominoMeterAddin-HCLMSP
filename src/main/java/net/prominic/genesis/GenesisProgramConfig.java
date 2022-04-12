@@ -18,7 +18,6 @@ public class GenesisProgramConfig {
 	private final static String PROGRAM_SERVERSTART = "2";
 
 	private String m_addinName;
-	private String m_addinParams;
 
 	public GenesisProgramConfig() {
 		m_addinName = "Genesis";
@@ -129,7 +128,7 @@ public class GenesisProgramConfig {
 	}
 
 	private Document updateProgram(Database database, Document doc, String newEnabled) throws NotesException {
-		String cmdLine = m_addinName + m_addinParams;
+		String cmdLine = m_addinName;
 
 		boolean toSave = false;
 		String enabled = doc.getItemValueString("Enabled");
@@ -182,7 +181,7 @@ public class GenesisProgramConfig {
 		doc.replaceItemValue("Program", "runjava");
 		doc.replaceItemValue("Enabled", enabled);
 		doc.replaceItemValue("Comments", COMMENT_PROMINIC);
-		doc.replaceItemValue("CmdLine", m_addinName + m_addinParams);
+		doc.replaceItemValue("CmdLine", m_addinName);
 
 		if (enabled.equalsIgnoreCase(PROGRAM_ENABLE)) {
 			setSchedule(database, doc, enabled);
