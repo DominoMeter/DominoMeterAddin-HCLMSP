@@ -24,7 +24,7 @@ import net.prominic.util.ParsedError;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "116";
-	final String			JADDIN_DATE				= "2022-04-12 10:00 (mvn, mfa, genesis)";
+	final String			JADDIN_DATE				= "2022-04-12 10:30 (mvn, mfa, genesis)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -68,6 +68,7 @@ public class DominoMeter extends JavaServerAddin {
 		try {
 			session = NotesFactory.createSession();
 			ab = session.getDatabase(session.getServerName(), "names.nsf");
+			server = session.getServerName();
 			startDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 
 			initLogger();
@@ -158,7 +159,6 @@ public class DominoMeter extends JavaServerAddin {
 			this.setName(JADDIN_NAME);
 			this.dominoTaskID = createAddinStatusLine(this.JADDIN_NAME);
 
-			server = session.getServerName();
 			version = this.JADDIN_NAME + "-" + JADDIN_VERSION + ".jar";
 
 			// check if connection could be established
