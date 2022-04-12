@@ -107,14 +107,14 @@ public class JSONRules {
 			doMessages((JSONArray) step.get("messages"));
 		}
 		else if(step.containsKey("programConfig")) {
-			programConfig((Integer) step.get("programConfig"));
+			programConfig((Long)step.get("programConfig"));
 		}
 	}
 
 	/*
 	 * Used to setup program documents to load addin
 	 */
-	private void programConfig(int state) {
+	private void programConfig(long state) {
 		GenesisProgramConfig pc = new GenesisProgramConfig();
 		pc.setState(m_ab, state);		// set program documents in LOAD state
 	}
