@@ -214,6 +214,12 @@ public class ReportThread extends NotesThread {
 			data.append(directoryProfile(keyword));
 			data.append("&numStep20" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
+			
+			// 21. MFA installed?
+			stepStart = new Date();
+			data.append(mfa());
+			data.append("&numStep21" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
 
 			// 99. error counter
 			long total_exception = DominoMeter.getExceptionTotal();
@@ -236,6 +242,33 @@ public class ReportThread extends NotesThread {
 		} catch (Exception e) {
 			logSevere(e);
 		}
+	}
+
+	/*
+	 * Detect if MFA is installed
+	 */
+	private String mfa() {
+		try {
+			Database mfaDb = m_session.getDatabase(null, "mfa.nsf");
+			if (mfaDb == null) return "";
+			mfaDb.recycle();
+			
+			Database domcfgDb = m_session.getDatabase(null, "domcfg.nsf");
+			if (domcfgDb == null) return "";
+
+			String search = "Form=\"LoginMap\" & LF_ServerType=\"0\" & LF_LoginFormDB=\"mfa.nsf\"";
+			DocumentCollection col = domcfgDb.search(search);
+			if (col.getCount() == 0) return "";
+			
+			col.recycle();
+			domcfgDb.recycle();
+			
+			return "&mfa=1";
+		} catch (NotesException e) {
+			e.printStackTrace();
+		}
+
+		return "";
 	}
 
 	private String directoryProfile(StringBuffer keyword) throws NotesException {

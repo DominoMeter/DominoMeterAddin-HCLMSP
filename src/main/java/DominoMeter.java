@@ -1,4 +1,5 @@
 import java.io.File;
+
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -14,6 +15,7 @@ import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.ProgramConfig;
 import net.prominic.dm.update.UpdateRobot;
+import net.prominic.genesis.JSONRules;
 import net.prominic.io.RESTClient;
 import net.prominic.util.FileLogger;
 import net.prominic.util.FileUtils;
@@ -22,7 +24,7 @@ import net.prominic.util.ParsedError;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "116";
-	final String			JADDIN_DATE				= "2022-04-11 15:30 (mvn, genesis)";
+	final String			JADDIN_DATE				= "2022-04-12 09:30 (mvn, mfa, genesis)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -102,21 +104,29 @@ public class DominoMeter extends JavaServerAddin {
 
 	private void genesis() {
 		try {
+			// check if already installed
+			String GJA_Genesis = session.getEnvironmentString("GJA_Genesis", true);
+			if (!GJA_Genesis.isEmpty()) {
+				logMessage("Genesis - already installed (skip)");
+			}
+			
 			// find addin in catalog
 			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
-			StringBuffer buf = RESTClient.sendGET(catalog + "/app?openagent&name=genesis");
+			StringBuffer buf = RESTClient.sendGET(catalog + "/app?openagent&name=dominometer-genesis");
 
-			JSONRules rules = new JSONRules(session, catalog);
+			JSONRules rules = new JSONRules(session, ab);
 			boolean res = rules.execute(buf.toString());
 			
 			if (res) {
-				logMessage("Genesis OK (installed)");
+				logMessage("Genesis installed (OK)");
 			}
 			else {
 				logMessage("Genesis FAILED");
 				System.out.println(rules.getLogBuffer());
 			}
 		} catch (IOException e) {
+			logMessage("Install command failed: " + e.getMessage());
+		} catch (NotesException e) {
 			logMessage("Install command failed: " + e.getMessage());
 		}
 	}
