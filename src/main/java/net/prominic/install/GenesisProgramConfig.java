@@ -1,4 +1,4 @@
-package net.prominic.genesis;
+package net.prominic.install;
 
 import lotus.domino.Database;
 import lotus.domino.DateTime;
