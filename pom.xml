@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>DominoMeter</groupId>
 	<artifactId>DominoMeter</artifactId>
-	<version>116</version>
+	<version>117</version>
 	<name>DominoMeter</name>
 	<url>http://maven.apache.org</url>
 

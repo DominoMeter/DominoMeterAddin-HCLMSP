@@ -1,6 +1,4 @@
 import java.io.File;
-
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import lotus.domino.NotesFactory;
@@ -15,16 +13,14 @@ import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.ProgramConfig;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.genesis.JSONRules;
-import net.prominic.io.RESTClient;
 import net.prominic.util.FileLogger;
 import net.prominic.util.FileUtils;
 import net.prominic.util.ParsedError;
 
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
-	final String			JADDIN_VERSION			= "116";
-	final String			JADDIN_DATE				= "2022-04-12 10:30 (mvn, mfa, genesis)";
+	final String			JADDIN_VERSION			= "117";
+	final String			JADDIN_DATE				= "2022-04-13 12:30 (mvn, mfa)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class
@@ -95,6 +91,7 @@ public class DominoMeter extends JavaServerAddin {
 				setLogLevel(args[1]);
 			}
 			
+			/*
 			// TODO: install Genesis (must be removed after all)
 			boolean installed = genesis();
 			if (installed) {
@@ -105,6 +102,7 @@ public class DominoMeter extends JavaServerAddin {
 				
 				return;
 			}
+			*/
 
 			runLoop();
 		} catch (NotesException e) {
@@ -112,6 +110,7 @@ public class DominoMeter extends JavaServerAddin {
 		}
 	}
 
+	/*
 	private boolean genesis() {
 		try {
 			// check if already installed
@@ -145,7 +144,8 @@ public class DominoMeter extends JavaServerAddin {
 		
 		return false;
 	}
-
+	 */
+	
 	@SuppressWarnings("deprecation")
 	private void runLoop() {
 		StringBuffer qBuffer = new StringBuffer(1024);
