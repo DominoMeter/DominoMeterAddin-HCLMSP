@@ -20,7 +20,7 @@ import net.prominic.util.ParsedError;
 public class DominoMeter extends JavaServerAddin {
 	final String			JADDIN_NAME				= "DominoMeter";
 	final String			JADDIN_VERSION			= "117";
-	final String			JADDIN_DATE				= "2022-04-13 15:30 (mvn, mfa)";
+	final String			JADDIN_DATE				= "2022-04-20 15:45 (java.policy, jvm/lib/ext)";
 
 	// Message Queue name for this Addin (normally uppercase);
 	// MSG_Q_PREFIX is defined in JavaServerAddin.class

@@ -5,8 +5,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 public class FileUtils {
 	public static File[] endsWith(File dir, final String endsWith) {
@@ -64,5 +66,30 @@ public class FileUtils {
 		catch (IOException e) {}
 
 		return sb;
+	}
+
+	/*
+	 * All files in folder and in all sub-folders
+	 */
+	public static List<File> listFiles(String directoryName) {
+		File directory = new File(directoryName);
+
+		// Get all files from a directory.
+		File[] fList = directory.listFiles();
+		if(fList == null) return null;
+
+		List<File> files = new ArrayList<File>();
+		for (File file : fList) {      
+			if (file.isFile()) {
+				files.add(file);
+			} else if (file.isDirectory()) {
+				List<File> dirFiles = listFiles(file.getAbsolutePath());
+				if (dirFiles!=null && dirFiles.size() > 0) {
+					files.addAll(dirFiles);	
+				}
+			}
+		}
+		
+		return files;
 	}
 }

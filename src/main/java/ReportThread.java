@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.TimeZone;
 import java.util.Vector;
@@ -62,12 +63,11 @@ public class ReportThread extends NotesThread {
 	public void runNotes() {
 		try {
 			logMessage("started");
-			
+
 			Date dateStart = new Date();
 
 			m_session = NotesFactory.createSession();
 			m_ab = m_session.getDatabase(null, "names.nsf");
-			m_catalog = m_session.getDatabase(null, "catalog.nsf", false);
 			initCatalog();
 			if (this.isInterrupted()) return;
 			m_serverDoc = m_ab.getView("($ServersLookup)").getDocumentByKey(m_server, true);
@@ -188,43 +188,55 @@ public class ReportThread extends NotesThread {
 			// 16. check if folder(s) exist (extend with other files/folder if needed)
 			stepStart = new Date();
 			data.append(checkFilesFolders(ndd));
-			data.append("&numStep16" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep16=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 17. IDVault check
 			stepStart = new Date();
 			data.append(vault(ndd));
-			data.append("&numStep17" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep17=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 18. Panagenda
 			stepStart = new Date();
 			data.append(panagenda(ndd));
-			data.append("&numStep18" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep18=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 19. SAML
 			stepStart = new Date();
 			data.append(saml(ndd));
-			data.append("&numStep19" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep19=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 20. Directory Profile
 			stepStart = new Date();
 			data.append(directoryProfile(keyword));
-			data.append("&numStep20" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep20=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
-			
+
 			// 21. MFA installed?
 			stepStart = new Date();
 			data.append(mfa());
 			data.append("&numStep21" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
+			// 22. jvm/lib/ext file lists
+			stepStart = new Date();
+			data.append(jvmLibExt());
+			data.append("&numStep22=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+			
+			// 23. java.policy, java.security
+			stepStart = new Date();
+			data.append(javaPolicy());
+			data.append("&numStep23=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
 			// 99. error counter
 			long total_exception = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(total_exception));
-			
+
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
 			data.append("&numDuration=" + numDuration);
@@ -244,6 +256,31 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
+	private Object javaPolicy() {
+		String res = "";
+
+		StringBuffer javaPolicy = FileUtils.readFileContent("jvm/lib/security/java.policy");
+		if (javaPolicy != null) {
+			res += "&javaPolicy=" + StringUtils.encodeValue(javaPolicy.toString());
+		}
+		
+		StringBuffer javaSecurity = FileUtils.readFileContent("jvm/lib/security/java.security");
+		if (javaSecurity != null) {
+			res += "&javaSecurity=" + StringUtils.encodeValue(javaSecurity.toString());
+		}
+		
+		return res;
+	}
+
+	private String jvmLibExt() {
+		logMessage("javaFiles - here");
+
+		List<File> files = FileUtils.listFiles("jvm/lib/ext");
+		if (files == null) return "";
+		
+		return "&jvmlibext=" + StringUtils.encodeValue(files.toString());
+	}
+
 	/*
 	 * Detect if MFA is installed
 	 */
@@ -252,17 +289,17 @@ public class ReportThread extends NotesThread {
 			Database mfaDb = m_session.getDatabase(null, "mfa.nsf");
 			if (mfaDb == null) return "";
 			mfaDb.recycle();
-			
+
 			Database domcfgDb = m_session.getDatabase(null, "domcfg.nsf");
 			if (domcfgDb == null) return "";
 
 			String search = "Form=\"LoginMap\" & LF_ServerType=\"0\" & LF_LoginFormDB=\"mfa.nsf\"";
 			DocumentCollection col = domcfgDb.search(search);
 			if (col.getCount() == 0) return "";
-			
+
 			col.recycle();
 			domcfgDb.recycle();
-			
+
 			return "&mfa=1";
 		} catch (NotesException e) {
 			e.printStackTrace();
@@ -573,6 +610,7 @@ public class ReportThread extends NotesThread {
 	private String getDatabaseInfo() {
 		if (m_catalogList == null || m_catalogList.size() == 0) {
 			m_fileLogger.severe("catalog.nsf - not initialized");
+			return "";
 		};
 
 		String items[] = {"ManagerList", "DesignerList", "EditorList", "AuthorList", "ReaderList", "DepositorList"};
@@ -858,6 +896,7 @@ public class ReportThread extends NotesThread {
 
 	// read db document from catalog.nsf
 	private void initCatalog() throws NotesException {
+		m_catalog = m_session.getDatabase(null, "catalog.nsf", false);
 		if (m_catalog == null || !m_catalog.isOpen()) return;
 
 		m_catalogList = new ArrayList<Document>();

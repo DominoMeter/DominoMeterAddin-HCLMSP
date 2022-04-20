@@ -2,6 +2,7 @@ package net.prominic.dm.report;
 
 import java.util.ArrayList;
 
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
@@ -23,7 +24,7 @@ public class UsersInfo {
 	private StringBuffer m_usersList;
 	private HashMap<String, Long> m_usersCount;
 	private FileLogger m_fileLogger;
-	
+
 	public final static String USERS_EDITOR = "Editors";
 	public final static String USERS_AUTHOR = "Author";
 	public final static String USERS_READER = "Reader";
@@ -177,6 +178,12 @@ public class UsersInfo {
 	public UserDbAccess getUserDbAccess(String fullName) throws NotesException {
 		int access = -1;
 		String replicaId = "";
+
+		// in case if catalog does not exists
+		if (m_catalogList == null) {
+			return new UserDbAccess(replicaId, access);
+		}			
+
 		for (int i = 0; i < m_catalogList.size(); i++) {
 			Document catalogDoc = m_catalogList.get(i);
 
@@ -194,7 +201,7 @@ public class UsersInfo {
 			if (access >= 4) {
 				break;
 			}
-		}
+		}	
 
 		return new UserDbAccess(replicaId, access);
 	}
@@ -202,7 +209,6 @@ public class UsersInfo {
 	// push document up on 50%, so next users will get to it faster
 	private void promoteNoteFile(int i) {
 		if (i == 0) return;
-
 		int prev = i > 1 ? i / 2 : 0;
 		Collections.swap(m_catalogList, prev, i);
 	}
