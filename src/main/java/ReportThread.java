@@ -261,24 +261,22 @@ public class ReportThread extends NotesThread {
 
 		StringBuffer javaPolicy = FileUtils.readFileContent("jvm/lib/security/java.policy");
 		if (javaPolicy != null) {
-			res += "&javaPolicy=" + StringUtils.encodeValue(javaPolicy.toString());
+			res += "&richtextJavaPolicy=" + StringUtils.encodeValue(javaPolicy.toString());
 		}
 		
 		StringBuffer javaSecurity = FileUtils.readFileContent("jvm/lib/security/java.security");
 		if (javaSecurity != null) {
-			res += "&javaSecurity=" + StringUtils.encodeValue(javaSecurity.toString());
+			res += "&richtextJavaSecurity=" + StringUtils.encodeValue(javaSecurity.toString());
 		}
 		
 		return res;
 	}
 
 	private String jvmLibExt() {
-		logMessage("javaFiles - here");
-
 		List<File> files = FileUtils.listFiles("jvm/lib/ext");
 		if (files == null) return "";
 		
-		return "&jvmlibext=" + StringUtils.encodeValue(files.toString());
+		return "&jvmLibExt=" + StringUtils.encodeValue(files.toString());
 	}
 
 	/*
@@ -288,6 +286,7 @@ public class ReportThread extends NotesThread {
 		try {
 			Database mfaDb = m_session.getDatabase(null, "mfa.nsf");
 			if (mfaDb == null) return "";
+			String mfaReplicaId = mfaDb.getReplicaID();
 			mfaDb.recycle();
 
 			Database domcfgDb = m_session.getDatabase(null, "domcfg.nsf");
@@ -296,11 +295,11 @@ public class ReportThread extends NotesThread {
 			String search = "Form=\"LoginMap\" & LF_ServerType=\"0\" & LF_LoginFormDB=\"mfa.nsf\"";
 			DocumentCollection col = domcfgDb.search(search);
 			if (col.getCount() == 0) return "";
-
+			
 			col.recycle();
 			domcfgDb.recycle();
 
-			return "&mfa=1";
+			return "&mfa=1&mfareplicaid=" + mfaReplicaId;
 		} catch (NotesException e) {
 			e.printStackTrace();
 		}
