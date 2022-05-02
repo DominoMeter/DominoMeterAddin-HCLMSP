@@ -264,7 +264,7 @@ public class ReportThread extends NotesThread {
 			StringBuffer javaPolicy = FileUtils.readFileContentFilter(javaPolicyPath, new String[]{"//"}, true);
 			if (javaPolicy != null) {
 				res += "&richtextJavaPolicy=" + StringUtils.encodeValue(javaPolicy.toString());
-				res += "JavaPolicyMD5=" + MD5Checksum.getMD5Checksum(new File(javaPolicyPath));
+				res += "&JavaPolicyMD5=" + MD5Checksum.getMD5Checksum(new File(javaPolicyPath));
 			}
 
 			String javaSecurityPath = "jvm/lib/security/java.security";
