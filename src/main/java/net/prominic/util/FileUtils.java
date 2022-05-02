@@ -46,8 +46,8 @@ public class FileUtils {
 
 		return files;
 	}
-	
-	public static StringBuffer readFileContentFilter(String filePath, String[] filter) {
+
+	public static StringBuffer readFileContentFilter(String filePath, String[] filterStartWith, boolean removeEmptyString) {
 		File file = new File(filePath);
 		if (!file.exists()) return null;
 
@@ -60,14 +60,19 @@ public class FileUtils {
 			while ((st = br.readLine()) != null) {
 				String stTrimmer = st.trim();
 				boolean append = true;
-				for(int i=0; i<filter.length && append; i++) {
-					if (stTrimmer.startsWith(filter[i])) {
+
+				// apply Filter
+				for(int i=0; i<filterStartWith.length && append; i++) {
+					if (stTrimmer.startsWith(filterStartWith[i])) {
 						append = false;
 					}
 				}
 
-				System.out.println(String.valueOf(append) + "    =>     "+ st);
-				
+				// remove empty lines?
+				if (append && removeEmptyString && stTrimmer.isEmpty()) {
+					append = false;
+				}
+
 				if (append) {
 					sb.append(st);
 					sb.append(lineSeparator);	

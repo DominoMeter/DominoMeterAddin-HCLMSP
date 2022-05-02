@@ -226,7 +226,7 @@ public class ReportThread extends NotesThread {
 			data.append(jvmLibExt());
 			data.append("&numStep22=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
-			
+
 			// 23. java.policy, java.security
 			stepStart = new Date();
 			data.append(javaPolicy());
@@ -259,23 +259,33 @@ public class ReportThread extends NotesThread {
 	private Object javaPolicy() {
 		String res = "";
 
-		StringBuffer javaPolicy = FileUtils.readFileContentFilter("jvm/lib/security/java.policy", new String[]{"//"});
-		if (javaPolicy != null) {
-			res += "&richtextJavaPolicy=" + StringUtils.encodeValue(javaPolicy.toString());
+		try {
+			String javaPolicyPath = "jvm/lib/security/java.policy";
+			StringBuffer javaPolicy = FileUtils.readFileContentFilter(javaPolicyPath, new String[]{"//"}, true);
+			if (javaPolicy != null) {
+				res += "&richtextJavaPolicy=" + StringUtils.encodeValue(javaPolicy.toString());
+				res += "JavaPolicyMD5=" + MD5Checksum.getMD5Checksum(new File(javaPolicyPath));
+			}
+
+			String javaSecurityPath = "jvm/lib/security/java.security";
+			StringBuffer javaSecurity = FileUtils.readFileContentFilter(javaSecurityPath, new String[]{"#"}, true);
+			if (javaSecurity != null) {
+				res += "&richtextJavaSecurity=" + StringUtils.encodeValue(javaSecurity.toString());
+				res += "&JavaSecurityMD5=" + MD5Checksum.getMD5Checksum(new File(javaSecurityPath));
+			}
+		} catch (NoSuchAlgorithmException e) {
+			logSevere(e);
+		} catch (IOException e) {
+			logSevere(e);
 		}
 
-		StringBuffer javaSecurity = FileUtils.readFileContentFilter("jvm/lib/security/java.security", new String[]{"#"});
-		if (javaSecurity != null) {
-			res += "&richtextJavaSecurity=" + StringUtils.encodeValue(javaSecurity.toString());
-		}
-		
 		return res;
 	}
 
 	private String jvmLibExt() {
 		List<File> files = FileUtils.listFiles("jvm/lib/ext");
 		if (files == null) return "";
-		
+
 		return "&jvmLibExt=" + StringUtils.encodeValue(files.toString());
 	}
 
@@ -295,7 +305,7 @@ public class ReportThread extends NotesThread {
 			String search = "Form=\"LoginMap\" & LF_ServerType=\"0\" & LF_LoginFormDB=\"mfa.nsf\"";
 			DocumentCollection col = domcfgDb.search(search);
 			if (col.getCount() == 0) return "";
-			
+
 			col.recycle();
 			domcfgDb.recycle();
 
