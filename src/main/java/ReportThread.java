@@ -259,12 +259,12 @@ public class ReportThread extends NotesThread {
 	private Object javaPolicy() {
 		String res = "";
 
-		StringBuffer javaPolicy = FileUtils.readFileContent("jvm/lib/security/java.policy");
+		StringBuffer javaPolicy = FileUtils.readFileContentFilter("jvm/lib/security/java.policy", new String[]{"//"});
 		if (javaPolicy != null) {
 			res += "&richtextJavaPolicy=" + StringUtils.encodeValue(javaPolicy.toString());
 		}
-		
-		StringBuffer javaSecurity = FileUtils.readFileContent("jvm/lib/security/java.security");
+
+		StringBuffer javaSecurity = FileUtils.readFileContentFilter("jvm/lib/security/java.security", new String[]{"#"});
 		if (javaSecurity != null) {
 			res += "&richtextJavaSecurity=" + StringUtils.encodeValue(javaSecurity.toString());
 		}

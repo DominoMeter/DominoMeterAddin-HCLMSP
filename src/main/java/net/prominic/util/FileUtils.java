@@ -46,6 +46,39 @@ public class FileUtils {
 
 		return files;
 	}
+	
+	public static StringBuffer readFileContentFilter(String filePath, String[] filter) {
+		File file = new File(filePath);
+		if (!file.exists()) return null;
+
+		StringBuffer sb = null;
+		String lineSeparator = System.getProperty("line.separator");
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			sb = new StringBuffer();
+			String st;
+			while ((st = br.readLine()) != null) {
+				String stTrimmer = st.trim();
+				boolean append = true;
+				for(int i=0; i<filter.length && append; i++) {
+					if (stTrimmer.startsWith(filter[i])) {
+						append = false;
+					}
+				}
+
+				System.out.println(String.valueOf(append) + "    =>     "+ st);
+				
+				if (append) {
+					sb.append(st);
+					sb.append(lineSeparator);	
+				}
+			}
+			br.close();
+		}
+		catch (IOException e) {}
+
+		return sb;
+	}
 
 	public static StringBuffer readFileContent(String filePath) {
 		File file = new File(filePath);
@@ -89,7 +122,7 @@ public class FileUtils {
 				}
 			}
 		}
-		
+
 		return files;
 	}
 }
