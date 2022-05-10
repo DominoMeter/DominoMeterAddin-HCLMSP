@@ -1,7 +1,6 @@
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
-
 import lotus.domino.Name;
 import lotus.domino.NotesException;
 import net.prominic.dm.api.Config;
@@ -25,6 +24,10 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	private ProgramConfig	m_pc					= null;
 	private ReportThread 	thread					= null;
 
+	public DominoMeter(String[] args) {
+		super(args);
+	}
+
 	@Override
 	protected String getJavaAddinVersion() {
 		return "117";
@@ -36,7 +39,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	}
 
 	@Override
-	protected boolean runNotesBeforeInitialize() {
+	protected boolean runNotesAfterInitialize() {
 		if (args == null) {
 			logMessage("You must provide an endpoint to send data, see instructions below");
 			showHelp();
@@ -154,8 +157,8 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return false;
 	}
 	 */
-
-	private void listenAfterWhile() {
+	
+	protected void listenAfterWhile() {
 		if (thread != null && thread.isAlive()) {
 			setAddinState("Report");
 		}
