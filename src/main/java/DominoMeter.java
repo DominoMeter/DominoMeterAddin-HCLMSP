@@ -27,6 +27,10 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	public DominoMeter(String[] args) {
 		super(args);
 	}
+	
+	public DominoMeter() {
+		super();
+	}
 
 	@Override
 	protected String getJavaAddinVersion() {
