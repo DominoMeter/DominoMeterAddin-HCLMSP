@@ -1,5 +1,4 @@
 import java.io.File;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -29,10 +28,10 @@ import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.report.NamesUtil;
 import net.prominic.dm.report.UsersInfo;
+import net.prominic.gja_v20220510.GLogger;
 import net.prominic.io.Bash;
 import net.prominic.io.EchoClient;
 import net.prominic.io.RESTClient;
-import net.prominic.util.FileLogger;
 import net.prominic.util.FileUtils;
 import net.prominic.util.MD5Checksum;
 import net.prominic.util.StringUtils;
@@ -41,7 +40,7 @@ public class ReportThread extends NotesThread {
 	private String m_server;
 	private String m_endpoint;
 	private String m_version;
-	private FileLogger m_fileLogger;
+	private GLogger m_fileLogger;
 	private boolean m_manual = false;
 
 	private Session m_session = null;
@@ -51,7 +50,7 @@ public class ReportThread extends NotesThread {
 	private Document m_serverDoc = null;
 	NamesUtil m_namesUtil = null;
 
-	public ReportThread(String server, String endpoint, String version, FileLogger fileLogger, boolean manual) {
+	public ReportThread(String server, String endpoint, String version, GLogger fileLogger, boolean manual) {
 		m_server = server;
 		m_endpoint = endpoint;
 		m_version = version;

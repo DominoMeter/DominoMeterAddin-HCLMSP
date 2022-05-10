@@ -1,21 +1,19 @@
 package net.prominic.dm.update;
 
 import java.io.File;
-
-
 import lotus.domino.NotesException;
 import lotus.domino.Session;
+import net.prominic.gja_v20220510.GLogger;
 import net.prominic.io.RESTClient;
-import net.prominic.util.FileLogger;
 import net.prominic.util.ParsedError;
 import net.prominic.util.StringUtils;
 
 public class UpdateRobot {
 	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
 	private ParsedError m_pe = null;
-	private FileLogger m_fileLogger;
+	private GLogger m_fileLogger;
 
-	public UpdateRobot(FileLogger fileLogger) {
+	public UpdateRobot(GLogger fileLogger) {
 		m_fileLogger = fileLogger;
 	}
 

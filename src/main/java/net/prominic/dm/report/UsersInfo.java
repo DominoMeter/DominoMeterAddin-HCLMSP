@@ -1,19 +1,16 @@
 package net.prominic.dm.report;
 
 import java.util.ArrayList;
-
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
-
 import lotus.domino.ACL;
 import lotus.domino.Document;
 import lotus.domino.Item;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-import net.prominic.util.FileLogger;
+import net.prominic.gja_v20220510.GLogger;
 import net.prominic.util.StringUtils;
 
 public class UsersInfo {
@@ -23,7 +20,7 @@ public class UsersInfo {
 	private HashMap<String, Vector<String>> m_dbACL;
 	private StringBuffer m_usersList;
 	private HashMap<String, Long> m_usersCount;
-	private FileLogger m_fileLogger;
+	private GLogger m_fileLogger;
 
 	public final static String USERS_EDITOR = "Editors";
 	public final static String USERS_AUTHOR = "Author";
@@ -43,7 +40,7 @@ public class UsersInfo {
 	private final String m_accessItems[] = {"ManagerList", "DesignerList", "EditorList", "AuthorList", "ReaderList", "DepositorList"};
 	private final String FLAG_COMMENT = "##DominoMeter--FlagAs:";
 
-	public UsersInfo(Session session, ArrayList<Document> catalogList, NamesUtil namesUtil, FileLogger fileLogger) {
+	public UsersInfo(Session session, ArrayList<Document> catalogList, NamesUtil namesUtil, GLogger fileLogger) {
 		m_session = session;
 		m_namesUtil = namesUtil;
 		m_catalogList = catalogList;

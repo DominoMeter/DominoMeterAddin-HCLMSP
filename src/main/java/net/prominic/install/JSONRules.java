@@ -1,15 +1,12 @@
 package net.prominic.install;
 
 import java.io.File;
-
 import java.io.IOException;
 import java.io.Reader;
-
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-
 import lotus.domino.Session;
 import lotus.domino.Database;
 import lotus.domino.NotesException;

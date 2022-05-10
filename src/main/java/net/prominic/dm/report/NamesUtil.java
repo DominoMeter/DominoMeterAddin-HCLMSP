@@ -1,19 +1,17 @@
 package net.prominic.dm.report;
 
 import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
-
 import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
 import lotus.domino.View;
-import net.prominic.util.FileLogger;
+import net.prominic.gja_v20220510.GLogger;
 
 public class NamesUtil {
 	Database m_database = null;
@@ -22,9 +20,9 @@ public class NamesUtil {
 	HashMap<String, Vector<String>> m_groupOrig = null;
 	HashMap<String, Set<String>> m_elResolved = null;
 	Vector<String> m_processedEl = null;
-	private FileLogger m_fileLogger;
+	private GLogger m_fileLogger;
 	
-	public void initialize(Database database, FileLogger fileLogger) {
+	public void initialize(Database database, GLogger fileLogger) {
 		m_database = database;
 		m_elResolved = new HashMap<String, Set<String>>();
 		m_groupOrig = new HashMap<String, Vector<String>>();
