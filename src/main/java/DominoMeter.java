@@ -14,8 +14,8 @@ import net.prominic.gja_v20220510.JavaServerAddinGenesis;
 public class DominoMeter extends JavaServerAddinGenesis {
 	public static long 		total_exception_count = 0;
 
-	private int				m_interval				= 120;
-	private String 			m_server					= "";
+	private int				m_interval				= 60;
+	private String 			m_server				= "";
 	private String 			m_endpoint				= "";
 	private String 			m_version				= "";
 	private int				failedCounter			= 0;
@@ -27,7 +27,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	public DominoMeter(String[] args) {
 		super(args);
 	}
-	
+
 	public DominoMeter() {
 		super();
 	}
@@ -39,7 +39,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-05-09 16:50 (gja)";
+		return "2022-05-10 16:50 (gja)";
 	}
 
 	@Override
@@ -50,11 +50,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			return false;
 		}
 
-		return true;
-	}
-
-	@Override
-	protected void runNotesBeforeListen() {
 		try {
 			setAddinState("Initializing");
 			m_logger.info("--------------------------------------");
@@ -80,34 +75,33 @@ public class DominoMeter extends JavaServerAddinGenesis {
 				setLogLevel(args[1]);
 			}
 
-			// check if connection could be established
-			boolean check = checkConnection();
-			if (check) {
-				Log.sendLog(m_server, m_endpoint, m_version + " - started", "");
-			}
-
-			// if new version is detected on load - no need to continue
-			if (check) {
-				boolean updateOnStartup = updateVersion();
-				if (updateOnStartup) return;
-			}
-
-			if (check) {
-				sendReport(false);
-			}
-
+			// new config
+			m_config = new Config();
+			
 			// adjust program documents
 			m_pc = new ProgramConfig(m_server, m_endpoint, this.getJavaAddinName(), this.m_logger);
 			m_pc.setState(m_ab, ProgramConfig.LOAD);		// set program documents in LOAD state
+		} catch(Exception e) {
+			logSevere(e);
+		}
 
-			// setup interval
-			loadConfig();
-			
+		return true;
+	}
+
+	@Override
+	protected void runNotesBeforeListen() {
+		try {
 			// init Event
-			HashMap<String, Object> params = new HashMap<String, Object>();
-			params.put("this", this);
-			Event event = new EventMain("Main", m_interval, true, params, this.m_logger);
-			eventsAdd(event);
+			HashMap<String, Object> paramsMain = new HashMap<String, Object>();
+			paramsMain.put("dominometer", this);
+			Event eventMain = new EventMain("Main", m_interval, true, paramsMain, this.m_logger);
+			eventsAdd(eventMain);
+			
+			// Cleaner event
+			HashMap<String, Object> paramsCleaner = new HashMap<String, Object>();
+			paramsCleaner.put("version", m_version);
+			Event eventCleaner = new EventCleaner("Cleaner", 120, true, paramsCleaner, this.m_logger);
+			eventsAdd(eventCleaner);
 
 			/*
 			// TODO: install Genesis (must be removed after all)
@@ -161,7 +155,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return false;
 	}
 	 */
-	
+
 	protected void listenAfterWhile() {
 		if (thread != null && thread.isAlive()) {
 			setAddinState("Report");
@@ -198,7 +192,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		m_logger.setLevel(Integer.parseInt(level));
 	}
 
-	private boolean checkConnection() {
+	protected boolean checkConnection() {
 		m_logger.info("CheckConnection");
 
 		Ping ping = new Ping();
@@ -224,12 +218,8 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return false;
 	}
 
-	private boolean loadConfig() {
+	protected boolean loadConfig() {
 		logMessage("LoadConfig");
-
-		if (m_config == null) {
-			m_config = new Config();
-		}
 
 		boolean res = m_config.load(m_endpoint, m_server);
 		logMessage("- " + String.valueOf(res));
@@ -240,7 +230,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return res;
 	}
 
-	private boolean updateVersion() {
+	protected boolean updateVersion() {
 		setAddinState("UpdateRobot");
 		logMessage("UpdateRobot");
 
@@ -264,7 +254,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return true;
 	}
 
-	private void sendReport(boolean manual) {
+	protected void sendReport(boolean manual) {
 		if (thread == null || !thread.isAlive()) {
 			thread = new ReportThread(m_server, m_endpoint, m_version, m_logger, manual);
 			thread.start();
@@ -287,13 +277,13 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			e.printStackTrace();
 		}
 
-		logMessage("server     " + abbreviate);
-		logMessage("endpoint   " + this.m_endpoint);
-		logMessage("interval   " + Integer.toString(this.m_interval) + " minutes");
-		logMessage("log folder " + this.m_logger.getDirectory());
-		logMessage("logging    " + this.m_logger.getLevelLabel());
-		logMessage("started    " + m_startDateTime);
-		logMessage("errors     " + String.valueOf(total_exception_count));
+		logMessage("server       " + abbreviate);
+		logMessage("endpoint     " + this.m_endpoint);
+		logMessage("interval     " + Integer.toString(this.m_interval) + " minutes");
+		logMessage("log folder   " + this.m_logger.getDirectory());
+		logMessage("logging      " + this.m_logger.getLevelLabel());
+		logMessage("started      " + m_startDateTime);
+		logMessage("errors       " + String.valueOf(total_exception_count));
 	}
 
 	private void showHelp() {
@@ -301,7 +291,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		logMessage("*** Usage ***");
 		AddInLogMessageText("load runjava DominoMeter <endpoint> [logLevel]");
 		AddInLogMessageText("   <endpoint> - required. url to send data");
-		AddInLogMessageText("   [logLevel] - optional. '0 - debug', '1- info', '2 - severe' (default)");
+		AddInLogMessageText("   [logLevel] - optional. '0 - debug', '1- info', '2 - warning', '3 - severe'");
 		AddInLogMessageText("tell DominoMeter <command>");
 		AddInLogMessageText("   quit       Unload DominoMeter");
 		AddInLogMessageText("   help       Show help information (or -h)");
