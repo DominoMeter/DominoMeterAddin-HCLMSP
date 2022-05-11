@@ -295,7 +295,8 @@ public class ReportThread extends NotesThread {
 	private String mfa() {
 		try {
 			Database mfaDb = m_session.getDatabase(null, "mfa.nsf");
-			if (mfaDb == null) return "";
+			if (mfaDb == null || !mfaDb.isOpen()) return "";
+			
 			String mfaReplicaId = mfaDb.getReplicaID();
 			mfaDb.recycle();
 
