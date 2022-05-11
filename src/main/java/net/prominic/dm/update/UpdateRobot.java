@@ -3,7 +3,7 @@ package net.prominic.dm.update;
 import java.io.File;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-import net.prominic.gja_v20220510.GLogger;
+import net.prominic.gja_v20220511.GLogger;
 import net.prominic.io.RESTClient;
 import net.prominic.util.ParsedError;
 import net.prominic.util.StringUtils;

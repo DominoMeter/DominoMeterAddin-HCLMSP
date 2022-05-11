@@ -1,6 +1,7 @@
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
+
 import lotus.domino.Name;
 import lotus.domino.NotesException;
 import net.prominic.dm.api.Config;
@@ -8,8 +9,8 @@ import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.ProgramConfig;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v20220510.Event;
-import net.prominic.gja_v20220510.JavaServerAddinGenesis;
+import net.prominic.gja_v20220511.Event;
+import net.prominic.gja_v20220511.JavaServerAddinGenesis;
 
 public class DominoMeter extends JavaServerAddinGenesis {
 	public static long 		total_exception_count = 0;
@@ -39,7 +40,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-05-10 16:50 (gja)";
+		return "2022-05-11 16:50 (gja)";
 	}
 
 	@Override
@@ -96,12 +97,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			paramsMain.put("dominometer", this);
 			Event eventMain = new EventMain("Main", m_interval, true, paramsMain, this.m_logger);
 			eventsAdd(eventMain);
-			
-			// Cleaner event
-			HashMap<String, Object> paramsCleaner = new HashMap<String, Object>();
-			paramsCleaner.put("version", m_version);
-			Event eventCleaner = new EventCleaner("Cleaner", 120, true, paramsCleaner, this.m_logger);
-			eventsAdd(eventCleaner);
 
 			/*
 			// TODO: install Genesis (must be removed after all)
@@ -286,7 +281,8 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		logMessage("errors       " + String.valueOf(total_exception_count));
 	}
 
-	private void showHelp() {
+	@Override
+	protected void showHelp() {
 		int year = Calendar.getInstance().get(Calendar.YEAR);
 		logMessage("*** Usage ***");
 		AddInLogMessageText("load runjava DominoMeter <endpoint> [logLevel]");

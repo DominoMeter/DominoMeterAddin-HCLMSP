@@ -1,6 +1,7 @@
 import java.util.HashMap;
-import net.prominic.gja_v20220510.Event;
-import net.prominic.gja_v20220510.GLogger;
+
+import net.prominic.gja_v20220511.Event;
+import net.prominic.gja_v20220511.GLogger;
 
 public class EventMain extends Event {
 	private DominoMeter m_dominoMeter = null;
@@ -13,8 +14,6 @@ public class EventMain extends Event {
 
 	@Override
 	public void run() {
-		System.out.println(this.getName());
-		
 		if (!m_dominoMeter.checkConnection()) return;
 
 		m_dominoMeter.loadConfig();
