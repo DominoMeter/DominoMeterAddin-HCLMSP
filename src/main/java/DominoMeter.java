@@ -15,7 +15,7 @@ import net.prominic.gja_v20220511.JavaServerAddinGenesis;
 public class DominoMeter extends JavaServerAddinGenesis {
 	public static long 		total_exception_count = 0;
 
-	private int				m_interval				= 60;
+	private int				m_interval				= 120;
 	private String 			m_server				= "";
 	private String 			m_endpoint				= "";
 	private String 			m_version				= "";
@@ -95,7 +95,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			// init Event
 			HashMap<String, Object> paramsMain = new HashMap<String, Object>();
 			paramsMain.put("dominometer", this);
-			Event eventMain = new EventMain("Main", m_interval, true, paramsMain, this.m_logger);
+			Event eventMain = new EventMain("Main", m_interval * 60, true, paramsMain, this.m_logger);
 			eventsAdd(eventMain);
 
 			/*
