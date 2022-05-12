@@ -1,7 +1,6 @@
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
-
 import lotus.domino.Name;
 import lotus.domino.NotesException;
 import net.prominic.dm.api.Config;
@@ -9,8 +8,8 @@ import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.ProgramConfig;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v20220511.Event;
-import net.prominic.gja_v20220511.JavaServerAddinGenesis;
+import net.prominic.gja_v20220512.Event;
+import net.prominic.gja_v20220512.JavaServerAddinGenesis;
 
 public class DominoMeter extends JavaServerAddinGenesis {
 	public static long 		total_exception_count = 0;
@@ -95,7 +94,8 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			// init Event
 			HashMap<String, Object> paramsMain = new HashMap<String, Object>();
 			paramsMain.put("dominometer", this);
-			Event eventMain = new EventMain("Main", m_interval * 60, true, paramsMain, this.m_logger);
+			EventMain eventMain = new EventMain("Main", m_interval * 60, true, this.m_logger);
+			eventMain.dominoMeter = this;
 			eventsAdd(eventMain);
 
 			/*
