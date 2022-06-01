@@ -11,9 +11,9 @@ import org.json.simple.parser.ParseException;
 import lotus.domino.Session;
 import lotus.domino.Database;
 import lotus.domino.NotesException;
+import net.prominic.gja_v20220601.GLogger;
+import net.prominic.gja_v20220601.ProgramConfig;
 import net.prominic.io.RESTClient;
-import net.prominic.gja_v20220524.GLogger;
-import net.prominic.gja_v20220524.ProgramConfig;
 
 public class JSONRulesStub {
 	private Session m_session;

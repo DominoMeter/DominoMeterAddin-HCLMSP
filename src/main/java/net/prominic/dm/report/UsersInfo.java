@@ -11,7 +11,7 @@ import lotus.domino.Document;
 import lotus.domino.Item;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-import net.prominic.gja_v20220524.GLogger;
+import net.prominic.gja_v20220601.GLogger;
 import net.prominic.util.StringUtils;
 
 public class UsersInfo {

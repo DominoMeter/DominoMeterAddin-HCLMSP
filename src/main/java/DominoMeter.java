@@ -7,7 +7,7 @@ import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.ProgramConfig;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v20220524.JavaServerAddinGenesis;
+import net.prominic.gja_v20220601.JavaServerAddinGenesis;
 import net.prominic.install.JSONRulesStub;
 import net.prominic.io.RESTClient;
 
