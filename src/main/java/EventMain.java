@@ -1,5 +1,5 @@
-import net.prominic.gja_v20220512.Event;
-import net.prominic.gja_v20220512.GLogger;
+import net.prominic.gja_v20220524.Event;
+import net.prominic.gja_v20220524.GLogger;
 
 public class EventMain extends Event {
 	public DominoMeter dominoMeter = null;

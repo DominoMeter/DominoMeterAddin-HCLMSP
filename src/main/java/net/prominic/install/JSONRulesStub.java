@@ -1,6 +1,7 @@
 package net.prominic.install;
 
 import java.io.File;
+
 import java.io.IOException;
 import java.io.Reader;
 import org.json.simple.JSONArray;
@@ -11,17 +12,19 @@ import lotus.domino.Session;
 import lotus.domino.Database;
 import lotus.domino.NotesException;
 import net.prominic.io.RESTClient;
+import net.prominic.gja_v20220524.GLogger;
+import net.prominic.gja_v20220524.ProgramConfig;
 
-public class JSONRules {
+public class JSONRulesStub {
 	private Session m_session;
 	private Database m_ab;
 	private StringBuffer m_logBuffer;
+	private GLogger m_logger;
 	
-	public final static String VERSION = "0.2.4";
-	
-	public JSONRules(Session session, Database ab) {
+	public JSONRulesStub(Session session, Database ab, GLogger logger) {
 		m_session = session;
 		m_ab = ab;
+		m_logger = logger;
 	}
 
 	public boolean execute(String json) {
@@ -58,14 +61,6 @@ public class JSONRules {
 		if (obj.containsKey("error")) {
 			String error = (String) obj.get("error");	
 			log(error);
-			return false;
-		}
-
-		String version = obj.containsKey("version") ? (String) obj.get("version") : "?";
-		if (!version.equalsIgnoreCase(VERSION)) {
-			log("Genesis can't process package. Please update Genesis to latest version and try again.");
-			log("Genesis JSON parser version: " + VERSION);
-			log("Package JSON version: " + version);
 			return false;
 		}
 
@@ -112,8 +107,8 @@ public class JSONRules {
 	 * Used to setup program documents to load addin
 	 */
 	private void programConfig(long state) {
-		GenesisProgramConfig gpc = new GenesisProgramConfig();
-		gpc.setState(m_ab, state);		// set program documents in LOAD state
+		ProgramConfig gpc = new ProgramConfig("Genesis", null, m_logger);
+		gpc.setState(m_ab, (int)state);		// set program documents in LOAD state
 	}
 
 	/*
@@ -149,6 +144,7 @@ public class JSONRules {
 				};
 
 				saveFile(from, to);
+				log("> " + to);
 			}
 		} catch (NotesException e) {
 			log(e);
@@ -194,7 +190,7 @@ public class JSONRules {
 
 			String name = (String) obj.get("name");
 			String value = String.valueOf(obj.get("value"));
-			
+
 			boolean multivalue = obj.containsKey("multivalue") && (Boolean)obj.get("multivalue");
 			String sep = multivalue ? (String) obj.get("sep") : "";
 
@@ -222,7 +218,6 @@ public class JSONRules {
 		}
 
 		m_session.setEnvironmentVar(name, value, true);	
-		log(name + " = " + value);
 	}
 
 	public StringBuffer getLogBuffer() {

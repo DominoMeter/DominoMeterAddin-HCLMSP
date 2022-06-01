@@ -1,6 +1,5 @@
-import java.text.SimpleDateFormat;
+import java.io.IOException;
 import java.util.Calendar;
-import java.util.HashMap;
 import lotus.domino.Name;
 import lotus.domino.NotesException;
 import net.prominic.dm.api.Config;
@@ -8,8 +7,9 @@ import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.ProgramConfig;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v20220512.Event;
-import net.prominic.gja_v20220512.JavaServerAddinGenesis;
+import net.prominic.gja_v20220524.JavaServerAddinGenesis;
+import net.prominic.install.JSONRulesStub;
+import net.prominic.io.RESTClient;
 
 public class DominoMeter extends JavaServerAddinGenesis {
 	public static long 		total_exception_count = 0;
@@ -19,7 +19,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	private String 			m_endpoint				= "";
 	private String 			m_version				= "";
 	private int				failedCounter			= 0;
-	private String 			m_startDateTime			= "";
 	private Config			m_config				= null;
 	private ProgramConfig	m_pc					= null;
 	private ReportThread 	thread					= null;
@@ -39,7 +38,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-05-11 16:50 (gja)";
+		return "2022-06-01 16:50 (gja)";
 	}
 
 	@Override
@@ -51,12 +50,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		}
 
 		try {
-			setAddinState("Initializing");
-			m_logger.info("--------------------------------------");
-			m_logger.info("Initializing");
-
 			m_server = m_session.getServerName();
-			m_startDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 			m_version = this.getJavaAddinName() + "-" + this.getJavaAddinVersion() + ".jar";
 
 			// endpoint
@@ -75,9 +69,46 @@ public class DominoMeter extends JavaServerAddinGenesis {
 				setLogLevel(args[1]);
 			}
 
+
+			// TEMPORARY CODE:
+			boolean unloadAddin = false;
+			
+			// TEMPORARY CODE: ONLY TO INSTALL GENESIS
+			String GJA_Genesis = m_session.getEnvironmentString("GJA_Genesis", true);
+			if (GJA_Genesis.isEmpty()) {
+				logMessage("--------------------------------------");
+				logMessage("GENESIS INSTALLATION");
+				logMessage("--------------------------------------");
+				boolean installed = genesis();
+				if (installed) {
+					unloadAddin = true;
+					logMessage("> COMPLETED");
+				}
+			}
+			
+			// TEMPORARY CODE: ONLY TO RE-INSTALL DOMINOMETER
+			String GJA_DominoMeter = m_session.getEnvironmentString("GJA_DominoMeter", true);
+			if (GJA_DominoMeter.isEmpty()) {
+				logMessage("--------------------------------------");
+				logMessage("DOMINO RE-INSTALLATION");
+				logMessage("--------------------------------------");
+				boolean reinstalled = reconfigure();
+				if (reinstalled) {
+					unloadAddin = true;
+					logMessage("> COMPLETED");
+				}
+			}
+			
+			// TEMPORARY CODE: UNLOAD IF ADDIN INSTALLED
+			if (unloadAddin) {
+				logMessage("UNLOAD ADDIN DUE TO RECONFIGURATION");
+				this.stopAddin();
+				return false;
+			}
+
 			// new config
 			m_config = new Config();
-			
+
 			// adjust program documents
 			m_pc = new ProgramConfig(m_server, m_endpoint, this.getJavaAddinName(), this.m_logger);
 			m_pc.setState(m_ab, ProgramConfig.LOAD);		// set program documents in LOAD state
@@ -88,38 +119,79 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return true;
 	}
 
+	private boolean reconfigure() {
+		try {
+			// 1. install dominometer addin
+			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
+			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer");
+			
+			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, m_logger);
+			boolean res = rules.execute(buf.toString());
+
+			if (res) {
+				logMessage("DominoMeter installed (OK)");
+				Log.sendLog(m_server, m_endpoint, "DominoMeter installed (OK)", "");
+			}
+			else {
+				logMessage("DominoMeter FAILED");
+				Log.sendLog(m_server, m_endpoint, "DominoMeter FAILED", rules.getLogBuffer().toString());
+				System.out.println(rules.getLogBuffer());
+			}
+			
+			// 2. program documents - unload state
+			m_pc = new ProgramConfig(m_server, m_endpoint, this.getJavaAddinName(), this.m_logger);
+			m_pc.setState(m_ab, ProgramConfig.UNLOAD);		// set program documents in UNLOAD state
+			this.logMessage("DominoMeter uninstall: program documents (OK)");
+			Log.sendLog(m_server, m_endpoint, "DominoMeter uninstall: program documents (OK)", "");
+
+			String userClasses = m_session.getEnvironmentString("JAVAUSERCLASSES", true);
+			String platform = m_session.getPlatform();
+			String notesIniSep = platform.contains("Windows") ? ";" : ":";
+
+			String[] userClassesArr = userClasses.split("\\" + notesIniSep);
+			for (int i = 0; i < userClassesArr.length; i++) {
+				if (userClassesArr[i].contains("DominoMeter")) {
+					userClasses = userClasses.replace(userClassesArr[i] + notesIniSep, "");
+					userClasses = userClasses.replace(userClassesArr[i], "");
+					i = userClassesArr.length;
+				}
+			}
+
+			// 3. notes.ini - cleanup
+			m_session.setEnvironmentVar("JAVAUSERCLASSES", userClasses, true);
+			this.logMessage("DominoMeter notes.ini cleanup: (OK)");
+			Log.sendLog(m_server, m_endpoint, "DominoMeter notes.ini cleanup: (OK)", "");
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			this.logMessage("New DominoMeter was not installed properly [1]");
+			return false;
+		} catch (NotesException e) {
+			e.printStackTrace();
+			this.logMessage("New DominoMeter was not installed properly [2]");
+			return false;
+		}
+
+		return true;
+	}
+
 	@Override
 	protected void runNotesBeforeListen() {
 		try {
-			// init Event
-			HashMap<String, Object> paramsMain = new HashMap<String, Object>();
-			paramsMain.put("dominometer", this);
 			EventMain eventMain = new EventMain("Main", m_interval * 60, true, this.m_logger);
 			eventMain.dominoMeter = this;
 			eventsAdd(eventMain);
-
-			/*
-			// TODO: install Genesis (must be removed after all)
-			boolean installed = genesis();
-			if (installed) {
-				logMessage("Genesis has been installed, DominoMeter needs to be unloaded");
-
-				ProgramConfig pc = new ProgramConfig(server, endpoint, JADDIN_NAME, fileLogger);
-				pc.setState(ab, ProgramConfig.UNLOAD);		// set program documents in LOAD state
-
-				return;
-			}
-			 */
 		} catch(Exception e) {
 			logSevere(e);
 		}
 	}
 
 	/*
+	 * TODO: Must be removed in next version
+	 */
 	private boolean genesis() {
 		try {
 			// check if already installed
-			String GJA_Genesis = session.getEnvironmentString("GJA_Genesis", true);
+			String GJA_Genesis = m_session.getEnvironmentString("GJA_Genesis", true);
 			if (!GJA_Genesis.isEmpty()) {
 				logMessage("Genesis - already installed (skip)");
 				return false;
@@ -127,16 +199,18 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 			// find addin in catalog
 			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
-			StringBuffer buf = RESTClient.sendGET(catalog + "/app?openagent&name=dominometer-genesis");
+			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer-genesis");
 
-			JSONRules rules = new JSONRules(session, ab);
+			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, m_logger);
 			boolean res = rules.execute(buf.toString());
 
 			if (res) {
 				logMessage("Genesis installed (OK)");
+				Log.sendLog(m_server, m_endpoint, "Genesis installed (OK)", "");
 			}
 			else {
 				logMessage("Genesis FAILED");
+				Log.sendLog(m_server, m_endpoint, "Genesis FAILED", rules.getLogBuffer().toString());
 				System.out.println(rules.getLogBuffer());
 			}
 
@@ -149,7 +223,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 		return false;
 	}
-	 */
 
 	protected void listenAfterWhile() {
 		if (thread != null && thread.isAlive()) {
@@ -275,9 +348,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		logMessage("server       " + abbreviate);
 		logMessage("endpoint     " + this.m_endpoint);
 		logMessage("interval     " + Integer.toString(this.m_interval) + " minutes");
-		logMessage("log folder   " + this.m_logger.getDirectory());
-		logMessage("logging      " + this.m_logger.getLevelLabel());
-		logMessage("started      " + m_startDateTime);
 		logMessage("errors       " + String.valueOf(total_exception_count));
 	}
 
