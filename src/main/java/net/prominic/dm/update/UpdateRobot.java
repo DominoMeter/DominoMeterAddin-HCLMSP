@@ -3,13 +3,11 @@ package net.prominic.dm.update;
 import java.io.File;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-import net.prominic.gja_v20220601.GLogger;
+import net.prominic.gja_v20220602.GLogger;
 import net.prominic.io.RESTClient;
 import net.prominic.util.ParsedError;
-import net.prominic.util.StringUtils;
 
 public class UpdateRobot {
-	private static final String JAVA_USER_CLASSES = "JAVAUSERCLASSES";
 	private ParsedError m_pe = null;
 	private GLogger m_fileLogger;
 
@@ -34,8 +32,7 @@ public class UpdateRobot {
 			log("New version has been detected: " + configVersion);
 
 			// 2. check if current
-			String folder = "DominoMeterAddin";
-
+			String folder = "JavaAddin" + File.separator + "DominoMeter";
 			File f = new File(folder);
 			if (!f.exists()) {
 				f.mkdir();
@@ -61,35 +58,8 @@ public class UpdateRobot {
 			}
 
 			// 4. register new JAR in notes.ini
-			// Example: JAVAUSERCLASSESEXT=.\DominoMeterAddin\DominoMeter-5.jar
-			String userClasses = session.getEnvironmentString(JAVA_USER_CLASSES, true);
-			log(JAVA_USER_CLASSES + " (current) = " + userClasses);
-			String NotesIniLine = "." + File.separator + filePath;
-
-			String platform = session.getPlatform();
-			String notesIniSep = platform.contains("Windows") ? ";" : ":";
-
-			if (userClasses.isEmpty()) {
-				userClasses = NotesIniLine;
-			}
-			else {
-				if (userClasses.indexOf("DominoMeter") > 0) {
-					String[] userClassesArr = userClasses.split("\\" + notesIniSep);
-					for (int i = 0; i < userClassesArr.length; i++) {
-						if (userClassesArr[i].contains("DominoMeter")) {
-							userClassesArr[i] = NotesIniLine;
-							userClasses = StringUtils.join(userClassesArr, notesIniSep);
-							i = userClassesArr.length;
-						}
-					}
-				}
-				else {
-					userClasses = userClasses + notesIniSep + NotesIniLine;
-				}
-			}
-
-			session.setEnvironmentVar(JAVA_USER_CLASSES, userClasses, true);
-			log(JAVA_USER_CLASSES + " (new) set to " + userClasses);
+			// Example: GJA_DominoMeter=JavaAddin\DominoMeter\DominoMeter-118.jar
+			session.setEnvironmentVar("GJA_DominoMeter", filePath, true);
 
 			return configVersion;
 		} catch (NotesException e) {

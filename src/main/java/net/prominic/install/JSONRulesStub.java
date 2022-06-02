@@ -1,18 +1,19 @@
 package net.prominic.install;
 
 import java.io.File;
-
 import java.io.IOException;
 import java.io.Reader;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import lotus.domino.Session;
+
 import lotus.domino.Database;
 import lotus.domino.NotesException;
-import net.prominic.gja_v20220601.GLogger;
-import net.prominic.gja_v20220601.ProgramConfig;
+import lotus.domino.Session;
+import net.prominic.gja_v20220602.GConfig;
+import net.prominic.gja_v20220602.GLogger;
 import net.prominic.io.RESTClient;
 
 public class JSONRulesStub {
@@ -20,10 +21,12 @@ public class JSONRulesStub {
 	private Database m_ab;
 	private StringBuffer m_logBuffer;
 	private GLogger m_logger;
+	private String m_config;
 	
-	public JSONRulesStub(Session session, Database ab, GLogger logger) {
+	public JSONRulesStub(Session session, Database ab, String config, GLogger logger) {
 		m_session = session;
 		m_ab = ab;
+		m_config = config;
 		m_logger = logger;
 	}
 
@@ -69,6 +72,11 @@ public class JSONRulesStub {
 			log("Invalid JSON structure (no steps defined)");
 			return false;
 		}
+		
+		if (obj.containsKey("config")) {
+			JSONObject config = (JSONObject) obj.get("config");
+			updateConfig(config);
+		}
 
 		if (obj.containsKey("title")) {
 			log(obj.get("title"));
@@ -103,11 +111,25 @@ public class JSONRulesStub {
 		}
 	}
 
+	private void updateConfig(JSONObject config) {
+		File f = new File(this.m_config);
+		File dir = new File(f.getParent());
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		
+		for(Object key : config.keySet()) {
+			String name = (String) key;
+			String value = (String) config.get(key);
+			GConfig.set(this.m_config, name, value);
+		}
+	}
+
 	/*
 	 * Used to setup program documents to load addin
 	 */
 	private void programConfig(long state) {
-		ProgramConfig gpc = new ProgramConfig("Genesis", null, m_logger);
+		ProgramConfigStub gpc = new ProgramConfigStub("Genesis", null, m_logger);
 		gpc.setState(m_ab, (int)state);		// set program documents in LOAD state
 	}
 

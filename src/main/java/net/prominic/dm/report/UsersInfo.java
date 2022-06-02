@@ -1,7 +1,6 @@
 package net.prominic.dm.report;
 
 import java.util.ArrayList;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
@@ -11,7 +10,7 @@ import lotus.domino.Document;
 import lotus.domino.Item;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-import net.prominic.gja_v20220601.GLogger;
+import net.prominic.gja_v20220602.GLogger;
 import net.prominic.util.StringUtils;
 
 public class UsersInfo {

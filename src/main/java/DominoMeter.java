@@ -1,14 +1,20 @@
+import java.io.File;
 import java.io.IOException;
+
 import java.util.Calendar;
+
+import lotus.domino.Document;
+import lotus.domino.DocumentCollection;
 import lotus.domino.Name;
 import lotus.domino.NotesException;
+import lotus.domino.View;
 import net.prominic.dm.api.Config;
 import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
-import net.prominic.dm.update.ProgramConfig;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v20220601.JavaServerAddinGenesis;
+import net.prominic.gja_v20220602.JavaServerAddinGenesis;
 import net.prominic.install.JSONRulesStub;
+import net.prominic.install.ProgramConfigStub;
 import net.prominic.io.RESTClient;
 
 public class DominoMeter extends JavaServerAddinGenesis {
@@ -20,7 +26,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	private String 			m_version				= "";
 	private int				failedCounter			= 0;
 	private Config			m_config				= null;
-	private ProgramConfig	m_pc					= null;
 	private ReportThread 	thread					= null;
 
 	public DominoMeter(String[] args) {
@@ -102,16 +107,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			// TEMPORARY CODE: UNLOAD IF ADDIN INSTALLED
 			if (unloadAddin) {
 				logMessage("UNLOAD ADDIN DUE TO RECONFIGURATION");
-				this.stopAddin();
+				this.restartAll(false);
 				return false;
 			}
 
 			// new config
 			m_config = new Config();
-
-			// adjust program documents
-			m_pc = new ProgramConfig(m_server, m_endpoint, this.getJavaAddinName(), this.m_logger);
-			m_pc.setState(m_ab, ProgramConfig.LOAD);		// set program documents in LOAD state
 		} catch(Exception e) {
 			logSevere(e);
 		}
@@ -125,7 +126,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
 			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer");
 			
-			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, m_logger);
+			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, this.m_javaAddinConfig, this.m_logger);
 			boolean res = rules.execute(buf.toString());
 
 			if (res) {
@@ -138,12 +139,20 @@ public class DominoMeter extends JavaServerAddinGenesis {
 				System.out.println(rules.getLogBuffer());
 			}
 			
-			// 2. program documents - unload state
-			m_pc = new ProgramConfig(m_server, m_endpoint, this.getJavaAddinName(), this.m_logger);
-			m_pc.setState(m_ab, ProgramConfig.UNLOAD);		// set program documents in UNLOAD state
+			// 2. program documents - migrate to settings
+			View view = m_ab.getView("($Programs)");
+			DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
+			Document doc = col.getFirstDocument();
+			String CmdLine = doc.getItemValueString("CmdLine");
+			doc.recycle();
+			col.removeAll(true);
+			col.recycle();
+			//TODO: how to run app
+			
 			this.logMessage("DominoMeter uninstall: program documents (OK)");
 			Log.sendLog(m_server, m_endpoint, "DominoMeter uninstall: program documents (OK)", "");
 
+			// 3. notes.ini - cleanup
 			String userClasses = m_session.getEnvironmentString("JAVAUSERCLASSES", true);
 			String platform = m_session.getPlatform();
 			String notesIniSep = platform.contains("Windows") ? ";" : ":";
@@ -156,8 +165,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 					i = userClassesArr.length;
 				}
 			}
-
-			// 3. notes.ini - cleanup
 			m_session.setEnvironmentVar("JAVAUSERCLASSES", userClasses, true);
 			this.logMessage("DominoMeter notes.ini cleanup: (OK)");
 			Log.sendLog(m_server, m_endpoint, "DominoMeter notes.ini cleanup: (OK)", "");
@@ -174,34 +181,17 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return true;
 	}
 
-	@Override
-	protected void runNotesBeforeListen() {
-		try {
-			EventMain eventMain = new EventMain("Main", m_interval * 60, true, this.m_logger);
-			eventMain.dominoMeter = this;
-			eventsAdd(eventMain);
-		} catch(Exception e) {
-			logSevere(e);
-		}
-	}
-
 	/*
 	 * TODO: Must be removed in next version
 	 */
 	private boolean genesis() {
 		try {
-			// check if already installed
-			String GJA_Genesis = m_session.getEnvironmentString("GJA_Genesis", true);
-			if (!GJA_Genesis.isEmpty()) {
-				logMessage("Genesis - already installed (skip)");
-				return false;
-			}
-
 			// find addin in catalog
 			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
 			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer-genesis");
 
-			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, m_logger);
+			String configPath = JAVA_ADDIN_ROOT + File.separator + "Genesis" + File.separator + CONFIG_FILE_NAME;
+			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, configPath, m_logger);
 			boolean res = rules.execute(buf.toString());
 
 			if (res) {
@@ -213,15 +203,27 @@ public class DominoMeter extends JavaServerAddinGenesis {
 				Log.sendLog(m_server, m_endpoint, "Genesis FAILED", rules.getLogBuffer().toString());
 				System.out.println(rules.getLogBuffer());
 			}
+			
+			ProgramConfigStub pc = new ProgramConfigStub("Genesis", this.args, m_logger);
+			pc.setState(m_ab, ProgramConfigStub.LOAD);		// set program documents in LOAD state
 
 			return res;
 		} catch (IOException e) {
 			logMessage("Install command failed: " + e.getMessage());
-		} catch (NotesException e) {
-			logMessage("Install command failed: " + e.getMessage());
 		}
-
+		
 		return false;
+	}
+
+	@Override
+	protected void runNotesBeforeListen() {
+		try {
+			EventMain eventMain = new EventMain("Main", m_interval * 60, true, this.m_logger);
+			eventMain.dominoMeter = this;
+			eventsAdd(eventMain);
+		} catch(Exception e) {
+			logSevere(e);
+		}
 	}
 
 	protected void listenAfterWhile() {
@@ -314,9 +316,8 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			return false;
 		}
 
-		m_pc.setState(m_ab, ProgramConfig.UNLOAD);		// set program documents in UNLOAD state
-		Log.sendLog(m_server, m_endpoint, m_version + " - will be unloaded to upgrade to a newer version: " + newAddinFile, "New version " + newAddinFile + " should start in ~20 mins");
-		this.stopAddin();
+		// trigger reload for each addin so we can load a fresh version
+		this.restartAll(true);
 
 		logMessage("- " + String.valueOf(true));
 		return true;

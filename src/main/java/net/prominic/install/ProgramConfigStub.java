@@ -1,34 +1,36 @@
-package net.prominic.dm.update;
-
+package net.prominic.install;
 import lotus.domino.Database;
-
 import lotus.domino.DateTime;
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
 import lotus.domino.View;
-import net.prominic.gja_v20220601.GLogger;
+import net.prominic.gja_v20220602.GLogger;
 
-public class ProgramConfig {
-	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] DominoMeter (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
+public class ProgramConfigStub {
+	private final static String COMMENT_PROMINIC = "[PROMINIC.NET] (created automatically). Please do not delete it.\nPlease contact Support@Prominic.NET with any questions about this program document.";
 	public final static int LOAD = 1;
 	public final static int UNLOAD = 2;
 
-	private final static int PROGRAM_MINUTES = 20;
+	private final static int PROGRAM_MINUTES_DEFAULT = 20;
 	private final static String PROGRAM_DISABLE = "0";
 	private final static String PROGRAM_ENABLE = "1";
 	private final static String PROGRAM_SERVERSTART = "2";
 
-	private String m_server;
-	private String m_endpoint;
 	private String m_addinName;
-	private GLogger m_fileLogger;
+	private String m_addinParams;
+	private GLogger m_logger;
 
-	public ProgramConfig(String server, String endpoint, String addinName, GLogger fileLogger) {
-		m_server = server;
-		m_endpoint = endpoint;
+	public ProgramConfigStub(String addinName, String[] addinParamsArr, GLogger logger) {
 		m_addinName = addinName;
-		m_fileLogger = fileLogger;
+		m_addinParams = "";		
+		if (addinParamsArr != null && addinParamsArr.length > 0) {
+			for(int i = 0; i < addinParamsArr.length; i++) {
+				m_addinParams += " ";
+				m_addinParams += addinParamsArr[i];
+			}
+		}
+		m_logger = logger;
 	}
 
 	/*
@@ -36,8 +38,9 @@ public class ProgramConfig {
 	 */
 	public boolean setState(Database database, int state) {
 		try {
+			String server = database.getServer();
 			View view = database.getView("($Programs)");
-			DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
+			DocumentCollection col = view.getAllDocumentsByKey(server, true);
 			boolean programStartupOnly = false;
 			boolean programScheduled = false;
 			String newEnabled = (state == LOAD) ? PROGRAM_DISABLE : PROGRAM_ENABLE;
@@ -46,7 +49,7 @@ public class ProgramConfig {
 			while (doc != null) {
 				Document nextDoc = col.getNextDocument(doc);
 
-				if (isDominoMeter(doc)) {
+				if (isAddinDoc(doc)) {
 					if (isProgramAtStartupOnly(doc)) {
 						if (!programStartupOnly) {
 							programStartupOnly = true;
@@ -97,13 +100,48 @@ public class ProgramConfig {
 		return false;
 	}
 
+	/*
+	 * Disable related program documents
+	 */
+	public boolean disable(Database database) {
+		try {
+			String server = database.getServer();
+			View view = database.getView("($Programs)");
+			DocumentCollection col = view.getAllDocumentsByKey(server, true);
+
+			Document doc = col.getFirstDocument();
+			while (doc != null) {
+				Document nextDoc = col.getNextDocument(doc);
+
+				if (isAddinDoc(doc) && !"0".equals(doc.getItemValueString("Enabled"))) {
+					doc.replaceItemValue("Enabled", "0");
+					doc.save();
+					log("program document disabled");	
+				}
+
+				doc.recycle();
+				doc = nextDoc;
+			}
+
+			col.recycle();
+			view.recycle();
+
+			return true;
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+
+		return false;
+	}
+	
 	private void deleteDuplicate(Document doc) throws NotesException {
 		doc.remove(true);
 		log("program document deleted (duplicate)");
 	}
 
 	private Document updateProgram(Database database, Document doc, String newEnabled) throws NotesException {
-		String cmdLine = m_addinName + " " + m_endpoint;
+		String cmdLine = m_addinName + m_addinParams;
+
 		boolean toSave = false;
 		String enabled = doc.getItemValueString("Enabled");
 
@@ -133,12 +171,12 @@ public class ProgramConfig {
 	}
 
 	/*
-	 * set Schedule to now+20 mins
+	 * set Schedule to now+20 minutes
 	 */
 	private void setSchedule(Database database, Document doc, String enabled) throws NotesException {
 		DateTime dt = database.getParent().createDateTime("Today");
 		dt.setNow();
-		dt.adjustMinute(PROGRAM_MINUTES);
+		dt.adjustMinute(PROGRAM_MINUTES_DEFAULT);
 		doc.replaceItemValue("Schedule", dt);
 		dt.recycle();
 	}
@@ -155,7 +193,7 @@ public class ProgramConfig {
 		doc.replaceItemValue("Program", "runjava");
 		doc.replaceItemValue("Enabled", enabled);
 		doc.replaceItemValue("Comments", COMMENT_PROMINIC);
-		doc.replaceItemValue("CmdLine", m_addinName + " " + m_endpoint);
+		doc.replaceItemValue("CmdLine", m_addinName + m_addinParams);
 
 		if (enabled.equalsIgnoreCase(PROGRAM_ENABLE)) {
 			setSchedule(database, doc, enabled);
@@ -182,11 +220,11 @@ public class ProgramConfig {
 	}
 
 	/*
-	 * Check if program document is DominoMeter
+	 * Check if program document is created for current Addin
 	 */
-	private boolean isDominoMeter(Document doc) throws NotesException {
+	private boolean isAddinDoc(Document doc) throws NotesException {
 		String cmdLine = doc.getItemValueString("CmdLine");
-		return cmdLine.toLowerCase().contains("DominoMeter".toLowerCase());
+		return cmdLine.toLowerCase().contains(m_addinName.toLowerCase());
 	}
 
 	/*
@@ -196,8 +234,9 @@ public class ProgramConfig {
 		return "2".equals(doc.getItemValueString("Enabled"));
 	}
 
-	private void log(String msg) {
-		m_fileLogger.info(msg);
-		System.out.println("[ProgramConfig] " + msg);
+	private void log(String message) {
+		m_logger.info(m_addinName + " " + message);
+		System.out.println(m_addinName + " " + message);
 	}
+
 }
