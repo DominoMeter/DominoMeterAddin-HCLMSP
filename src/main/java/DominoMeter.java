@@ -119,25 +119,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	private boolean reconfigure() {
 		try {
-			// 1. install dominometer addin
-			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
-			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer-migration");
-			
-			logMessage(this.m_javaAddinConfig);
-			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, this.m_javaAddinConfig, this.m_logger);
-			boolean res = rules.execute(buf.toString());
-
-			if (res) {
-				logMessage("DominoMeter installed (OK)");
-				Log.sendLog(m_server, m_endpoint, "DominoMeter installed (OK)", "");
-			}
-			else {
-				logMessage("DominoMeter FAILED");
-				Log.sendLog(m_server, m_endpoint, "DominoMeter FAILED", rules.getLogBuffer().toString());
-				System.out.println(rules.getLogBuffer());
-			}
-			
-			// 2. program documents - migrate to settings
+			// 1. program documents - migrate to settings
 			View view = m_ab.getView("($Programs)");
 			view.refresh();
 			DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
@@ -162,9 +144,25 @@ public class DominoMeter extends JavaServerAddinGenesis {
 				runjava = "DominoMeter dev";
 			}
 
-			logMessage(this.m_javaAddinConfig);
-			logMessage(runjava);
-			this.setConfigValue("runjava", runjava);
+			logMessage("runjava parameter: " + runjava);
+			
+			// 2. install dominometer addin
+			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
+			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer-migration");
+			String bufStr = buf.toString();
+			bufStr = bufStr.replace("${0}", runjava);
+			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, this.m_javaAddinConfig, this.m_logger);
+			boolean res = rules.execute(bufStr.toString());
+
+			if (res) {
+				logMessage("DominoMeter installed (OK)");
+				Log.sendLog(m_server, m_endpoint, "DominoMeter installed (OK)", "");
+			}
+			else {
+				logMessage("DominoMeter FAILED");
+				Log.sendLog(m_server, m_endpoint, "DominoMeter FAILED", rules.getLogBuffer().toString());
+				System.out.println(rules.getLogBuffer());
+			}
 			
 			this.logMessage("DominoMeter uninstall: program documents (OK)");
 			Log.sendLog(m_server, m_endpoint, "DominoMeter uninstall: program documents (OK)", "");
