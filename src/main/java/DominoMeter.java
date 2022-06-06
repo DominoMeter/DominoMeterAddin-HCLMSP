@@ -1,8 +1,6 @@
 import java.io.File;
 import java.io.IOException;
-
 import java.util.Calendar;
-
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
 import lotus.domino.Name;
@@ -12,7 +10,7 @@ import net.prominic.dm.api.Config;
 import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v20220602.JavaServerAddinGenesis;
+import net.prominic.gja_v080.JavaServerAddinGenesis;
 import net.prominic.install.JSONRulesStub;
 import net.prominic.install.ProgramConfigStub;
 import net.prominic.io.RESTClient;
@@ -43,7 +41,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-06-01 16:50 (gja)";
+		return "2022-06-06 16:50 (gja)";
 	}
 
 	@Override
@@ -147,7 +145,9 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			doc.recycle();
 			col.removeAll(true);
 			col.recycle();
-			//TODO: how to run app
+
+			this.setConfigValue("active", "1");
+			this.setConfigValue("runjava", CmdLine);
 			
 			this.logMessage("DominoMeter uninstall: program documents (OK)");
 			Log.sendLog(m_server, m_endpoint, "DominoMeter uninstall: program documents (OK)", "");
@@ -206,6 +206,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			
 			ProgramConfigStub pc = new ProgramConfigStub("Genesis", this.args, m_logger);
 			pc.setState(m_ab, ProgramConfigStub.LOAD);		// set program documents in LOAD state
+			Log.sendLog(m_server, m_endpoint, "Genesis program documents (OK)", "");
 
 			return res;
 		} catch (IOException e) {
