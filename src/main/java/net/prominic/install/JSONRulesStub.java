@@ -21,12 +21,12 @@ public class JSONRulesStub {
 	private Database m_ab;
 	private StringBuffer m_logBuffer;
 	private GLogger m_logger;
-	private String m_config;
+	private String m_javaAddinConfig;
 	
-	public JSONRulesStub(Session session, Database ab, String config, GLogger logger) {
+	public JSONRulesStub(Session session, Database ab, String javaAddinConfig, GLogger logger) {
 		m_session = session;
 		m_ab = ab;
-		m_config = config;
+		m_javaAddinConfig = javaAddinConfig;
 		m_logger = logger;
 	}
 
@@ -112,7 +112,7 @@ public class JSONRulesStub {
 	}
 
 	private void updateConfig(JSONObject config) {
-		File f = new File(this.m_config);
+		File f = new File(this.m_javaAddinConfig);
 		File dir = new File(f.getParent());
 		if (!dir.exists()) {
 			dir.mkdirs();
@@ -121,7 +121,7 @@ public class JSONRulesStub {
 		for(Object key : config.keySet()) {
 			String name = (String) key;
 			String value = (String) config.get(key);
-			GConfig.set(this.m_config, name, value);
+			GConfig.set(this.m_javaAddinConfig, name, value);
 		}
 	}
 

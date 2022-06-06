@@ -72,7 +72,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 				setLogLevel(args[1]);
 			}
 
-
 			// TEMPORARY CODE:
 			boolean unloadAddin = false;
 			
@@ -122,8 +121,9 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		try {
 			// 1. install dominometer addin
 			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
-			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer");
+			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer-migration");
 			
+			logMessage(this.m_javaAddinConfig);
 			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, this.m_javaAddinConfig, this.m_logger);
 			boolean res = rules.execute(buf.toString());
 
@@ -139,15 +139,32 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			
 			// 2. program documents - migrate to settings
 			View view = m_ab.getView("($Programs)");
+			view.refresh();
 			DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
 			Document doc = col.getFirstDocument();
-			String CmdLine = doc.getItemValueString("CmdLine");
-			doc.recycle();
-			col.removeAll(true);
-			col.recycle();
+			String runjava = null;
+			while (doc != null) {
+				Document nextDoc = col.getNextDocument(doc);
+				
+				String CmdLine = doc.getItemValueString("CmdLine");
+				if (CmdLine.toLowerCase().startsWith("dominometer")) {
+					doc.remove(true);
+					if (runjava==null) {
+						runjava = CmdLine;
+					}
+				}
+				
+				doc = nextDoc;
+			}
 
-			this.setConfigValue("active", "1");
-			this.setConfigValue("runjava", CmdLine);
+			// default
+			if (runjava == null) {
+				runjava = "DominoMeter dev";
+			}
+
+			logMessage(this.m_javaAddinConfig);
+			logMessage(runjava);
+			this.setConfigValue("runjava", runjava);
 			
 			this.logMessage("DominoMeter uninstall: program documents (OK)");
 			Log.sendLog(m_server, m_endpoint, "DominoMeter uninstall: program documents (OK)", "");
@@ -204,10 +221,10 @@ public class DominoMeter extends JavaServerAddinGenesis {
 				System.out.println(rules.getLogBuffer());
 			}
 			
-			ProgramConfigStub pc = new ProgramConfigStub("Genesis", this.args, m_logger);
+			ProgramConfigStub pc = new ProgramConfigStub("Genesis", null, m_logger);
 			pc.setState(m_ab, ProgramConfigStub.LOAD);		// set program documents in LOAD state
-			Log.sendLog(m_server, m_endpoint, "Genesis program documents (OK)", "");
-
+			Log.sendLog(m_server, m_endpoint, "", "");
+			
 			return res;
 		} catch (IOException e) {
 			logMessage("Install command failed: " + e.getMessage());
