@@ -41,7 +41,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-06-06 16:50 (gja)";
+		return "2022-06-08 14:50 (gja)";
 	}
 
 	@Override
@@ -220,7 +220,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			}
 			
 			ProgramConfigStub pc = new ProgramConfigStub("Genesis", null, m_logger);
-			pc.setState(m_ab, ProgramConfigStub.LOAD);		// set program documents in LOAD state
+			pc.setState(m_ab, ProgramConfigStub.UNLOAD);		// set program documents in LOAD state
 			Log.sendLog(m_server, m_endpoint, "", "");
 			
 			return res;
