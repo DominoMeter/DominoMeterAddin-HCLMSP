@@ -1,10 +1,10 @@
-import net.prominic.gja_v080.Event;
-import net.prominic.gja_v080.GLogger;
+import net.prominic.gja_v081.Event;
+import net.prominic.gja_v081.GLogger;
 
-public class EventMain extends Event {
+public class DominoMeterEventMain extends Event {
 	public DominoMeter dominoMeter = null;
-	
-	public EventMain(String name, long seconds, boolean fireOnStart, GLogger logger) {
+
+	public DominoMeterEventMain(String name, long seconds, boolean fireOnStart, GLogger logger) {
 		super(name, seconds, fireOnStart, logger);
 	}
 

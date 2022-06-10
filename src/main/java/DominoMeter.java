@@ -10,7 +10,7 @@ import net.prominic.dm.api.Config;
 import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v080.JavaServerAddinGenesis;
+import net.prominic.gja_v081.JavaServerAddinGenesis;
 import net.prominic.install.JSONRulesStub;
 import net.prominic.install.ProgramConfigStub;
 import net.prominic.io.RESTClient;
@@ -234,7 +234,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	@Override
 	protected void runNotesBeforeListen() {
 		try {
-			EventMain eventMain = new EventMain("Main", m_interval * 60, true, this.m_logger);
+			DominoMeterEventMain eventMain = new DominoMeterEventMain("Main", m_interval * 60, true, this.m_logger);
 			eventMain.dominoMeter = this;
 			eventsAdd(eventMain);
 		} catch(Exception e) {
