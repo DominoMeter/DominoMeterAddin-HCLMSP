@@ -10,8 +10,8 @@ import org.json.simple.parser.ParseException;
 import lotus.domino.Database;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-import net.prominic.gja_v081.GConfig;
-import net.prominic.gja_v081.GLogger;
+import net.prominic.gja_v082.GConfig;
+import net.prominic.gja_v082.GLogger;
 import net.prominic.io.RESTClient;
 
 public class JSONRulesStub {
