@@ -3,6 +3,7 @@ package net.prominic.dm.update;
 import java.io.File;
 import lotus.domino.NotesException;
 import lotus.domino.Session;
+import net.prominic.gja_v082.GConfig;
 import net.prominic.gja_v082.GLogger;
 import net.prominic.io.RESTClient;
 import net.prominic.util.ParsedError;
@@ -61,6 +62,10 @@ public class UpdateRobot {
 			// Example: GJA_DominoMeter=JavaAddin\DominoMeter\DominoMeter-118.jar
 			session.setEnvironmentVar("GJA_DominoMeter", filePath, true);
 
+			// 5. GConfig
+			String configV = configVersion.substring(configVersion.indexOf("-")+1, configVersion.indexOf("."));
+			GConfig.set(folder + File.separator + "config.txt", "version", "1.0." + configV);
+			
 			return configVersion;
 		} catch (NotesException e) {
 			m_pe = new ParsedError(e);
