@@ -36,12 +36,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "118";
+		return "119";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-06-20 19:00 (gja)";
+		return "2022-11-01 15:00 (terminate only 5 mins)";
 	}
 
 	@Override
@@ -428,9 +428,9 @@ public class DominoMeter extends JavaServerAddinGenesis {
 				e.printStackTrace();
 			}
 
-			// 1 hour (but Domino has setting to shut down after 5 mins by default)
-			if (counter > 36000) {
-				logMessage("ReportThread: forcing to quit after 2 hours");
+			// force to shut down after 5 mins hour (Domino however has a setting to shut down after 5 mins by default)
+			if (counter > 3000) {
+				logMessage("ReportThread: forcing to quit after 5 mins");
 				return;
 			}
 		}
