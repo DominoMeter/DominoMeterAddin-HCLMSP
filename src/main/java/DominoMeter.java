@@ -36,12 +36,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "119";
+		return "120";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-11-01 15:00 (terminate only 5 mins)";
+		return "2022-12-14 15:50 (change auth. header)";
 	}
 
 	@Override
@@ -92,7 +92,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			String GJA_DominoMeter = m_session.getEnvironmentString("GJA_DominoMeter", true);
 			if (GJA_DominoMeter.isEmpty()) {
 				logMessage("--------------------------------------");
-				logMessage("DOMINO RE-INSTALLATION");
+				logMessage("DOMINOMETER RE-INSTALLATION");
 				logMessage("--------------------------------------");
 				boolean reinstalled = reconfigure();
 				if (reinstalled) {

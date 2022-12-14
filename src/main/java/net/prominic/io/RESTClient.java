@@ -48,7 +48,7 @@ public class RESTClient {
 
 		con.setConnectTimeout(5000); //set timeout to 5 seconds
 		con.setRequestProperty("User-Agent", USER_AGENT);
-		con.setRequestProperty("Authorization", "Bearer " + ACCESS_TOKEN);
+		con.setRequestProperty("DominoMeterAuth", ACCESS_TOKEN);
 
 		return con;
 	}
