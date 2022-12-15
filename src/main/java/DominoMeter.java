@@ -298,7 +298,8 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			logMessage("> " + ping.getParsedError().getMessage());
 		}
 
-		if (failedCounter > 24) {
+		// unload after 20 days not able to send report
+		if (failedCounter > 240) {
 			this.stopAddin();
 		}
 		return false;
