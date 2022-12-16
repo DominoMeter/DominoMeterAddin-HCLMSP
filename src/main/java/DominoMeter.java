@@ -41,7 +41,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-12-14 15:50 (change auth. header)";
+		return "2022-12-14 15:50 (dir assistance)";
 	}
 
 	@Override

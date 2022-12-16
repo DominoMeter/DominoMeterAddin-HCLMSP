@@ -97,9 +97,7 @@ public class ReportThread extends NotesThread {
 
 			// 4. dir assistance
 			stepStart = new Date();
-			if (isDA()) {
-				data.append("&da=1");
-			}
+			data.append(getDA());
 			data.append("&numStep4=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
@@ -853,23 +851,20 @@ public class ReportThread extends NotesThread {
 	}
 
 	/*
-	 * Detects if DA is configured
+	 * check for DA and for trusted records there
 	 */
-	private boolean isDA() throws NotesException {
-		// Names=Names1 [, Names2 [, Names3]]
-		String names = m_session.getEnvironmentString("Names", true);
-		if (names.length() > 5) {
-			return true;
-		}
+	private String getDA() throws NotesException {
+		String da = m_serverDoc.getItemValueString("MasterAddressBook");
+		if (da.isEmpty()) return "";
 
-		if (m_serverDoc != null) {
-			String da = m_serverDoc.getItemValueString("MasterAddressBook");
-			if (!da.isEmpty()) {
-				return true;
-			}
-		}
-
-		return false;
+		String res = "&da=1";	// da defined
+		Database dirDb = m_session.getDatabase(null, da);
+		if (dirDb == null || !dirDb.isOpen()) return res;
+		
+		DocumentCollection col = dirDb.search("Type=\"DirectoryAssistance\" & TrustedList=\"Yes\"", null, 1);
+		res += col.getCount() > 0 ? "&daTrusted=1" : "";
+		
+		return res;
 	}
 
 	private String getProgram(Database database) throws NotesException {
