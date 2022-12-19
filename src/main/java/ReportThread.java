@@ -230,9 +230,13 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep23=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 99. error counter
-			long total_exception = DominoMeter.getExceptionTotal();
-			data.append("&numErrorCounter=" + String.valueOf(total_exception));
+			// 99. error counter and last error
+			long exception_total = DominoMeter.getExceptionTotal();
+			data.append("&numErrorCounter=" + String.valueOf(exception_total));
+			String exception_last = DominoMeter.getExceptionLast();
+			if (exception_last != null) {
+				data.append("&exceptionLast=" + exception_last);
+			}
 
 			// 100. to measure how long it takes to calculate needed data
 			String numDuration = Long.toString(new Date().getTime() - dateStart.getTime());
@@ -917,6 +921,7 @@ public class ReportThread extends NotesThread {
 
 	private void logSevere(Exception e) {
 		DominoMeter.incrementExceptionTotal();
+		DominoMeter.setExceptionLast(e);
 		m_fileLogger.severe(e);
 		Log.sendError(m_server, m_endpoint, e);
 	}

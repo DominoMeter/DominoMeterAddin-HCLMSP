@@ -16,8 +16,9 @@ import net.prominic.install.ProgramConfigStub;
 import net.prominic.io.RESTClient;
 
 public class DominoMeter extends JavaServerAddinGenesis {
-	public static long 		total_exception_count = 0;
-
+	public static String	exception_last = null;
+	public static long 		exception_count = 0;
+	
 	private int				m_interval				= 120;
 	private String 			m_server				= "";
 	private String 			m_endpoint				= "";
@@ -41,7 +42,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-12-14 15:50 (dir assistance)";
+		return "2022-12-14 15:50 (many updates)";
 	}
 
 	@Override
@@ -366,7 +367,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		logMessage("server       " + abbreviate);
 		logMessage("endpoint     " + this.m_endpoint);
 		logMessage("interval     " + Integer.toString(this.m_interval) + " minutes");
-		logMessage("errors       " + String.valueOf(total_exception_count));
+		logMessage("errors       " + String.valueOf(exception_count));
 	}
 
 	@Override
@@ -391,14 +392,36 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	 * Exception total (child + main threads)
 	 */
 	synchronized static public void incrementExceptionTotal() {
-		total_exception_count++;
+		exception_count++;
 	}
-
+	
 	/**
 	 * Return counter from child thread
 	 */
 	synchronized static public long getExceptionTotal() {
-		return total_exception_count;
+		return exception_count;
+	}
+	
+	/**
+	 * Exception last (child + main threads)
+	 */
+	synchronized static public void setExceptionLast(Exception e) {
+		String message = e.getLocalizedMessage();
+		if (message == null) {
+			e.getMessage();
+		}
+		if (message == null) {
+			message = "Internal Error";
+		}
+		
+		exception_last = message;
+	}
+	
+	/**
+	 * Return last error from child thread
+	 */
+	synchronized static public String getExceptionLast() {
+		return exception_last;
 	}
 
 	protected void termBeforeAB() {
