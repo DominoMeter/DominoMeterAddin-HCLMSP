@@ -1,10 +1,11 @@
 package net.prominic.dm.update;
 
 import java.io.File;
+
 import lotus.domino.NotesException;
 import lotus.domino.Session;
-import net.prominic.gja_v082.GConfig;
-import net.prominic.gja_v082.GLogger;
+import net.prominic.gja_v083.GConfig;
+import net.prominic.gja_v083.GLogger;
 import net.prominic.io.RESTClient;
 import net.prominic.util.ParsedError;
 

@@ -1,4 +1,5 @@
 import java.io.File;
+
 import java.io.IOException;
 import java.util.Calendar;
 import lotus.domino.Document;
@@ -10,7 +11,7 @@ import net.prominic.dm.api.Config;
 import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v082.JavaServerAddinGenesis;
+import net.prominic.gja_v083.JavaServerAddinGenesis;
 import net.prominic.install.JSONRulesStub;
 import net.prominic.install.ProgramConfigStub;
 import net.prominic.io.RESTClient;
@@ -37,12 +38,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "120";
+		return "119";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2022-12-14 15:50 (many updates)";
+		return "2023-01-11 15:50 (updates)";
 	}
 
 	@Override

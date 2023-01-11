@@ -4,7 +4,7 @@
 	<artifactId>DominoMeter</artifactId>
 	<packaging>jar</packaging>
 	<name>DominoMeter</name>
-	<version>120</version>
+	<version>119</version>
 	<url>http://maven.apache.org</url>
 
 	<build>
@@ -66,7 +66,7 @@
 		<dependency>
 			<groupId>net.prominic</groupId>
 			<artifactId>gja</artifactId>
-			<version>0.8.2</version>
+			<version>0.8.3</version>
 		</dependency>
 	</dependencies>
 
