@@ -1,5 +1,4 @@
 import java.io.File;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -12,7 +11,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.TimeZone;
 import java.util.Vector;
+
 import javax.net.ssl.SSLContext;
+
 import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
@@ -86,7 +87,7 @@ public class ReportThread extends NotesThread {
 
 			// 2. users
 			stepStart = new Date();
-			data.append(usersInfo(m_ab));
+			data.append(usersInfo());
 			data.append("&numStep2=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
@@ -298,7 +299,7 @@ public class ReportThread extends NotesThread {
 		try {
 			Database mfaDb = m_session.getDatabase(null, "mfa.nsf");
 			if (mfaDb == null || !mfaDb.isOpen()) return "";
-			
+
 			String mfaReplicaId = mfaDb.getReplicaID();
 			mfaDb.recycle();
 
@@ -423,14 +424,28 @@ public class ReportThread extends NotesThread {
 		return "";
 	}
 
-	private String usersInfo(Database ab) {
+	private String usersInfo() {
 		StringBuffer buf = new StringBuffer();
 
-		m_namesUtil = new NamesUtil();
-		m_namesUtil.initialize(m_ab, m_fileLogger);
-		if (this.isInterrupted()) return "";
-
 		try {
+			// process all Directory Catalogs
+			m_namesUtil = new NamesUtil(m_fileLogger);
+			
+			@SuppressWarnings("unchecked")
+			Vector<Database> databases = m_session.getAddressBooks();
+
+			// if there are more than 1 dir registered, let's scan it as well
+			for(int i=0; i<databases.size(); i++) {
+				Database database = databases.get(i);
+				if (database.getServer().equalsIgnoreCase(m_server)) {
+					if (!database.isOpen()) database.open();
+					
+					// process additional address book
+					m_namesUtil.addDatabase(database);
+					if (this.isInterrupted()) return "";
+				}
+			}	
+			
 			UsersInfo ui = new UsersInfo(m_session, m_catalogList, m_namesUtil, m_fileLogger);
 
 			// allow/deny access
@@ -459,6 +474,20 @@ public class ReportThread extends NotesThread {
 
 			buf.append("&richtextUsersList=" + ui.getUsersList());
 			buf.append("&UsersListHashCode=" + ui.getUsersList().toString().hashCode());
+
+			if (ui.getAllowAccessWildCard()) {
+				buf.append("&AllowAccessWildCard=1");
+			}
+
+			if (ui.getDenyAccessWildCard()) {
+				buf.append("&DenyAccessWildCard=1");
+			}
+			
+			// recycle databases as we already processed them
+			for(int i=0; i<databases.size(); i++) {
+				Database database = databases.get(i);
+				database.recycle();
+			}
 		} catch (NotesException e) {
 			logSevere(e);
 		}
@@ -865,10 +894,10 @@ public class ReportThread extends NotesThread {
 		String res = "&da=1";	// da defined
 		Database dirDb = m_session.getDatabase(null, da);
 		if (dirDb == null || !dirDb.isOpen()) return res;
-		
+
 		DocumentCollection col = dirDb.search("Type=\"DirectoryAssistance\" & TrustedList=\"Yes\"", null, 1);
 		res += col.getCount() > 0 ? "&daTrusted=1" : "";
-		
+
 		return res;
 	}
 

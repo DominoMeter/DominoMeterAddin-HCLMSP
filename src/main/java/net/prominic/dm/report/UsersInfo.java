@@ -20,6 +20,8 @@ public class UsersInfo {
 	private HashMap<String, Vector<String>> m_dbACL;
 	private StringBuffer m_usersList;
 	private HashMap<String, Long> m_usersCount;
+	private boolean m_allowAccessWildCard = false;
+	private boolean m_denyAccessWildCard = false;
 	private GLogger m_fileLogger;
 
 	public final static String USERS_EDITOR = "Editors";
@@ -161,12 +163,14 @@ public class UsersInfo {
 			Vector<String> members = serverDoc.getItemValue("AllowAccess");
 			Set<String> resolvedMembers = m_namesUtil.resolveMixedList(members);
 			m_usersCount.put(USERS_ALLOW, (long) resolvedMembers.size());
-
+			m_allowAccessWildCard = m_namesUtil.getWildCardBuf();
+			
 			// deny access
 			members = serverDoc.getItemValue("DenyAccess");
 			resolvedMembers = m_namesUtil.resolveMixedList(members);
 			m_usersCount.put(USERS_DENY, (long) resolvedMembers.size());
-
+			m_denyAccessWildCard = m_namesUtil.getWildCardBuf();
+			
 		} catch (NotesException e) {
 			m_fileLogger.severe(e);
 		}
@@ -311,6 +315,14 @@ public class UsersInfo {
 
 	public long getUsersCount(String name) {
 		return m_usersCount.containsKey(name) ? m_usersCount.get(name).longValue() : 0;
+	}
+	
+	public boolean getAllowAccessWildCard() {
+		return m_allowAccessWildCard;
+	}
+	
+	public boolean getDenyAccessWildCard() {
+		return m_denyAccessWildCard;
 	}
 
 	public StringBuffer getUsersList() {

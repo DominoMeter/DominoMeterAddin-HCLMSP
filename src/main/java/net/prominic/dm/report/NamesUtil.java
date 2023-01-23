@@ -15,21 +15,22 @@ import lotus.domino.View;
 import net.prominic.gja_v083.GLogger;
 
 public class NamesUtil {
-	Database m_database = null;
 	DocumentCollection m_people = null;
 	List<String> m_fullNameList = null;
 	HashMap<String, Vector<String>> m_groupOrig = null;
 	HashMap<String, Set<String>> m_elResolved = null;
 	Vector<String> m_processedEl = null;
+	private boolean wildCardBuf = false;
 	private GLogger m_fileLogger;
 	
-	public void initialize(Database database, GLogger fileLogger) {
-		m_database = database;
+	public NamesUtil(GLogger fileLogger) {
 		m_elResolved = new HashMap<String, Set<String>>();
 		m_groupOrig = new HashMap<String, Vector<String>>();
 		m_fullNameList = new ArrayList<String>();
 		m_fileLogger = fileLogger;
-		
+	}
+	
+	public void addDatabase(Database database) {
 		try {
 			// 1. group origin
 			View view1 = database.getView("($VIMGroups)");
@@ -80,10 +81,12 @@ public class NamesUtil {
 	 * Resolve list with mixed entries: person, groups, servers etc
 	 */
 	public Set<String> resolveMixedList(Vector<String> members) throws NotesException {
+		wildCardBuf = false;
 		Set<String> list = new HashSet<String>();
 
 		for(String member : members) {
 			String memberL = member.toLowerCase();
+			
 			// group ?
 			if (m_groupOrig.containsKey(memberL)) {
 				Set<String> groupMembers = this.resolveGroup(member);
@@ -91,6 +94,9 @@ public class NamesUtil {
 			}
 			else if (m_fullNameList.contains(memberL)) {
 				list.add(memberL);
+			}
+			else if (memberL.contains("*")) {
+				wildCardBuf = true;
 			}
 		}
 
@@ -135,12 +141,16 @@ public class NamesUtil {
 		for(String member : members) {
 			// group and not processed yet
 			String memberL = member.toLowerCase();
+			
 			if (m_groupOrig.containsKey(memberL) && !m_processedEl.contains(memberL)) {
 				Set<String> subGroupResolved = resolveGroupWalk(member);
 				memberResolved.addAll(subGroupResolved);
 			}
 			else if (m_fullNameList.contains(memberL)) {
 				memberResolved.add(memberL);
+			}
+			else if (!wildCardBuf && memberL.contains("*")) {
+				wildCardBuf = true;
 			}
 		}
 		m_elResolved.put(elName, memberResolved);
@@ -154,6 +164,10 @@ public class NamesUtil {
 
 	public List<String> getFullNameList() {
 		return m_fullNameList;
+	}
+	
+	public boolean getWildCardBuf() {
+		return wildCardBuf;
 	}
 
 	public void recycle() throws NotesException {
