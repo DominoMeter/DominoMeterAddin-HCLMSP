@@ -90,146 +90,152 @@ public class ReportThread extends NotesThread {
 			data.append(usersInfo());
 			data.append("&numStep2=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
-
-			// 3. databases
+			
+			// 3. $conflict
 			stepStart = new Date();
-			data.append(getDatabaseInfo());
+			data.append(conflicts());
 			data.append("&numStep3=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 4. dir assistance
+			// 4. databases
 			stepStart = new Date();
-			data.append(getDA());
+			data.append(getDatabaseInfo());
 			data.append("&numStep4=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 5. system data
+			// 5. dir assistance
 			stepStart = new Date();
-			data.append(getSystemInfo(m_ab, m_version));
+			data.append(getDA());
 			data.append("&numStep5=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 6. notes.ini, we could get variables using API call
+			// 6. system data
 			stepStart = new Date();
-			data.append(getNotesINI(keyword));
+			data.append(getSystemInfo(m_ab, m_version));
 			data.append("&numStep6=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 7. server document items
+			// 7. notes.ini, we could get variables using API call
 			stepStart = new Date();
-			data.append(getServerItems(keyword));
+			data.append(getNotesINI(keyword));
 			data.append("&numStep7=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 8. program documents
+			// 8. server document items
 			stepStart = new Date();
-			data.append("&programs=" + StringUtils.encodeValue(getProgram(m_ab)));
+			data.append(getServerItems(keyword));
 			data.append("&numStep8=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 9. id files on server
+			// 9. program documents
+			stepStart = new Date();
+			data.append("&programs=" + StringUtils.encodeValue(getProgram(m_ab)));
+			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
+			// 10. id files on server
 			stepStart = new Date();
 			String idFiles = getIdFiles(ndd);
 			if (!idFiles.isEmpty()) {
 				data.append("&idfiles=" + idFiles);
 			}
-			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 10. services
+			// 11. services
 			stepStart = new Date();
 			String services = this.getServices();
 			if (!services.isEmpty()) {
 				data.append(services);
 			}
-			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep11=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 11. Linux specific data
+			// 12. Linux specific data
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(this.getLinuxInfo());
 			}
-			data.append("&numStep11=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 12. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
+			// 13. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
 			stepStart = new Date();
 			String nsd = getNSD(ndd);
 			if (!nsd.isEmpty()) {
 				data.append(nsd);
 			}
-			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			if (this.isInterrupted()) return;
-
-			// 13. In case if connection is done via HTTP we still need to check if HTTPS works
-			stepStart = new Date();
-			data.append(checkHTTPSConnection());
 			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 14. Jedi
+			// 14. In case if connection is done via HTTP we still need to check if HTTPS works
+			stepStart = new Date();
+			data.append(checkHTTPSConnection());
+			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
+			// 15. Jedi
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(jedi());
 			}
-			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep15=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 15. installed utils (f.x. gdp)
+			// 16. installed utils (f.x. gdp)
 			stepStart = new Date();
 			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
 				data.append(installedUtils());
 			}
-			data.append("&numStep15=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			if (this.isInterrupted()) return;
-
-			// 16. check if folder(s) exist (extend with other files/folder if needed)
-			stepStart = new Date();
-			data.append(checkFilesFolders(ndd));
 			data.append("&numStep16=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 17. IDVault check
+			// 17. check if folder(s) exist (extend with other files/folder if needed)
 			stepStart = new Date();
-			data.append(vault(ndd));
+			data.append(checkFilesFolders(ndd));
 			data.append("&numStep17=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 18. Panagenda
+			// 18. IDVault check
 			stepStart = new Date();
-			data.append(panagenda(ndd));
+			data.append(vault(ndd));
 			data.append("&numStep18=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 19. SAML
+			// 19. Panagenda
 			stepStart = new Date();
-			data.append(saml(ndd));
+			data.append(panagenda(ndd));
 			data.append("&numStep19=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 20. Directory Profile
+			// 20. SAML
 			stepStart = new Date();
-			data.append(directoryProfile(keyword));
+			data.append(saml(ndd));
 			data.append("&numStep20=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 21. MFA installed?
+			// 21. Directory Profile
+			stepStart = new Date();
+			data.append(directoryProfile(keyword));
+			data.append("&numStep21=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
+			// 22. MFA installed?
 			stepStart = new Date();
 			data.append(mfa());
-			data.append("&numStep21" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep22" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 22. jvm/lib/ext file lists
+			// 23. jvm/lib/ext file lists
 			stepStart = new Date();
 			data.append(jvmLibExt());
-			data.append("&numStep22=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep23=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 23. java.policy, java.security
+			// 24. java.policy, java.security
 			stepStart = new Date();
 			data.append(javaPolicy());
-			data.append("&numStep23=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep24=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 99. error counter and last error
@@ -259,7 +265,55 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
-	private Object javaPolicy() {
+	private String conflicts() {
+		String res = "";
+		
+		try {
+			DocumentCollection col = this.m_ab.search("@IsAvailable($Conflict)");
+			
+			int conflictPerson = 0;
+			int conflictServer = 0;
+			int conflictGroup = 0;
+			int conflictProgram = 0;
+			int conflictConnection = 0;
+			int conflictOther = 0;
+			int conflictAll = col.getCount();
+			
+			Document doc = col.getFirstDocument();
+			while(doc != null) {
+				String type = doc.getItemValueString("Type");
+				
+				if ("Person".equalsIgnoreCase(type)) {
+					conflictPerson++;
+				}
+				else if("Server".equalsIgnoreCase(type)) {
+					conflictServer++;
+				}
+				else if("Group".equalsIgnoreCase(type)) {
+					conflictGroup++;
+				}
+				else if("Program".equalsIgnoreCase(type)) {
+					conflictProgram++;
+				}
+				else if("Connection".equalsIgnoreCase(type)) {
+					conflictConnection++;
+				}
+				else {
+					conflictOther++;
+				}
+				
+				doc = col.getNextDocument();
+			}
+			
+			res = String.format("&numConflictPerson=%d&numConflictServer=%d&numConflictGroup=%d&numConflictProgram=%d&numConflictConnection=%d&numConflictOther=%d&numConflictAll=%d", conflictPerson, conflictServer, conflictGroup, conflictProgram, conflictConnection, conflictOther, conflictAll);
+		} catch (NotesException e) {
+			logSevere(e);
+		}
+		
+		return res;
+	}
+
+	private String javaPolicy() {
 		String res = "";
 
 		try {
@@ -444,7 +498,7 @@ public class ReportThread extends NotesThread {
 					m_namesUtil.addDatabase(database);
 					if (this.isInterrupted()) return "";
 				}
-			}	
+			}
 			
 			UsersInfo ui = new UsersInfo(m_session, m_catalogList, m_namesUtil, m_fileLogger);
 
@@ -468,7 +522,7 @@ public class ReportThread extends NotesThread {
 			Iterator<Entry<String, Long>> it = ui.getUsersCount().entrySet().iterator();
 			while (it.hasNext()) {
 				Entry<String, Long> pair = it.next();
-				buf.append("&users" + pair.getKey() + "=" + Long.toString(pair.getValue()));
+				buf.append("&numUsers" + pair.getKey() + "=" + Long.toString(pair.getValue()));
 				it.remove(); // avoids a ConcurrentModificationException
 			}
 
@@ -626,7 +680,7 @@ public class ReportThread extends NotesThread {
 		try {
 			SSLcipher = StringUtils.join(SSLContext.getDefault().getSupportedSSLParameters().getProtocols(), ";");
 			SupportedCipherSuites = StringUtils.join(SSLContext.getDefault().getSocketFactory().getSupportedCipherSuites(), ";");
-		} catch (NoSuchAlgorithmException e1) {
+		} catch (NoSuchAlgorithmException e) {
 			SSLcipher = "n/a";
 			SupportedCipherSuites = "n/a";
 		}

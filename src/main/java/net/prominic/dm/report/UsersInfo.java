@@ -24,7 +24,7 @@ public class UsersInfo {
 	private boolean m_denyAccessWildCard = false;
 	private GLogger m_fileLogger;
 
-	public final static String USERS_EDITOR = "Editors";
+	public final static String USERS_EDITOR = "Editor";
 	public final static String USERS_AUTHOR = "Author";
 	public final static String USERS_READER = "Reader";
 	public final static String USERS_DEPOSITOR = "Depositor";
@@ -35,7 +35,6 @@ public class UsersInfo {
 	public final static String USERS_NOTESWEB = "NotesWeb";
 	public final static String USERS_PNI = "PNI";
 	public final static String USERS_MAIL = "Mail";
-	public final static String USERS_CONFLICT = "Conflict";
 	public final static String USERS_ALLOW = "Allow";
 	public final static String USERS_DENY = "Deny";
 
@@ -56,6 +55,7 @@ public class UsersInfo {
 	private void createUsersCount() {
 		m_usersCount = new HashMap<String, Long>();
 		m_usersCount.put(USERS_EDITOR, (long) 0);
+		m_usersCount.put(USERS_AUTHOR, (long) 0);
 		m_usersCount.put(USERS_READER, (long) 0);
 		m_usersCount.put(USERS_DEPOSITOR, (long) 0);
 		m_usersCount.put(USERS_NOACCESS, (long) 0);
@@ -65,7 +65,6 @@ public class UsersInfo {
 		m_usersCount.put(USERS_NOTESWEB, (long) 0);
 		m_usersCount.put(USERS_PNI, (long) 0);
 		m_usersCount.put(USERS_MAIL, (long) 0);
-		m_usersCount.put(USERS_CONFLICT, (long) 0);
 		m_usersCount.put(USERS_ALLOW, (long) 0);
 		m_usersCount.put(USERS_DENY, (long) 0);
 	}
@@ -113,7 +112,6 @@ public class UsersInfo {
 			if (isNotes && isWeb) incrementCount(USERS_NOTESWEB);
 			if (fullName.contains("/O=PNI")) incrementCount(USERS_PNI);
 			if (isMail) incrementCount(USERS_MAIL);
-			if (doc.hasItem("$Conflict")) incrementCount(USERS_CONFLICT);
 
 			// parse Comment for ##DominoMeter--FlagAs:<keyword>
 			verifyFlagsInComment(doc);
