@@ -116,7 +116,17 @@ public class UsersInfo {
 			// parse Comment for ##DominoMeter--FlagAs:<keyword>
 			verifyFlagsInComment(doc);
 
-			String userLine = doc.getUniversalID() + "|" + StringUtils.encodeValue(doc.getItemValueString("LastName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("Suffix")) + "|" + StringUtils.encodeValue(doc.getItemValueString("FirstName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("MiddleInitial")) + "|" + userAccess.getDbReplicaID() + "|" + Integer.toString(userAccess.getAccessLevel());
+			String expiration;
+			if(isNotes) {
+				@SuppressWarnings("unchecked")
+				Vector<String> tmp = m_session.evaluate("_d:=@Date(@Certificate([Expiration];Certificate)); @Text(@Year(_d))+\"-\"+@Text(@Month(_d))+\"-\"+@Text(@Day(_d))", doc);
+				expiration = tmp.get(0);
+			}
+			else {
+				expiration = "";
+			}
+			
+			String userLine = doc.getUniversalID() + "|" + StringUtils.encodeValue(doc.getItemValueString("LastName")) + "|" + StringUtils.encodeValue(doc.getItemValueString("FirstName")) + "|" + expiration + "|" + userAccess.getDbReplicaID() + "|" + Integer.toString(userAccess.getAccessLevel());
 			if (m_usersList.length() > 0) {
 				m_usersList.append("~");
 			}

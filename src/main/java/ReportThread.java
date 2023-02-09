@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -111,7 +112,7 @@ public class ReportThread extends NotesThread {
 
 			// 6. system data
 			stepStart = new Date();
-			data.append(getSystemInfo(m_ab, m_version));
+			data.append(getSystemInfo());
 			data.append("&numStep6=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
@@ -237,7 +238,7 @@ public class ReportThread extends NotesThread {
 			data.append(javaPolicy());
 			data.append("&numStep24=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
-
+			
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(exception_total));
@@ -276,6 +277,8 @@ public class ReportThread extends NotesThread {
 			int conflictGroup = 0;
 			int conflictProgram = 0;
 			int conflictConnection = 0;
+			int conflictServerConfig = 0;
+			int conflictWebSite = 0;
 			int conflictOther = 0;
 			int conflictAll = col.getCount();
 			
@@ -298,6 +301,12 @@ public class ReportThread extends NotesThread {
 				else if("Connection".equalsIgnoreCase(type)) {
 					conflictConnection++;
 				}
+				else if("ServerConfig".equalsIgnoreCase(type)) {
+					conflictServerConfig++;
+				}
+				else if("WebSite".equalsIgnoreCase(type)) {
+					conflictWebSite++;
+				}
 				else {
 					conflictOther++;
 				}
@@ -305,7 +314,7 @@ public class ReportThread extends NotesThread {
 				doc = col.getNextDocument();
 			}
 			
-			res = String.format("&numConflictPerson=%d&numConflictServer=%d&numConflictGroup=%d&numConflictProgram=%d&numConflictConnection=%d&numConflictOther=%d&numConflictAll=%d", conflictPerson, conflictServer, conflictGroup, conflictProgram, conflictConnection, conflictOther, conflictAll);
+			res = String.format("&numConflictPerson=%d&numConflictServer=%d&numConflictGroup=%d&numConflictProgram=%d&numConflictConnection=%d&numConflictServerConfig=%d&numConflictWebSite=%d&numConflictOther=%d&numConflictAll=%d", conflictPerson, conflictServer, conflictGroup, conflictProgram, conflictConnection, conflictServerConfig, conflictWebSite, conflictOther, conflictAll);
 		} catch (NotesException e) {
 			logSevere(e);
 		}
@@ -660,7 +669,7 @@ public class ReportThread extends NotesThread {
 	/*
 	 * OS data
 	 */
-	private String getSystemInfo(Database ab, String version) throws NotesException {
+	private String getSystemInfo() throws NotesException {
 		StringBuffer buf = new StringBuffer();
 
 		buf.append("&server=" + StringUtils.encodeValue(m_server));
@@ -669,12 +678,17 @@ public class ReportThread extends NotesThread {
 		buf.append("&osname=" + System.getProperty("os.name", "n/a"));
 		buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
 		buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
+		buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
 		buf.append("&domino=" + m_session.getNotesVersion());
 		buf.append("&username=" + System.getProperty("user.name", "n/a"));
-		buf.append("&version=" + version);
+		buf.append("&version=" + m_version);
 		buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));
-		buf.append("&templateVersion=" + getDatabaseVersionNumber(ab));
+		buf.append("&templateVersion=" + getDatabaseVersionNumber(m_ab));
 
+		SimpleDateFormat formatter = new SimpleDateFormat("z");
+		String serverTimezone = formatter.format(new Date());
+		buf.append("&serverTimezone=" + serverTimezone);
+		
 		String SSLcipher = "";
 		String SupportedCipherSuites = "";
 		try {
@@ -857,12 +871,13 @@ public class ReportThread extends NotesThread {
 	private String getServices() {
 		StringBuffer buf = new StringBuffer();
 
-		// SHOW SERVER
 		try {
+			// 1. show server
 			if (this.isInterrupted()) return "";
 			String console = m_session.sendConsoleCommand("", "!sh server");
 			buf.append("&sh_server=" + StringUtils.encodeValue(console));
 
+			// 2. show cluster
 			if (this.isInterrupted()) return "";
 			console = m_session.sendConsoleCommand("", "!sh cluster");
 			buf.append("&sh_cluster=" + StringUtils.encodeValue(console));
@@ -887,7 +902,7 @@ public class ReportThread extends NotesThread {
 				}
 			}
 
-			// SHOW TASKS
+			// 3. show tasks
 			if (this.isInterrupted()) return "";
 			console = m_session.sendConsoleCommand("", "!sh tasks");
 			buf.append("&sh_tasks=" + StringUtils.encodeValue(console));
@@ -898,7 +913,7 @@ public class ReportThread extends NotesThread {
 				buf.append("&sametime=1");
 			}
 
-			// SHOW HEARTBEAT
+			// 4. show heartbeat
 			if (this.isInterrupted()) return "";
 			console = m_session.sendConsoleCommand("", "!sh heartbeat");
 			buf.append("&sh_heartbeat=" + StringUtils.encodeValue(console));
