@@ -1,5 +1,7 @@
 import java.io.File;
+
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
@@ -78,6 +80,7 @@ public class ReportThread extends NotesThread {
 
 			String ndd = m_session.getEnvironmentString("Directory", true);
 			String url = m_endpoint.concat("/report?openagent");
+			String platform = m_session.getPlatform();
 
 			// 1. initialize data for report
 			Date stepStart = new Date();
@@ -91,7 +94,7 @@ public class ReportThread extends NotesThread {
 			data.append(usersInfo());
 			data.append("&numStep2=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
-			
+
 			// 3. $conflict
 			stepStart = new Date();
 			data.append(conflicts());
@@ -238,7 +241,13 @@ public class ReportThread extends NotesThread {
 			data.append(javaPolicy());
 			data.append("&numStep24=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
-			
+
+			// 25. repair list missing
+			stepStart = new Date();
+			data.append(repairListMissing(ndd));
+			data.append("&numStep25=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(exception_total));
@@ -266,12 +275,87 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
-	private String conflicts() {
+	private String repairListMissing(String ndd) {
 		String res = "";
+		RandomAccessFile raf = null;
 		
 		try {
-			DocumentCollection col = this.m_ab.search("@IsAvailable($Conflict)");
+			m_session.sendConsoleCommand("", "repair list missing");
 			
+			System.out.print("sleep mode 3 seconds");
+			sleep(3000);
+			System.out.print("wake up");
+			
+			File dir = new File(ndd + File.separator + "IBM_TECHNICAL_SUPPORT");
+			if (!dir.isDirectory()) return "";
+			
+			File file = new File(dir, "console.log");
+			if (!file.exists()) return "";
+
+			StringBuffer repairListMissing = new StringBuffer();
+			int checkBottomLines = 1000;
+
+			raf = new RandomAccessFile(file, "r");
+			long fileLength = file.length();
+
+			StringBuilder line = new StringBuilder();
+			for (long filePointer = fileLength - 1; filePointer >= 0 && checkBottomLines>0; filePointer--) {
+				raf.seek(filePointer);
+				int readByte = raf.readByte();
+				if (readByte=='\r' || readByte=='\n') {
+					if (line.length() > 10) {
+						line.reverse();
+						if (line.toString().endsWith("[Missing]")) {
+							String missing = line.substring(line.indexOf("]") + 2, line.indexOf(","));
+							System.out.println(missing);
+
+							if (repairListMissing.length() > 0) repairListMissing.append(";");
+							repairListMissing.append(missing);
+						}
+
+						if (line.toString().endsWith("repair list missing")) {
+							System.out.println("BOOM!");
+							checkBottomLines = 0;
+						}
+
+						checkBottomLines--;
+					}
+					line = new StringBuilder();
+				}
+				else {
+					line.append((char) readByte);
+				}
+			}
+
+			raf.close();
+			
+			System.out.println("6");
+			if (repairListMissing.length()==0) return "";
+			System.out.println("7");
+			res = "&repairListMissing=" + StringUtils.encodeValue(repairListMissing.toString());
+		} catch (Exception e) {
+			logSevere(e);
+		}
+		finally {
+            try {
+                if (raf != null) {
+                    raf.close();
+                }
+            } catch (IOException e) {
+                System.err.println("Error closing file: " + e.getMessage());
+            }
+        }
+
+		System.out.println("res:"+res);
+		return res;
+	}
+
+	private String conflicts() {
+		String res = "";
+
+		try {
+			DocumentCollection col = this.m_ab.search("@IsAvailable($Conflict)");
+
 			int conflictPerson = 0;
 			int conflictServer = 0;
 			int conflictGroup = 0;
@@ -281,11 +365,11 @@ public class ReportThread extends NotesThread {
 			int conflictWebSite = 0;
 			int conflictOther = 0;
 			int conflictAll = col.getCount();
-			
+
 			Document doc = col.getFirstDocument();
 			while(doc != null) {
 				String type = doc.getItemValueString("Type");
-				
+
 				if ("Person".equalsIgnoreCase(type)) {
 					conflictPerson++;
 				}
@@ -310,15 +394,15 @@ public class ReportThread extends NotesThread {
 				else {
 					conflictOther++;
 				}
-				
+
 				doc = col.getNextDocument();
 			}
-			
+
 			res = String.format("&numConflictPerson=%d&numConflictServer=%d&numConflictGroup=%d&numConflictProgram=%d&numConflictConnection=%d&numConflictServerConfig=%d&numConflictWebSite=%d&numConflictOther=%d&numConflictAll=%d", conflictPerson, conflictServer, conflictGroup, conflictProgram, conflictConnection, conflictServerConfig, conflictWebSite, conflictOther, conflictAll);
 		} catch (NotesException e) {
 			logSevere(e);
 		}
-		
+
 		return res;
 	}
 
@@ -493,7 +577,7 @@ public class ReportThread extends NotesThread {
 		try {
 			// process all Directory Catalogs
 			m_namesUtil = new NamesUtil(m_fileLogger);
-			
+
 			@SuppressWarnings("unchecked")
 			Vector<Database> databases = m_session.getAddressBooks();
 
@@ -502,13 +586,13 @@ public class ReportThread extends NotesThread {
 				Database database = databases.get(i);
 				if (database.getServer().equalsIgnoreCase(m_server)) {
 					if (!database.isOpen()) database.open();
-					
+
 					// process additional address book
 					m_namesUtil.addDatabase(database);
 					if (this.isInterrupted()) return "";
 				}
 			}
-			
+
 			UsersInfo ui = new UsersInfo(m_session, m_catalogList, m_namesUtil, m_fileLogger);
 
 			// allow/deny access
@@ -545,7 +629,7 @@ public class ReportThread extends NotesThread {
 			if (ui.getDenyAccessWildCard()) {
 				buf.append("&DenyAccessWildCard=1");
 			}
-			
+
 			// recycle databases as we already processed them
 			for(int i=0; i<databases.size(); i++) {
 				Database database = databases.get(i);
@@ -688,7 +772,7 @@ public class ReportThread extends NotesThread {
 		SimpleDateFormat formatter = new SimpleDateFormat("z");
 		String serverTimezone = formatter.format(new Date());
 		buf.append("&serverTimezone=" + serverTimezone);
-		
+
 		String SSLcipher = "";
 		String SupportedCipherSuites = "";
 		try {
@@ -738,7 +822,7 @@ public class ReportThread extends NotesThread {
 				if (this.isInterrupted()) return "";
 
 				String dbInheritTemplateName = doc.getItemValueString("DbInheritTemplateName");
-				String pathName = doc.getItemValueString("PathName").toLowerCase();
+				String pathName = doc.getItemValueString("PathName");
 
 				if (pathName.equalsIgnoreCase("names.nsf") || pathName.equalsIgnoreCase("admin4.nsf") || pathName.equalsIgnoreCase("log.nsf") || pathName.equalsIgnoreCase("catalog.nsf")) {
 					@SuppressWarnings("unchecked")
