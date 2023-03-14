@@ -1,5 +1,4 @@
 import java.io.File;
-
 import java.io.IOException;
 import java.util.Calendar;
 import lotus.domino.Document;
@@ -38,12 +37,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "118";
+		return "120";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-02-24 14:45 (many updates)";
+		return "2023-03-14 19:30 (many updates)";
 	}
 
 	@Override

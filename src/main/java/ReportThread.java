@@ -1,5 +1,5 @@
 import java.io.File;
-
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.InetAddress;
@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TimeZone;
@@ -80,15 +81,18 @@ public class ReportThread extends NotesThread {
 
 			String ndd = m_session.getEnvironmentString("Directory", true);
 			String url = m_endpoint.concat("/report?openagent");
-			String platform = m_session.getPlatform();
 
+			// pre: trace connection
+			ArrayList<String> connection = traceConnection();
+			if (this.isInterrupted()) return;
+			
 			// 1. initialize data for report
 			Date stepStart = new Date();
 			StringBuffer data = new StringBuffer();
 			StringBuffer keyword = Keyword.getValue(m_endpoint, m_server, "all");
 			data.append("numStep1=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
-
+			
 			// 2. users
 			stepStart = new Date();
 			data.append(usersInfo());
@@ -242,12 +246,11 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep24=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 25. repair list missing
+			// 25. parse console.log
 			stepStart = new Date();
-			data.append(repairListMissing(ndd));
+			data.append(parseConsoleLogTrace(ndd, connection));
 			data.append("&numStep25=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			if (this.isInterrupted()) return;
-
+			
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(exception_total));
@@ -275,79 +278,110 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
-	private String repairListMissing(String ndd) {
-		String res = "";
-		RandomAccessFile raf = null;
-		
+	private ArrayList<String> traceConnection() {
+		ArrayList<String> res = new ArrayList<String>();
 		try {
-			m_session.sendConsoleCommand("", "repair list missing");
-			
-			System.out.print("sleep mode 3 seconds");
-			sleep(3000);
-			System.out.print("wake up");
-			
-			File dir = new File(ndd + File.separator + "IBM_TECHNICAL_SUPPORT");
-			if (!dir.isDirectory()) return "";
-			
-			File file = new File(dir, "console.log");
-			if (!file.exists()) return "";
+			View view = this.m_ab.getView("($Connections)");
+			DocumentCollection col = view.getAllDocumentsByKey(m_server);
+			Document doc = col.getFirstDocument();
+			while (doc!=null) {
+				String destination = doc.getItemValueString("Destination");
+				res.add(destination);
+				this.m_session.sendConsoleCommand("", "!trace " + destination);
 
-			StringBuffer repairListMissing = new StringBuffer();
-			int checkBottomLines = 1000;
-
-			raf = new RandomAccessFile(file, "r");
-			long fileLength = file.length();
-
-			StringBuilder line = new StringBuilder();
-			for (long filePointer = fileLength - 1; filePointer >= 0 && checkBottomLines>0; filePointer--) {
-				raf.seek(filePointer);
-				int readByte = raf.readByte();
-				if (readByte=='\r' || readByte=='\n') {
-					if (line.length() > 10) {
-						line.reverse();
-						if (line.toString().endsWith("[Missing]")) {
-							String missing = line.substring(line.indexOf("]") + 2, line.indexOf(","));
-							System.out.println(missing);
-
-							if (repairListMissing.length() > 0) repairListMissing.append(";");
-							repairListMissing.append(missing);
-						}
-
-						if (line.toString().endsWith("repair list missing")) {
-							System.out.println("BOOM!");
-							checkBottomLines = 0;
-						}
-
-						checkBottomLines--;
-					}
-					line = new StringBuilder();
-				}
-				else {
-					line.append((char) readByte);
-				}
+				doc = col.getNextDocument();
 			}
-
-			raf.close();
-			
-			System.out.println("6");
-			if (repairListMissing.length()==0) return "";
-			System.out.println("7");
-			res = "&repairListMissing=" + StringUtils.encodeValue(repairListMissing.toString());
 		} catch (Exception e) {
 			logSevere(e);
 		}
-		finally {
-            try {
-                if (raf != null) {
-                    raf.close();
-                }
-            } catch (IOException e) {
-                System.err.println("Error closing file: " + e.getMessage());
-            }
-        }
 
-		System.out.println("res:"+res);
 		return res;
+	}
+	
+	private String parseConsoleLogTrace(String ndd, ArrayList<String> traceList) {
+		StringBuilder res = new StringBuilder();
+		
+		try {
+			if (traceList.size() == 0) return "";
+			
+			File dir = new File(ndd + File.separator + "IBM_TECHNICAL_SUPPORT");
+			if (!dir.isDirectory()) return "";
+
+			File file = new File(dir, "console.log");
+			if (!file.exists()) return "";
+
+			// read up to 1000 lines from bottom to top
+			int maxLineCounter = 1000;
+			// we want to find first N trace commands only
+			int maxTrace = traceList.size();
+			// console output (up to 1000 lines)
+			LinkedList<String> fifo = new LinkedList<String>();
+
+			RandomAccessFile raf = new RandomAccessFile(file, "r");
+			long fileLength = file.length();
+			StringBuilder bufLine = new StringBuilder();
+			for (long filePointer = fileLength - 1; filePointer >= 0 && maxLineCounter>0 && maxTrace>0; filePointer--) {
+				raf.seek(filePointer);
+				int readByte = raf.readByte();
+				if (readByte=='\r' || readByte=='\n') {
+					if (bufLine.length() > 10) {
+						bufLine.reverse();
+						fifo.push(bufLine.toString());
+			
+						if (bufLine.toString().contains("] trace ")) {
+							maxTrace--;
+						}
+						
+						maxLineCounter--;
+
+					}
+					bufLine = new StringBuilder();
+				}
+				else {
+					bufLine.append((char) readByte);
+				}
+			}
+			raf.close();
+
+			maxTrace = traceList.size();
+			for(int i=0; i<fifo.size() && maxTrace>0; i++) {
+				String line = fifo.get(i);
+				if (line.toString().contains("] Determining path to server")) {
+					String server = line.substring(line.lastIndexOf(" ")+1);
+					maxTrace--;
+					boolean traceFlag = true;
+					StringBuilder traceRes = new StringBuilder();
+					while (i<fifo.size() && traceFlag) {
+						i++;
+						line = fifo.get(i);
+
+						line = line.substring(line.indexOf("]")+2);
+						traceRes.append(line);
+						
+						if (line.contains("Encryption is") || line.contains("Unable to find any path to")) {
+							traceFlag = false;
+						}
+						else {
+							traceRes.append(";");
+						}
+					}
+					
+					res.append(server);
+					res.append("~");
+					res.append(traceRes.toString());
+					
+					if (maxTrace>0) {
+						res.append("|");
+					}
+				}
+			}
+		} catch (FileNotFoundException e) {
+			this.logSevere(e);
+		} catch (IOException e) {
+			this.logSevere(e);
+		}
+		
+		return "&traceConnection=" + StringUtils.encodeValue(res.toString());
 	}
 
 	private String conflicts() {
