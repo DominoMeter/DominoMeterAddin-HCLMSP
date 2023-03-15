@@ -1,19 +1,12 @@
-import java.io.File;
-import java.io.IOException;
 import java.util.Calendar;
-import lotus.domino.Document;
-import lotus.domino.DocumentCollection;
+
 import lotus.domino.Name;
 import lotus.domino.NotesException;
-import lotus.domino.View;
 import net.prominic.dm.api.Config;
 import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.UpdateRobot;
 import net.prominic.gja_v083.JavaServerAddinGenesis;
-import net.prominic.install.JSONRulesStub;
-import net.prominic.install.ProgramConfigStub;
-import net.prominic.io.RESTClient;
 
 public class DominoMeter extends JavaServerAddinGenesis {
 	public static String	exception_last = null;
@@ -37,12 +30,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "120";
+		return "121";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-03-14 19:30 (many updates)";
+		return "2023-03-15 19:30 (trace)";
 	}
 
 	@Override
@@ -73,42 +66,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 				setLogLevel(args[1]);
 			}
 
-			// TEMPORARY CODE:
-			boolean unloadAddin = false;
-			
-			// TEMPORARY CODE: ONLY TO INSTALL GENESIS
-			String GJA_Genesis = m_session.getEnvironmentString("GJA_Genesis", true);
-			if (GJA_Genesis.isEmpty()) {
-				logMessage("--------------------------------------");
-				logMessage("GENESIS INSTALLATION");
-				logMessage("--------------------------------------");
-				boolean installed = genesis();
-				if (installed) {
-					unloadAddin = true;
-					logMessage("> COMPLETED");
-				}
-			}
-			
-			// TEMPORARY CODE: ONLY TO RE-INSTALL DOMINOMETER
-			String GJA_DominoMeter = m_session.getEnvironmentString("GJA_DominoMeter", true);
-			if (GJA_DominoMeter.isEmpty()) {
-				logMessage("--------------------------------------");
-				logMessage("DOMINOMETER RE-INSTALLATION");
-				logMessage("--------------------------------------");
-				boolean reinstalled = reconfigure();
-				if (reinstalled) {
-					unloadAddin = true;
-					logMessage("> COMPLETED");
-				}
-			}
-			
-			// TEMPORARY CODE: UNLOAD IF ADDIN INSTALLED
-			if (unloadAddin) {
-				logMessage("UNLOAD ADDIN DUE TO RECONFIGURATION");
-				this.restartAll(false);
-				return false;
-			}
-
 			// new config
 			m_config = new Config();
 		} catch(Exception e) {
@@ -116,120 +73,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		}
 
 		return true;
-	}
-
-	private boolean reconfigure() {
-		try {
-			// 1. program documents - migrate to settings
-			View view = m_ab.getView("($Programs)");
-			view.refresh();
-			DocumentCollection col = view.getAllDocumentsByKey(m_server, true);
-			Document doc = col.getFirstDocument();
-			String runjava = null;
-			while (doc != null) {
-				Document nextDoc = col.getNextDocument(doc);
-				
-				String CmdLine = doc.getItemValueString("CmdLine");
-				if (CmdLine.toLowerCase().startsWith("dominometer")) {
-					doc.remove(true);
-					if (runjava==null) {
-						runjava = CmdLine;
-					}
-				}
-				
-				doc = nextDoc;
-			}
-
-			// default
-			if (runjava == null) {
-				runjava = "DominoMeter dev";
-			}
-
-			logMessage("runjava parameter: " + runjava);
-			
-			// 2. install dominometer addin
-			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
-			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer-migration");
-			String bufStr = buf.toString();
-			bufStr = bufStr.replace("${0}", runjava);
-			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, this.m_javaAddinConfig, this.m_logger);
-			boolean res = rules.execute(bufStr.toString());
-
-			if (res) {
-				logMessage("DominoMeter installed (OK)");
-				Log.sendLog(m_server, m_endpoint, "DominoMeter installed (OK)", "");
-			}
-			else {
-				logMessage("DominoMeter FAILED");
-				Log.sendLog(m_server, m_endpoint, "DominoMeter FAILED", rules.getLogBuffer().toString());
-				System.out.println(rules.getLogBuffer());
-			}
-			
-			this.logMessage("DominoMeter uninstall: program documents (OK)");
-			Log.sendLog(m_server, m_endpoint, "DominoMeter uninstall: program documents (OK)", "");
-
-			// 3. notes.ini - cleanup
-			String userClasses = m_session.getEnvironmentString("JAVAUSERCLASSES", true);
-			String platform = m_session.getPlatform();
-			String notesIniSep = platform.contains("Windows") ? ";" : ":";
-
-			String[] userClassesArr = userClasses.split("\\" + notesIniSep);
-			for (int i = 0; i < userClassesArr.length; i++) {
-				if (userClassesArr[i].contains("DominoMeter")) {
-					userClasses = userClasses.replace(userClassesArr[i] + notesIniSep, "");
-					userClasses = userClasses.replace(userClassesArr[i], "");
-					i = userClassesArr.length;
-				}
-			}
-			m_session.setEnvironmentVar("JAVAUSERCLASSES", userClasses, true);
-			this.logMessage("DominoMeter notes.ini cleanup: (OK)");
-			Log.sendLog(m_server, m_endpoint, "DominoMeter notes.ini cleanup: (OK)", "");
-		} catch (IOException e1) {
-			e1.printStackTrace();
-			this.logMessage("New DominoMeter was not installed properly [1]");
-			return false;
-		} catch (NotesException e) {
-			e.printStackTrace();
-			this.logMessage("New DominoMeter was not installed properly [2]");
-			return false;
-		}
-
-		return true;
-	}
-
-	/*
-	 * TODO: Must be removed in next version
-	 */
-	private boolean genesis() {
-		try {
-			// find addin in catalog
-			String catalog = "https://domino-1.dmytro.cloud/gc.nsf";
-			StringBuffer buf = RESTClient.sendGET(catalog + "/package?openagent&id=dominometer-genesis");
-
-			String configPath = JAVA_ADDIN_ROOT + File.separator + "Genesis" + File.separator + CONFIG_FILE_NAME;
-			JSONRulesStub rules = new JSONRulesStub(m_session, m_ab, configPath, m_logger);
-			boolean res = rules.execute(buf.toString());
-
-			if (res) {
-				logMessage("Genesis installed (OK)");
-				Log.sendLog(m_server, m_endpoint, "Genesis installed (OK)", "");
-			}
-			else {
-				logMessage("Genesis FAILED");
-				Log.sendLog(m_server, m_endpoint, "Genesis FAILED", rules.getLogBuffer().toString());
-				System.out.println(rules.getLogBuffer());
-			}
-			
-			ProgramConfigStub pc = new ProgramConfigStub("Genesis", null, m_logger);
-			pc.setState(m_ab, ProgramConfigStub.UNLOAD);		// set program documents in LOAD state
-			Log.sendLog(m_server, m_endpoint, "", "");
-			
-			return res;
-		} catch (IOException e) {
-			logMessage("Install command failed: " + e.getMessage());
-		}
-		
-		return false;
 	}
 
 	@Override

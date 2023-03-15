@@ -328,7 +328,7 @@ public class ReportThread extends NotesThread {
 						bufLine.reverse();
 						fifo.push(bufLine.toString());
 			
-						if (bufLine.toString().contains("] trace ")) {
+						if (bufLine.toString().contains("Determining path to server")) {
 							maxTrace--;
 						}
 						
@@ -344,10 +344,12 @@ public class ReportThread extends NotesThread {
 			raf.close();
 
 			maxTrace = traceList.size();
+			
 			for(int i=0; i<fifo.size() && maxTrace>0; i++) {
 				String line = fifo.get(i);
-				if (line.toString().contains("] Determining path to server")) {
+				if (line.toString().contains("Determining path to server")) {
 					String server = line.substring(line.lastIndexOf(" ")+1);
+					
 					maxTrace--;
 					boolean traceFlag = true;
 					StringBuilder traceRes = new StringBuilder();
