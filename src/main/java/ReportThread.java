@@ -241,9 +241,9 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep23=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 24. java.policy, java.security
+			// 24. file content: java.policy, java.security, /etc/hosts, /etc/resolv.conf
 			stepStart = new Date();
-			data.append(javaPolicy());
+			data.append(fileContent());
 			data.append("&numStep24=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
@@ -468,22 +468,34 @@ public class ReportThread extends NotesThread {
 		return res;
 	}
 
-	private String javaPolicy() {
+	private String fileContent(boolean isLinux) {
 		String res = "";
 
 		try {
 			String javaPolicyPath = "jvm/lib/security/java.policy";
-			StringBuffer javaPolicy = FileUtils.readFileContentFilter(javaPolicyPath, new String[]{"//"}, true);
-			if (javaPolicy != null) {
-				res += "&richtextJavaPolicy=" + StringUtils.encodeValue(javaPolicy.toString());
+			StringBuffer buf = FileUtils.readFileContentFilter(javaPolicyPath, new String[]{"//"}, true);
+			if (buf != null) {
+				res += "&richtextJavaPolicy=" + StringUtils.encodeValue(buf.toString());
 				res += "&JavaPolicyMD5=" + MD5Checksum.getMD5Checksum(new File(javaPolicyPath));
 			}
 
 			String javaSecurityPath = "jvm/lib/security/java.security";
-			StringBuffer javaSecurity = FileUtils.readFileContentFilter(javaSecurityPath, new String[]{"#"}, true);
-			if (javaSecurity != null) {
-				res += "&richtextJavaSecurity=" + StringUtils.encodeValue(javaSecurity.toString());
+			buf = FileUtils.readFileContentFilter(javaSecurityPath, new String[]{"#"}, true);
+			if (buf != null) {
+				res += "&richtextJavaSecurity=" + StringUtils.encodeValue(buf.toString());
 				res += "&JavaSecurityMD5=" + MD5Checksum.getMD5Checksum(new File(javaSecurityPath));
+			}
+
+			if (isLinux) {
+				buf = FileUtils.readFileContent("/etc/resolv.conf");
+				if (buf != null) {
+					res += "&etcResolvConf=" + StringUtils.encodeValue(buf.toString());
+				}
+				
+				buf = FileUtils.readFileContent("/etc/hosts");
+				if (buf != null) {
+					res += "&etcHosts=" + StringUtils.encodeValue(buf.toString());
+				}				
 			}
 		} catch (NoSuchAlgorithmException e) {
 			logSevere(e);
