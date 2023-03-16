@@ -247,9 +247,9 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep24=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 25. parse console.log
+			// 25. parse trace result from noteslong (or console.log)
 			stepStart = new Date();
-			data.append(parseConsoleLogTrace(ndd, connection, isLinux));
+			data.append(parseTraceOutput(ndd, connection, isLinux));
 			data.append("&numStep25=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 99. error counter and last error
@@ -323,7 +323,7 @@ public class ReportThread extends NotesThread {
 		return res;
 	}
 
-	private String parseConsoleLogTrace(String ndd, ArrayList<String> traceList, boolean isLinux) {
+	private String parseTraceOutput(String ndd, ArrayList<String> traceList, boolean isLinux) {
 		StringBuilder res = new StringBuilder();
 
 		try {
