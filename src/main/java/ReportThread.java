@@ -79,20 +79,21 @@ public class ReportThread extends NotesThread {
 
 			if (this.isInterrupted()) return;
 
+			boolean isLinux = System.getProperty("os.name").equalsIgnoreCase("Linux");
 			String ndd = m_session.getEnvironmentString("Directory", true);
 			String url = m_endpoint.concat("/report?openagent");
 
 			// pre: trace connection
 			ArrayList<String> connection = traceConnection();
 			if (this.isInterrupted()) return;
-			
+
 			// 1. initialize data for report
 			Date stepStart = new Date();
 			StringBuffer data = new StringBuffer();
 			StringBuffer keyword = Keyword.getValue(m_endpoint, m_server, "all");
 			data.append("numStep1=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
-			
+
 			// 2. users
 			stepStart = new Date();
 			data.append(usersInfo());
@@ -161,7 +162,7 @@ public class ReportThread extends NotesThread {
 
 			// 12. Linux specific data
 			stepStart = new Date();
-			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
+			if (isLinux) {
 				data.append(this.getLinuxInfo());
 			}
 			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
@@ -184,7 +185,7 @@ public class ReportThread extends NotesThread {
 
 			// 15. Jedi
 			stepStart = new Date();
-			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
+			if (isLinux) {
 				data.append(jedi());
 			}
 			data.append("&numStep15=" + Long.toString(new Date().getTime() - stepStart.getTime()));
@@ -192,7 +193,7 @@ public class ReportThread extends NotesThread {
 
 			// 16. installed utils (f.x. gdp)
 			stepStart = new Date();
-			if (System.getProperty("os.name").equalsIgnoreCase("Linux")) {
+			if (isLinux) {
 				data.append(installedUtils());
 			}
 			data.append("&numStep16=" + Long.toString(new Date().getTime() - stepStart.getTime()));
@@ -248,9 +249,9 @@ public class ReportThread extends NotesThread {
 
 			// 25. parse console.log
 			stepStart = new Date();
-			data.append(parseConsoleLogTrace(ndd, connection));
+			data.append(parseConsoleLogTrace(ndd, connection, isLinux));
 			data.append("&numStep25=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			
+
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(exception_total));
@@ -286,8 +287,12 @@ public class ReportThread extends NotesThread {
 			Document doc = col.getFirstDocument();
 			while (doc!=null) {
 				String destination = doc.getItemValueString("Destination");
-				res.add(destination);
-				this.m_session.sendConsoleCommand("", "!trace " + destination);
+				String ConnectionType = doc.getItemValueString("ConnectionType");
+
+				if ("0".equals(ConnectionType) || "2".equals(ConnectionType)) {
+					res.add(destination);
+					this.m_session.sendConsoleCommand("", "!trace " + destination);
+				}
 
 				doc = col.getNextDocument();
 			}
@@ -297,17 +302,37 @@ public class ReportThread extends NotesThread {
 
 		return res;
 	}
-	
-	private String parseConsoleLogTrace(String ndd, ArrayList<String> traceList) {
-		StringBuilder res = new StringBuilder();
+
+	private String getLogFilePath(String ndd, boolean isLinux) {
+		String res = null;
+
+		// check if noteslog folder exists (must be present on all linux servers)
+		File dir = new File(ndd + File.separator + "noteslog");
+		if (dir.exists() && dir.isDirectory()) {
+			File files[] = FileUtils.startsWith(dir, "notes.log");			
+			if (files.length>0) {
+				files = FileUtils.sortFilesByModified(files, false);
+				res = files[0].getPath();
+			}
+		}
 		
+		if (res == null) {
+			res = ndd + File.separator + "IBM_TECHNICAL_SUPPORT" + File.separator + "console.log";
+		}
+
+		return res;
+	}
+
+	private String parseConsoleLogTrace(String ndd, ArrayList<String> traceList, boolean isLinux) {
+		StringBuilder res = new StringBuilder();
+
 		try {
 			if (traceList.size() == 0) return "";
-			
-			File dir = new File(ndd + File.separator + "IBM_TECHNICAL_SUPPORT");
-			if (!dir.isDirectory()) return "";
 
-			File file = new File(dir, "console.log");
+			String filePath = getLogFilePath(ndd, isLinux);
+			if (filePath==null || filePath.isEmpty()) return "";
+
+			File file = new File(filePath);
 			if (!file.exists()) return "";
 
 			// read up to 1000 lines from bottom to top
@@ -327,11 +352,11 @@ public class ReportThread extends NotesThread {
 					if (bufLine.length() > 10) {
 						bufLine.reverse();
 						fifo.push(bufLine.toString());
-			
+
 						if (bufLine.toString().contains("Determining path to server")) {
 							maxTrace--;
 						}
-						
+
 						maxLineCounter--;
 
 					}
@@ -344,34 +369,35 @@ public class ReportThread extends NotesThread {
 			raf.close();
 
 			maxTrace = traceList.size();
-			
 			for(int i=0; i<fifo.size() && maxTrace>0; i++) {
 				String line = fifo.get(i);
 				if (line.toString().contains("Determining path to server")) {
 					String server = line.substring(line.lastIndexOf(" ")+1);
-					
+
+					int maxLineResponse = 50;	// avoid sending big reports for 1 server
 					maxTrace--;
 					boolean traceFlag = true;
 					StringBuilder traceRes = new StringBuilder();
-					while (i<fifo.size() && traceFlag) {
+					while (i<fifo.size() && traceFlag && maxLineResponse>0) {
 						i++;
 						line = fifo.get(i);
 
 						line = line.substring(line.indexOf("]")+2);
 						traceRes.append(line);
-						
-						if (line.contains("Encryption is") || line.contains("Unable to find any path to")) {
+						maxLineResponse--;
+
+						if (line.contains("Encryption is") || line.contains("Unable to find any path to") || line.contains("This server is not permitted to passthru to the specified server")) {
 							traceFlag = false;
 						}
 						else {
 							traceRes.append(";");
 						}
 					}
-					
+
 					res.append(server);
 					res.append("~");
 					res.append(traceRes.toString());
-					
+
 					if (maxTrace>0) {
 						res.append("|");
 					}
@@ -382,7 +408,7 @@ public class ReportThread extends NotesThread {
 		} catch (IOException e) {
 			this.logSevere(e);
 		}
-		
+
 		return "&traceConnection=" + StringUtils.encodeValue(res.toString());
 	}
 
@@ -487,7 +513,7 @@ public class ReportThread extends NotesThread {
 			mfaDb.recycle();
 
 			Database domcfgDb = m_session.getDatabase(null, "domcfg.nsf");
-			if (domcfgDb == null) return "";
+			if (domcfgDb == null || !domcfgDb.isOpen()) return "";
 
 			String search = "Form=\"LoginMap\" & LF_ServerType=\"0\" & LF_LoginFormDB=\"mfa.nsf\"";
 			DocumentCollection col = domcfgDb.search(search);

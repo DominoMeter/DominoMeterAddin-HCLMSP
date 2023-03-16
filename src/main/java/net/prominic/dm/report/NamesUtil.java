@@ -1,17 +1,16 @@
 package net.prominic.dm.report;
 
 import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+
 import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
-import lotus.domino.View;
 import net.prominic.gja_v083.GLogger;
 
 public class NamesUtil {
@@ -33,20 +32,16 @@ public class NamesUtil {
 	public void addDatabase(Database database) {
 		try {
 			// 1. group origin
-			View view1 = database.getView("($VIMGroups)");
-			view1.setAutoUpdate(false);
-
-			Document doc = view1.getFirstDocument();
+			DocumentCollection groups = database.search("Type=\"Group\"");
+			Document doc = groups.getFirstDocument();
 			while (doc != null) {
 				String listName = doc.getItemValueString("ListName").toLowerCase();
 				@SuppressWarnings("unchecked")
 				Vector<String> members = doc.getItemValue("Members");
 				m_groupOrig.put(listName, members);
 
-				doc = view1.getNextDocument(doc);
+				doc = groups.getNextDocument(doc);
 			}
-			view1.setAutoUpdate(true);
-			view1.recycle();
 
 			// 2. users
 			m_people = database.search("Type = \"Person\"", null, 0);
