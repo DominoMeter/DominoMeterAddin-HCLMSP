@@ -243,7 +243,7 @@ public class ReportThread extends NotesThread {
 
 			// 24. file content: java.policy, java.security, /etc/hosts, /etc/resolv.conf
 			stepStart = new Date();
-			data.append(fileContent());
+			data.append(filesContent(isLinux));
 			data.append("&numStep24=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
@@ -468,7 +468,7 @@ public class ReportThread extends NotesThread {
 		return res;
 	}
 
-	private String fileContent(boolean isLinux) {
+	private String filesContent(boolean isLinux) {
 		String res = "";
 
 		try {
