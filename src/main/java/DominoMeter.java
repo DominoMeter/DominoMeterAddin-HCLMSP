@@ -30,20 +30,31 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "123";
+		return "124";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-03-16 15:30 (trace, /etc/hosts)";
+		return "2023-03-17 15:30 (trace, /etc/hosts)";
 	}
 
 	@Override
 	protected boolean runNotesAfterInitialize() {
 		if (args == null) {
+			String params = this.getConfigValue("runjava");
+			if (params != null) {
+				logMessage("Loading using config: " + this.m_javaAddinConfig);
+				if (params.startsWith(this.getJavaAddinName())) {
+					params = params.substring(getJavaAddinName().length()).trim();
+					args = params.split(" ");
+				}
+			}
+		}
+		
+		if (args == null) {
 			logMessage("You must provide an endpoint to send data, see instructions below");
 			showHelp();
-			return false;
+			return false;	
 		}
 
 		try {

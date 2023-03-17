@@ -386,7 +386,7 @@ public class ReportThread extends NotesThread {
 						traceRes.append(line);
 						maxLineResponse--;
 
-						if (line.contains("Encryption is") || line.contains("Unable to find any path to") || line.contains("This server is not permitted to passthru to the specified server")) {
+						if (line.contains("Encryption is") || line.contains("Unable to find") || line.contains("This server is not permitted to passthru to the specified server")) {
 							traceFlag = false;
 						}
 						else {
@@ -489,12 +489,12 @@ public class ReportThread extends NotesThread {
 			if (isLinux) {
 				buf = FileUtils.readFileContent("/etc/resolv.conf");
 				if (buf != null) {
-					res += "&etcResolvConf=" + StringUtils.encodeValue(buf.toString());
+					res += "&FileEtcResolvConf=" + StringUtils.encodeValue(buf.toString());
 				}
 				
 				buf = FileUtils.readFileContent("/etc/hosts");
 				if (buf != null) {
-					res += "&etcHosts=" + StringUtils.encodeValue(buf.toString());
+					res += "&FileEtcHosts=" + StringUtils.encodeValue(buf.toString());
 				}				
 			}
 		} catch (NoSuchAlgorithmException e) {
