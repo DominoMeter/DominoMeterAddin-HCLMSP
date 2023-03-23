@@ -7,6 +7,7 @@ import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -335,6 +336,7 @@ public class ReportThread extends NotesThread {
 			File file = new File(filePath);
 			if (!file.exists()) return "";
 
+			String year = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
 			// read up to 1000 lines from bottom to top
 			int maxLineCounter = 1000;
 			// we want to find first N trace commands only
@@ -351,14 +353,23 @@ public class ReportThread extends NotesThread {
 				if (readByte=='\r' || readByte=='\n') {
 					if (bufLine.length() > 10) {
 						bufLine.reverse();
-						fifo.push(bufLine.toString());
 
-						if (bufLine.toString().contains("Determining path to server")) {
-							maxTrace--;
+						String line = bufLine.toString();
+						
+						// PROCESS: [10B8:0009-1900] Encryption is Disabled
+						// SKIP: [1930:0008-0ED8] 23-03-2023 12:11:30   ...text...
+						if (!line.contains(year)) {
+							if (line.contains("]")) {
+								line = line.substring(line.indexOf("]")+2);
+							}
+							fifo.push(line);
+							
+							if (line.contains("Determining path to server")) {
+								maxTrace--;
+							}
 						}
 
 						maxLineCounter--;
-
 					}
 					bufLine = new StringBuilder();
 				}
@@ -372,6 +383,7 @@ public class ReportThread extends NotesThread {
 			for(int i=0; i<fifo.size() && maxTrace>0; i++) {
 				String line = fifo.get(i);
 				if (line.toString().contains("Determining path to server")) {
+					i++;
 					String server = line.substring(line.lastIndexOf(" ")+1);
 
 					int maxLineResponse = 50;	// avoid sending big reports for 1 server
@@ -379,10 +391,8 @@ public class ReportThread extends NotesThread {
 					boolean traceFlag = true;
 					StringBuilder traceRes = new StringBuilder();
 					while (i<fifo.size() && traceFlag && maxLineResponse>0) {
-						i++;
 						line = fifo.get(i);
 
-						line = line.substring(line.indexOf("]")+2);
 						traceRes.append(line);
 						maxLineResponse--;
 
@@ -392,6 +402,7 @@ public class ReportThread extends NotesThread {
 						else {
 							traceRes.append(";");
 						}
+						i++;
 					}
 
 					res.append(server);
