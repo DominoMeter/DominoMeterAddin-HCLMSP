@@ -280,23 +280,25 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
+	// send trace <server> command to console
 	private ArrayList<String> traceConnection() {
 		ArrayList<String> res = new ArrayList<String>();
 		try {
-			View view = this.m_ab.getView("($Connections)");
-			DocumentCollection col = view.getAllDocumentsByKey(m_server);
+			String search = "Type=\"Connection\" & Source=\""+m_server+"\" & ConnectionType=\"0\":\"2\" & !RoutingTask=\"SMTP Mail Routing\"";
+			DocumentCollection col = m_ab.search(search);
 			Document doc = col.getFirstDocument();
 			while (doc!=null) {
+				Document nextDoc = col.getNextDocument();
 				String destination = doc.getItemValueString("Destination");
-				String ConnectionType = doc.getItemValueString("ConnectionType");
 
-				if ("0".equals(ConnectionType) || "2".equals(ConnectionType)) {
-					res.add(destination);
-					this.m_session.sendConsoleCommand("", "!trace " + destination);
-				}
+				res.add(destination);
+				this.m_session.sendConsoleCommand("", "!trace " + destination);
 
-				doc = col.getNextDocument();
+				doc.recycle();
+				doc = nextDoc;
 			}
+			
+			col.recycle();
 		} catch (Exception e) {
 			logSevere(e);
 		}
