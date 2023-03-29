@@ -1127,16 +1127,22 @@ public class ReportThread extends NotesThread {
 	/*
 	 * check for DA and for trusted records there
 	 */
-	private String getDA() throws NotesException {
-		String da = m_serverDoc.getItemValueString("MasterAddressBook");
-		if (da.isEmpty()) return "";
+	private String getDA() {
+		String res = "";
+		
+		try {
+			String da = m_serverDoc.getItemValueString("MasterAddressBook");
+			if (da.isEmpty()) return "";
 
-		String res = "&da=1";	// da defined
-		Database dirDb = m_session.getDatabase(null, da);
-		if (dirDb == null || !dirDb.isOpen()) return res;
+			res = "&da=1";	// da defined
+			Database dirDb = m_session.getDatabase(null, da);
+			if (dirDb == null || !dirDb.isOpen()) return res;
 
-		DocumentCollection col = dirDb.search("Type=\"DirectoryAssistance\" & TrustedList=\"Yes\"", null, 1);
-		res += col.getCount() > 0 ? "&daTrusted=1" : "";
+			DocumentCollection col = dirDb.search("Type=\"DirectoryAssistance\" & TrustedList=\"Yes\"", null, 1);
+			res += col.getCount() > 0 ? "&daTrusted=1" : "";
+		} catch (NotesException e) {
+			e.printStackTrace();
+		}
 
 		return res;
 	}
