@@ -6,7 +6,7 @@ import net.prominic.dm.api.Config;
 import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v083.JavaServerAddinGenesis;
+import net.prominic.gja_v084.JavaServerAddinGenesis;
 
 public class DominoMeter extends JavaServerAddinGenesis {
 	public static String	exception_last = null;
@@ -35,7 +35,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-03-29 15:31 (trace)";
+		return "2023-03-29 15:31 (new core)";
 	}
 
 	@Override

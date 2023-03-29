@@ -35,7 +35,7 @@ import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.report.NamesUtil;
 import net.prominic.dm.report.UsersInfo;
-import net.prominic.gja_v083.GLogger;
+import net.prominic.gja_v084.GLogger;
 import net.prominic.io.Bash;
 import net.prominic.io.EchoClient;
 import net.prominic.io.RESTClient;

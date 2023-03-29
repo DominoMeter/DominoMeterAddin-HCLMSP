@@ -11,7 +11,7 @@ import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
-import net.prominic.gja_v083.GLogger;
+import net.prominic.gja_v084.GLogger;
 
 public class NamesUtil {
 	DocumentCollection m_people = null;
