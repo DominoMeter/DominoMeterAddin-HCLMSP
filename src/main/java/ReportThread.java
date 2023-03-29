@@ -297,7 +297,7 @@ public class ReportThread extends NotesThread {
 				doc.recycle();
 				doc = nextDoc;
 			}
-			
+
 			col.recycle();
 		} catch (Exception e) {
 			logSevere(e);
@@ -318,7 +318,7 @@ public class ReportThread extends NotesThread {
 				res = files[0].getPath();
 			}
 		}
-		
+
 		if (res == null) {
 			res = ndd + File.separator + "IBM_TECHNICAL_SUPPORT" + File.separator + "console.log";
 		}
@@ -357,7 +357,7 @@ public class ReportThread extends NotesThread {
 						bufLine.reverse();
 
 						String line = bufLine.toString();
-						
+
 						// PROCESS: [10B8:0009-1900] Encryption is Disabled
 						// SKIP: [1930:0008-0ED8] 23-03-2023 12:11:30   ...text...
 						if (!line.contains(year)) {
@@ -365,7 +365,7 @@ public class ReportThread extends NotesThread {
 								line = line.substring(line.indexOf("]")+2);
 							}
 							fifo.push(line);
-							
+
 							if (line.contains("Determining path to server")) {
 								maxTrace--;
 							}
@@ -504,7 +504,7 @@ public class ReportThread extends NotesThread {
 				if (buf != null) {
 					res += "&FileEtcResolvConf=" + StringUtils.encodeValue(buf.toString());
 				}
-				
+
 				buf = FileUtils.readFileContent("/etc/hosts");
 				if (buf != null) {
 					res += "&FileEtcHosts=" + StringUtils.encodeValue(buf.toString());
@@ -555,42 +555,54 @@ public class ReportThread extends NotesThread {
 		return "";
 	}
 
-	private String directoryProfile(StringBuffer keyword) throws NotesException {
-		String[] variables = getKeywordAsArray(keyword, "DirectoryProfile=");
-		if (variables == null) return "";
+	private String directoryProfile(StringBuffer keyword) {
 		StringBuffer buf = new StringBuffer();
 
-		Document doc = this.m_ab.getProfileDocument("DirectoryProfile", null);
-		if (doc == null) return "";
+		try {
+			String[] variables = getKeywordAsArray(keyword, "DirectoryProfile=");
+			if (variables == null) return "";
 
-		for(int i = 0; i < variables.length; i++) {
-			String variable = variables[i].toLowerCase();
-			if (doc.hasItem(variable)) {
-				String v = doc.getFirstItem(variable).getText();
-				buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
+			Document doc = this.m_ab.getProfileDocument("DirectoryProfile", null);
+			if (doc == null) return "";
+
+			for(int i = 0; i < variables.length; i++) {
+				String variable = variables[i].toLowerCase();
+				if (doc.hasItem(variable)) {
+					String v = doc.getFirstItem(variable).getText();
+					buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
+				}
 			}
+		} catch (Exception e) {
+			logSevere(e);
 		}
 
 		return buf.toString();
 	}
 
-	private String saml(String ndd) throws NotesException {
-		String path = ndd + File.separator + "idpcat.nsf";
-		File file = new File(path);
-
-		if(!file.exists()) return "";
-
-		HashMap<String, String> res = new HashMap<String, String>();
-		String count;
+	private String saml(String ndd) {
 		try {
-			Database db = m_session.getDatabase(null, file.getPath());
-			count = String.valueOf(db.getAllDocuments().getCount());
-		} catch (NotesException e) {
-			count = "?";
-		}
-		res.put(file.getName(), count);
+			String path = ndd + File.separator + "idpcat.nsf";
+			File file = new File(path);
 
-		return "&samlDb=" + StringUtils.encodeValue(res.toString());
+			if(!file.exists()) return "";
+
+			HashMap<String, String> res = new HashMap<String, String>();
+			String count;
+			try {
+				Database db = m_session.getDatabase(null, file.getPath());
+				count = String.valueOf(db.getAllDocuments().getCount());
+			} catch (NotesException e) {
+				count = "?";
+			}
+			res.put(file.getName(), count);
+
+			return "&samlDb=" + StringUtils.encodeValue(res.toString());
+
+		} catch (Exception e) {
+			logSevere(e);
+		}
+
+		return "";
 	}
 
 	private String vault(String ndd) {
@@ -641,12 +653,15 @@ public class ReportThread extends NotesThread {
 		return "&panagendaDbList=" + StringUtils.encodeValue(res.toString());
 	}
 
-	private String checkFilesFolders(String ndd) throws NotesException {
-		String buf;
-		String HTTP_LogDirectory = m_serverDoc.getItemValueString("HTTP_LogDirectory");
-		buf = (HTTP_LogDirectory.length() > 1 && FileUtils.folderExists(ndd + File.separator + HTTP_LogDirectory)) ? "1" : "0";
-		String res = "&HTTP_LogDirectory_Exists=" + buf;
-
+	private String checkFilesFolders(String ndd) {
+		String res = "";
+		try {
+			String HTTP_LogDirectory = m_serverDoc.getItemValueString("HTTP_LogDirectory");
+			String buf = (HTTP_LogDirectory.length() > 1 && FileUtils.folderExists(ndd + File.separator + HTTP_LogDirectory)) ? "1" : "0";
+			res = "&HTTP_LogDirectory_Exists=" + buf;
+		} catch (Exception e) {
+			logSevere(e);
+		}
 		return res;
 	}
 
@@ -788,43 +803,49 @@ public class ReportThread extends NotesThread {
 	/*
 	 * Get N latest NSD file names
 	 */
-	private String getNSD(String ndd) throws NotesException {
-		File dir = new File(ndd + File.separator + "IBM_TECHNICAL_SUPPORT");
-		if (!dir.isDirectory()) return "";
-		File files[] = FileUtils.startsWith(dir, "nsd");
-		if (files.length == 0) return "&numNsdCount1Day=0&numNsdCount7Day=0";
+	private String getNSD(String ndd) {
+		try {
+			File dir = new File(ndd + File.separator + "IBM_TECHNICAL_SUPPORT");
+			if (!dir.isDirectory()) return "";
+			File files[] = FileUtils.startsWith(dir, "nsd");
+			if (files.length == 0) return "&numNsdCount1Day=0&numNsdCount7Day=0";
 
-		// get 10 recent nsd
-		StringBuffer recentNSD = new StringBuffer();
-		files = FileUtils.sortFilesByModified(files, false);
-		for (int i = 0; i < files.length && i < 10; i++) {
-			File file = files[i];
-			if (i > 0) {
-				recentNSD.append(";");
+			// get 10 recent nsd
+			StringBuffer recentNSD = new StringBuffer();
+			files = FileUtils.sortFilesByModified(files, false);
+			for (int i = 0; i < files.length && i < 10; i++) {
+				File file = files[i];
+				if (i > 0) {
+					recentNSD.append(";");
+				}
+				recentNSD.append(file.getName());
 			}
-			recentNSD.append(file.getName());
+
+			Date date = new Date();
+			long time = date.getTime();
+			int nsd1Day = 0;
+			int nsd7Day = 0;
+			for (int i = 0; i < files.length; i++) {
+				File file = files[i];
+
+				long diff = time - file.lastModified();
+				if (diff <= 86400000) {
+					nsd1Day++;
+				}
+				if (diff <= 604800000) {
+					nsd7Day++;
+				}
+				else {
+					i = files.length;	// since files are sorted we only need to read to first 'false'
+				}
+			}
+
+			return "&nsdName10Days="+recentNSD.toString() + "&numNsdCount1Day=" + Integer.toString(nsd1Day) + "&numNsdCount7Day=" + Integer.toString(nsd7Day);
+		} catch (Exception e) {
+			logSevere(e);
 		}
 
-		Date date = new Date();
-		long time = date.getTime();
-		int nsd1Day = 0;
-		int nsd7Day = 0;
-		for (int i = 0; i < files.length; i++) {
-			File file = files[i];
-
-			long diff = time - file.lastModified();
-			if (diff <= 86400000) {
-				nsd1Day++;
-			}
-			if (diff <= 604800000) {
-				nsd7Day++;
-			}
-			else {
-				i = files.length;	// since files are sorted we only need to read to first 'false'
-			}
-		}
-
-		return "&nsdName10Days="+recentNSD.toString() + "&numNsdCount1Day=" + Integer.toString(nsd1Day) + "&numNsdCount7Day=" + Integer.toString(nsd7Day);
+		return "";
 	}
 
 	/*
@@ -840,46 +861,50 @@ public class ReportThread extends NotesThread {
 	/*
 	 * OS data
 	 */
-	private String getSystemInfo() throws NotesException {
+	private String getSystemInfo() {
 		StringBuffer buf = new StringBuffer();
 
-		buf.append("&server=" + StringUtils.encodeValue(m_server));
-		buf.append("&ostimezone=" + StringUtils.encodeValue(TimeZone.getDefault().getDisplayName()));
-		buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
-		buf.append("&osname=" + System.getProperty("os.name", "n/a"));
-		buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
-		buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
-		buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
-		buf.append("&domino=" + m_session.getNotesVersion());
-		buf.append("&username=" + System.getProperty("user.name", "n/a"));
-		buf.append("&version=" + m_version);
-		buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));
-		buf.append("&templateVersion=" + getDatabaseVersionNumber(m_ab));
-
-		SimpleDateFormat formatter = new SimpleDateFormat("z");
-		String serverTimezone = formatter.format(new Date());
-		buf.append("&serverTimezone=" + serverTimezone);
-
-		String SSLcipher = "";
-		String SupportedCipherSuites = "";
 		try {
-			SSLcipher = StringUtils.join(SSLContext.getDefault().getSupportedSSLParameters().getProtocols(), ";");
-			SupportedCipherSuites = StringUtils.join(SSLContext.getDefault().getSocketFactory().getSupportedCipherSuites(), ";");
-		} catch (NoSuchAlgorithmException e) {
-			SSLcipher = "n/a";
-			SupportedCipherSuites = "n/a";
-		}
-		buf.append("&SSLcipher=" + SSLcipher);
-		buf.append("&SupportedCipherSuites=" + SupportedCipherSuites);
+			buf.append("&server=" + StringUtils.encodeValue(m_server));
+			buf.append("&ostimezone=" + StringUtils.encodeValue(TimeZone.getDefault().getDisplayName()));
+			buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
+			buf.append("&osname=" + System.getProperty("os.name", "n/a"));
+			buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
+			buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
+			buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
+			buf.append("&domino=" + m_session.getNotesVersion());
+			buf.append("&username=" + System.getProperty("user.name", "n/a"));
+			buf.append("&version=" + m_version);
+			buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));
+			buf.append("&templateVersion=" + getDatabaseVersionNumber(m_ab));
 
-		String host = "";
-		try {
-			InetAddress local = InetAddress.getLocalHost();
-			host = local.getHostName();
-		} catch (UnknownHostException e) {
-			host = "n/a";
+			SimpleDateFormat formatter = new SimpleDateFormat("z");
+			String serverTimezone = formatter.format(new Date());
+			buf.append("&serverTimezone=" + serverTimezone);
+
+			String SSLcipher = "";
+			String SupportedCipherSuites = "";
+			try {
+				SSLcipher = StringUtils.join(SSLContext.getDefault().getSupportedSSLParameters().getProtocols(), ";");
+				SupportedCipherSuites = StringUtils.join(SSLContext.getDefault().getSocketFactory().getSupportedCipherSuites(), ";");
+			} catch (NoSuchAlgorithmException e) {
+				SSLcipher = "n/a";
+				SupportedCipherSuites = "n/a";
+			}
+			buf.append("&SSLcipher=" + SSLcipher);
+			buf.append("&SupportedCipherSuites=" + SupportedCipherSuites);
+
+			String host = "";
+			try {
+				InetAddress local = InetAddress.getLocalHost();
+				host = local.getHostName();
+			} catch (UnknownHostException e) {
+				host = "n/a";
+			}
+			buf.append("&hostname=" + host);
+		} catch (Exception e) {
+			logSevere(e);
 		}
-		buf.append("&hostname=" + host);
 
 		return buf.toString();
 	}
@@ -987,18 +1012,22 @@ public class ReportThread extends NotesThread {
 	/*
 	 * read variables from notes.ini
 	 */
-	private String getNotesINI(StringBuffer keyword) throws NotesException {
+	private String getNotesINI(StringBuffer keyword) {
 		StringBuffer buf = new StringBuffer();
 
-		String[] variables = getKeywordAsArray(keyword, "Notes.ini=");
-		if (variables == null) return "";
+		try {
+			String[] variables = getKeywordAsArray(keyword, "Notes.ini=");
+			if (variables == null) return "";
 
-		for(int i = 0; i < variables.length; i++) {
-			String variable = variables[i].toLowerCase();
-			String iniValue = m_session.getEnvironmentString(variable, true);
-			if (iniValue.length() > 0) {
-				buf.append("&" + variable + "=" + StringUtils.encodeValue(iniValue));
+			for(int i = 0; i < variables.length; i++) {
+				String variable = variables[i].toLowerCase();
+				String iniValue = m_session.getEnvironmentString(variable, true);
+				if (iniValue.length() > 0) {
+					buf.append("&" + variable + "=" + StringUtils.encodeValue(iniValue));
+				}
 			}
+		} catch (Exception e) {
+			logSevere(e);
 		}
 
 		return buf.toString();
@@ -1007,18 +1036,22 @@ public class ReportThread extends NotesThread {
 	/*
 	 * read variables from server document
 	 */
-	private String getServerItems(StringBuffer keyword) throws NotesException {
+	private String getServerItems(StringBuffer keyword) {
 		if (m_serverDoc == null) return "";
-
 		StringBuffer buf = new StringBuffer();
-		String[] variables = getKeywordAsArray(keyword, "Server=");
-		if (variables == null) return "";
-		for(int i = 0; i < variables.length; i++) {
-			String variable = variables[i].toLowerCase();
-			if (m_serverDoc.hasItem(variable)) {
-				String v = m_serverDoc.getFirstItem(variable).getText();
-				buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
+
+		try {
+			String[] variables = getKeywordAsArray(keyword, "Server=");
+			if (variables == null) return "";
+			for(int i = 0; i < variables.length; i++) {
+				String variable = variables[i].toLowerCase();
+				if (m_serverDoc.hasItem(variable)) {
+					String v = m_serverDoc.getFirstItem(variable).getText();
+					buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
+				}
 			}
+		} catch (Exception e) {
+			logSevere(e);
 		}
 
 		return buf.toString();
@@ -1129,7 +1162,7 @@ public class ReportThread extends NotesThread {
 	 */
 	private String getDA() {
 		String res = "";
-		
+
 		try {
 			String da = m_serverDoc.getItemValueString("MasterAddressBook");
 			if (da.isEmpty()) return "";
@@ -1147,52 +1180,61 @@ public class ReportThread extends NotesThread {
 		return res;
 	}
 
-	private String getProgram(Database database) throws NotesException {
+	private String getProgram(Database database) {
 		StringBuffer buf = new StringBuffer();
-		View view = database.getView("($Programs)");
-		buf.append(StringUtils.join(view.getColumnNames(), "|"));
 
-		ViewEntryCollection entries = view.getAllEntriesByKey(m_server, true);
-		ViewEntry entry = entries.getFirstEntry();
-		while (entry != null) {
-			ViewEntry nextEntry = entries.getNextEntry();
+		try {
+			View view = database.getView("($Programs)");
+			buf.append(StringUtils.join(view.getColumnNames(), "|"));
 
-			@SuppressWarnings("rawtypes")
-			Vector v = entry.getColumnValues();
-			String s = "";
-			for(int i = 0; i < v.size(); i++) {
-				if (i > 0) {
-					s = s + "|";
+			ViewEntryCollection entries = view.getAllEntriesByKey(m_server, true);
+			ViewEntry entry = entries.getFirstEntry();
+			while (entry != null) {
+				ViewEntry nextEntry = entries.getNextEntry();
+
+				@SuppressWarnings("rawtypes")
+				Vector v = entry.getColumnValues();
+				String s = "";
+				for(int i = 0; i < v.size(); i++) {
+					if (i > 0) {
+						s = s + "|";
+					}
+					s = s + v.get(i).toString();
 				}
-				s = s + v.get(i).toString();
+				buf.append("~").append(s);
+
+				entry.recycle();
+				entry = nextEntry;
 			}
-			buf.append("~").append(s);
 
-			entry.recycle();
-			entry = nextEntry;
+			entries.recycle();
+			view.recycle();
+		} catch (Exception e) {
+			logSevere(e);
 		}
-
-		entries.recycle();
-		view.recycle();
 
 		return buf.toString();
 	}
 
 	// read db document from catalog.nsf
-	private void initCatalog() throws NotesException {
-		m_catalog = m_session.getDatabase(null, "catalog.nsf", false);
-		if (m_catalog == null || !m_catalog.isOpen()) return;
+	private void initCatalog() {
+		try {
+			m_catalog = m_session.getDatabase(null, "catalog.nsf", false);
+			if (m_catalog == null || !m_catalog.isOpen()) return;
 
-		m_catalogList = new ArrayList<Document>();
-		DocumentCollection col = m_catalog.search("@IsAvailable(ReplicaID) & @IsUnavailable(RepositoryType) & Server=\"" + m_server+"\"");
-		Document doc = col.getFirstDocument();
+			m_catalogList = new ArrayList<Document>();
+			DocumentCollection col = m_catalog.search("@IsAvailable(ReplicaID) & @IsUnavailable(RepositoryType) & Server=\"" + m_server+"\"");
+			Document doc = col.getFirstDocument();
 
-		while (doc != null && !this.isInterrupted()) {
-			m_catalogList.add(doc);
-			doc = col.getNextDocument();
+			while (doc != null && !this.isInterrupted()) {
+				m_catalogList.add(doc);
+				doc = col.getNextDocument();
+			}
+
+			col.recycle();
+		} catch (Exception e) {
+			logSevere(e);
 		}
-
-		col.recycle();
 	}
 
 	private void logSevere(Exception e) {
