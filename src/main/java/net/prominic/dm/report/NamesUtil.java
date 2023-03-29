@@ -157,10 +157,6 @@ public class NamesUtil {
 		return m_people;
 	}
 
-	public List<String> getFullNameList() {
-		return m_fullNameList;
-	}
-	
 	public boolean getWildCardBuf() {
 		return wildCardBuf;
 	}

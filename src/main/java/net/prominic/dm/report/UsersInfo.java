@@ -119,7 +119,7 @@ public class UsersInfo {
 			String expiration;
 			if(isNotes) {
 				@SuppressWarnings("unchecked")
-				Vector<String> tmp = m_session.evaluate("_d:=@Date(@Certificate([Expiration];Certificate)); @Text(@Year(_d))+\"-\"+@Text(@Month(_d))+\"-\"+@Text(@Day(_d))", doc);
+				Vector<String> tmp = m_session.evaluate("_txtDate:=@Certificate([Expiration];Certificate); @if(_txtDate=\"\"; @Return(\"\"); @Success); _d:=@Date(_txtDate); @Text(@Year(_d))+\"-\"+@Text(@Month(_d))+\"-\"+@Text(@Day(_d))", doc);
 				expiration = tmp.get(0);
 			}
 			else {
