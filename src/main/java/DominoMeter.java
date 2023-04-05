@@ -1,5 +1,4 @@
 import java.util.Calendar;
-
 import lotus.domino.Name;
 import lotus.domino.NotesException;
 import net.prominic.dm.api.Config;
@@ -35,7 +34,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-04-05 12:30 (new core)";
+		return "2023-04-05 12:35 (new core)";
 	}
 
 	@Override
