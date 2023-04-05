@@ -4,7 +4,7 @@
 	<artifactId>DominoMeter</artifactId>
 	<packaging>jar</packaging>
 	<name>DominoMeter</name>
-	<version>124</version>
+	<version>125</version>
 	<url>http://maven.apache.org</url>
 
 	<build>

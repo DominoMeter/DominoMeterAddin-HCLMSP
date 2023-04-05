@@ -29,7 +29,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "124";
+		return "125";
 	}
 
 	@Override
