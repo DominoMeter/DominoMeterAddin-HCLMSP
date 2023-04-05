@@ -284,7 +284,7 @@ public class ReportThread extends NotesThread {
 	private ArrayList<String> traceConnection() {
 		ArrayList<String> res = new ArrayList<String>();
 		try {
-			String search = "Type=\"Connection\" & Source=\""+m_server+"\" & ConnectionType=\"0\":\"2\" & !RoutingTask=\"SMTP Mail Routing\"";
+			String search = "Type=\"Connection\" & Source=\""+m_server+"\" & ConnectionType=\"0\":\"2\" & !RoutingTask=\"SMTP Mail Routing\" & RepTask=\"1\"";
 			DocumentCollection col = m_ab.search(search);
 			Document doc = col.getFirstDocument();
 			while (doc!=null) {
@@ -1166,10 +1166,12 @@ public class ReportThread extends NotesThread {
 		try {
 			String da = m_serverDoc.getItemValueString("MasterAddressBook");
 			if (da.isEmpty()) return "";
+			res = "&daPath=1";
 
-			res = "&da=1";	// da defined
 			Database dirDb = m_session.getDatabase(null, da);
 			if (dirDb == null || !dirDb.isOpen()) return res;
+
+			res += "&da=1";	// da defined
 
 			DocumentCollection col = dirDb.search("Type=\"DirectoryAssistance\" & TrustedList=\"Yes\"", null, 1);
 			res += col.getCount() > 0 ? "&daTrusted=1" : "";
