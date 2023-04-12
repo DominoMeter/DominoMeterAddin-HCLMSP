@@ -49,7 +49,8 @@ public class ReportThread extends NotesThread {
 	private String m_version;
 	private GLogger m_fileLogger;
 	private boolean m_manual = false;
-
+	private volatile boolean running = true;
+	
 	private Session m_session = null;
 	private Database m_ab = null;
 	private Database m_catalog = null;
@@ -1251,6 +1252,15 @@ public class ReportThread extends NotesThread {
 		if (m_manual) {
 			System.out.println("ReportThread: " + msg);
 		}
+	}
+	
+	public void stopThread(long timeoutMillis) throws InterruptedException {
+	    running = false;
+	    interrupt();
+	    join(timeoutMillis);
+	    if (isAlive()) {
+	        throw new InterruptedException("Thread did not exit within timeout period");
+	    }
 	}
 
 	@Override

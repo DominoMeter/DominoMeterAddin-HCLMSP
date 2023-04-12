@@ -34,7 +34,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-04-05 12:35 (new core)";
+		return "2023-04-12 12:35 (restart improvements)";
 	}
 
 	@Override
@@ -287,32 +287,18 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	private void terminateReportThread() {
 		if (thread == null || !thread.isAlive()) return;
 
-		logMessage("ReportThread: is alive, stopping...");
+		logMessage("ReportThread: is alive, stopping... (will be interrupted in 10 seconds)");
 
-		long counter = 0;
-		thread.interrupt();
-		while(thread.isAlive()) {
-			try {
-				counter++;
-				sleep(100);
+		// interrupt thread after 10 seconds
+		try {
+			thread.stopThread(10000);
+		} catch (InterruptedException e) {
+			logSevere(e);
+			e.printStackTrace();
+			return;
+		}	
 
-				if (counter % 50 == 0) {
-					logMessage("ReportThread: is stopping, please wait...");
-				}
-			} catch (InterruptedException e) {
-				incrementExceptionTotal();
-				logSevere(e);
-				e.printStackTrace();
-			}
-
-			// force to shut down after 5 mins hour (Domino however has a setting to shut down after 5 mins by default)
-			if (counter > 3000) {
-				logMessage("ReportThread: forcing to quit after 5 mins");
-				return;
-			}
-		}
-
-		logMessage("ReportThread: has been stopped nicely");
+		logMessage("ReportThread: has been stopped");
 	}
 
 }

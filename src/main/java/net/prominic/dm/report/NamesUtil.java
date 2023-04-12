@@ -47,7 +47,7 @@ public class NamesUtil {
 			m_people = database.search("Type = \"Person\"", null, 0);
 			doc = m_people.getFirstDocument();
 			while (doc != null) {
-				Document nextDoc = m_people.getNextDocument(doc);
+//				Document nextDoc = m_people.getNextDocument(doc);
 
 				if (!doc.isDeleted() && doc.isValid()) {
 					String fullName = doc.getItemValueString("FullName").toLowerCase();
@@ -56,8 +56,8 @@ public class NamesUtil {
 					}
 				}
 
-				doc.recycle();
-				doc = nextDoc;
+//				doc.recycle();
+//				doc = nextDoc;
 			}
 		} catch (NotesException e) {
 			m_fileLogger.severe(e);
