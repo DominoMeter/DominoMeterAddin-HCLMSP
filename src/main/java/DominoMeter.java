@@ -287,18 +287,32 @@ public class DominoMeter extends JavaServerAddinGenesis {
 	private void terminateReportThread() {
 		if (thread == null || !thread.isAlive()) return;
 
-		logMessage("ReportThread: is alive, stopping... (will be interrupted in 10 seconds)");
+		logMessage("ReportThread: is alive, stopping...");
 
-		// interrupt thread after 10 seconds
-		try {
-			thread.stopThread(10000);
-		} catch (InterruptedException e) {
-			logSevere(e);
-			e.printStackTrace();
-			return;
-		}	
+		long counter = 0;
+		thread.interrupt();
+		while(thread.isAlive()) {
+			try {
+				counter++;
+				sleep(100);
 
-		logMessage("ReportThread: has been stopped");
+				if (counter % 50 == 0) {
+					logMessage("ReportThread: is stopping, please wait...");
+				}
+			} catch (InterruptedException e) {
+				incrementExceptionTotal();
+				logSevere(e);
+				e.printStackTrace();
+			}
+
+			// force to shut down after 5 mins hour (Domino however has a setting to shut down after 5 mins by default)
+			if (counter > 3000) {
+				logMessage("ReportThread: forcing to quit after 5 mins");
+				return;
+			}
+		}
+
+		logMessage("ReportThread: has been stopped nicely");
 	}
 
 }
