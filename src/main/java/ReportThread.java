@@ -872,7 +872,7 @@ public class ReportThread extends NotesThread {
 			buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
 			buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
 			buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
-			buf.append("&domino=" + m_session.getNotesVersion());
+			buf.append("&domino=" + m_session.getNotesVersion().trim());
 			buf.append("&username=" + System.getProperty("user.name", "n/a"));
 			buf.append("&version=" + m_version);
 			buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));
