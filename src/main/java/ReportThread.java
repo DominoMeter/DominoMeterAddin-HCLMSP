@@ -252,6 +252,11 @@ public class ReportThread extends NotesThread {
 			stepStart = new Date();
 			data.append(parseTraceOutput(ndd, connection, isLinux));
 			data.append("&numStep25=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			
+			// 26. repair list missing
+			stepStart = new Date();
+			data.append(repairListMissing());
+			data.append("&numStep26=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
@@ -278,6 +283,26 @@ public class ReportThread extends NotesThread {
 		} catch (Exception e) {
 			logSevere(e);
 		}
+	}
+
+	private String repairListMissing() throws NotesException {
+		String res = m_session.sendConsoleCommand("", "!repair list missing");
+		if (!res.contains("[Missing]")) return "";
+		
+		StringBuffer data = new StringBuffer();
+
+		String[] lines = res.split(System.getProperty("line.separator"));
+		for (String line : lines) {
+			if (line.contains("[Missing]")) {
+				String filepath = line.substring(0, line.indexOf(","));
+				if (data.length()>0) {
+					data.append(";");
+				}
+				data.append(filepath);
+			}
+		}
+
+		return "&repairmissing=" + StringUtils.encodeValue(data.toString());
 	}
 
 	// send trace <server> command to console
@@ -872,7 +897,7 @@ public class ReportThread extends NotesThread {
 			buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
 			buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
 			buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
-			buf.append("&domino=" + m_session.getNotesVersion());
+			buf.append("&domino=" + m_session.getNotesVersion().trim());
 			buf.append("&username=" + System.getProperty("user.name", "n/a"));
 			buf.append("&version=" + m_version);
 			buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));

@@ -34,7 +34,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-04-17 23:35 (github action)";
+		return "2023-06-12 23:35 (repair list missing)";
 	}
 
 	@Override
