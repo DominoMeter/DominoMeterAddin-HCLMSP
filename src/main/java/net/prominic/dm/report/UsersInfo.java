@@ -317,7 +317,7 @@ public class UsersInfo {
 		return v;
 	}
 
-	public HashMap<String, Long> getUsersCount() {
+	public HashMap<String, Long> usersCount() {
 		return m_usersCount;
 	}
 
