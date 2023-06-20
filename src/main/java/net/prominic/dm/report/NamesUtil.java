@@ -169,7 +169,7 @@ public class NamesUtil {
 		return m_wildCardBuf;
 	}
 	
-	public void recycle() {
+	public void recycle() throws NotesException {
 		for (Entry<String, DocumentCollection> set : m_people.entrySet()) {
 			DocumentCollection col = set.getValue();
 			col.recycle();
