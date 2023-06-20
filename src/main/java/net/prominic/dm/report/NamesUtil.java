@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+import java.util.Map.Entry;
 
 import lotus.domino.Database;
 import lotus.domino.Document;
@@ -14,51 +15,58 @@ import lotus.domino.NotesException;
 import net.prominic.gja_v084.GLogger;
 
 public class NamesUtil {
-	DocumentCollection m_people = null;
 	List<String> m_fullNameList = null;
+	HashMap<String, DocumentCollection> m_people = null;
 	HashMap<String, Vector<String>> m_groupOrig = null;
 	HashMap<String, Set<String>> m_elResolved = null;
 	Vector<String> m_processedEl = null;
-	private boolean wildCardBuf = false;
+	private boolean m_wildCardBuf = false;
 	private GLogger m_fileLogger;
 	
 	public NamesUtil(GLogger fileLogger) {
 		m_elResolved = new HashMap<String, Set<String>>();
 		m_groupOrig = new HashMap<String, Vector<String>>();
 		m_fullNameList = new ArrayList<String>();
+		m_people = new HashMap<String, DocumentCollection>();
 		m_fileLogger = fileLogger;
 	}
 	
-	public void addDatabase(Database database) {
+	public void addAddressBook(Database database) {
 		try {
 			// 1. group origin
-			DocumentCollection groups = database.search("Type=\"Group\"");
-			Document doc = groups.getFirstDocument();
+			DocumentCollection col = database.search("Type=\"Group\"");
+			Document doc = col.getFirstDocument();
 			while (doc != null) {
+				Document nextDoc = col.getNextDocument(doc);
+				
 				String listName = doc.getItemValueString("ListName").toLowerCase();
 				@SuppressWarnings("unchecked")
 				Vector<String> members = doc.getItemValue("Members");
 				m_groupOrig.put(listName, members);
 
-				doc = groups.getNextDocument(doc);
+				doc.recycle();
+				doc = nextDoc;
 			}
+			col.recycle();
 
 			// 2. users
-			m_people = database.search("Type = \"Person\"", null, 0);
-			doc = m_people.getFirstDocument();
+			col = database.search("Type = \"Person\"", null, 0);
+			doc = col.getFirstDocument();
 			while (doc != null) {
-				Document nextDoc = m_people.getNextDocument(doc);
+				Document nextDoc = col.getNextDocument(doc);
 
-				if (!doc.isDeleted() && doc.isValid()) {
-					String fullName = doc.getItemValueString("FullName").toLowerCase();
+				if (doc.isValid()) {
+					String fullName = doc.getItemValueString("FullName");
 					if (!fullName.isEmpty()) {
-						m_fullNameList.add(fullName);
+						m_fullNameList.add(fullName.toLowerCase());
 					}
 				}
 
 				doc.recycle();
 				doc = nextDoc;
 			}
+			m_people.put(database.getFileName(), col);
+			
 		} catch (NotesException e) {
 			m_fileLogger.severe(e);
 		}
@@ -76,7 +84,7 @@ public class NamesUtil {
 	 * Resolve list with mixed entries: person, groups, servers etc
 	 */
 	public Set<String> resolveMixedList(Vector<String> members) throws NotesException {
-		wildCardBuf = false;
+		m_wildCardBuf = false;
 		Set<String> list = new HashSet<String>();
 
 		for(String member : members) {
@@ -91,7 +99,7 @@ public class NamesUtil {
 				list.add(memberL);
 			}
 			else if (memberL.contains("*")) {
-				wildCardBuf = true;
+				m_wildCardBuf = true;
 			}
 		}
 
@@ -144,8 +152,8 @@ public class NamesUtil {
 			else if (m_fullNameList.contains(memberL)) {
 				memberResolved.add(memberL);
 			}
-			else if (!wildCardBuf && memberL.contains("*")) {
-				wildCardBuf = true;
+			else if (!m_wildCardBuf && memberL.contains("*")) {
+				m_wildCardBuf = true;
 			}
 		}
 		m_elResolved.put(elName, memberResolved);
@@ -153,17 +161,19 @@ public class NamesUtil {
 		return memberResolved;
 	}
 
-	public DocumentCollection getPeople() {
+	public HashMap<String, DocumentCollection> getPeople() {
 		return m_people;
 	}
 
 	public boolean getWildCardBuf() {
-		return wildCardBuf;
+		return m_wildCardBuf;
 	}
-
-	public void recycle() throws NotesException {
-		if (m_people != null) {
-			m_people.recycle();
+	
+	public void recycle() {
+		for (Entry<String, DocumentCollection> set : m_people.entrySet()) {
+			DocumentCollection col = set.getValue();
+			col.recycle();
 		}
 	}
+
 }

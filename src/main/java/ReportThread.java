@@ -49,13 +49,12 @@ public class ReportThread extends NotesThread {
 	private String m_version;
 	private GLogger m_fileLogger;
 	private boolean m_manual = false;
-	
+
 	private Session m_session = null;
 	private Database m_ab = null;
 	private Database m_catalog = null;
 	private ArrayList<Document> m_catalogList = null;
 	private Document m_serverDoc = null;
-	NamesUtil m_namesUtil = null;
 
 	public ReportThread(String server, String endpoint, String version, GLogger fileLogger, boolean manual) {
 		m_server = server;
@@ -252,7 +251,7 @@ public class ReportThread extends NotesThread {
 			stepStart = new Date();
 			data.append(parseTraceOutput(ndd, connection, isLinux));
 			data.append("&numStep25=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			
+
 			// 26. repair list missing
 			stepStart = new Date();
 			data.append(repairListMissing());
@@ -288,7 +287,7 @@ public class ReportThread extends NotesThread {
 	private String repairListMissing() throws NotesException {
 		String res = m_session.sendConsoleCommand("", "!repair list missing");
 		if (!res.contains("[Missing]")) return "";
-		
+
 		StringBuffer data = new StringBuffer();
 
 		String[] lines = res.split(System.getProperty("line.separator"));
@@ -703,7 +702,7 @@ public class ReportThread extends NotesThread {
 
 		try {
 			// process all Directory Catalogs
-			m_namesUtil = new NamesUtil(m_fileLogger);
+			NamesUtil namesUtil = new NamesUtil(m_fileLogger);
 
 			@SuppressWarnings("unchecked")
 			Vector<Database> databases = m_session.getAddressBooks();
@@ -715,31 +714,44 @@ public class ReportThread extends NotesThread {
 					if (!database.isOpen()) database.open();
 
 					// process additional address book
-					m_namesUtil.addDatabase(database);
+					namesUtil.addAddressBook(database);
 					if (this.isInterrupted()) return "";
 				}
 			}
 
-			UsersInfo ui = new UsersInfo(m_session, m_catalogList, m_namesUtil, m_fileLogger);
+			UsersInfo ui = new UsersInfo(m_session, m_catalogList, namesUtil, m_fileLogger);
 
 			// allow/deny access
 			ui.allowDenyAccess(m_serverDoc);
 			if (this.isInterrupted()) return "";
 
 			// check every users
-			DocumentCollection people = this.m_namesUtil.getPeople();
-			Document doc = people.getFirstDocument();
-			while (doc != null && !this.isInterrupted()) {
-				Document nextDoc = people.getNextDocument(doc);
+			HashMap<String, DocumentCollection> people = namesUtil.getPeople();
+			for (Entry<String, DocumentCollection> set : people.entrySet()) {
+				DocumentCollection col = set.getValue();
+				Document doc = col.getFirstDocument();
 
-				ui.checkUserAccess(doc);
+				while (doc != null && !this.isInterrupted()) {
+					Document nextDoc = col.getNextDocument(doc);
 
-				doc.recycle();
-				doc = nextDoc;
+					ui.checkUserAccess(doc);
+
+					doc.recycle();
+					doc = nextDoc;
+				}	
 			}
 			if (this.isInterrupted()) return "";
 
-			Iterator<Entry<String, Long>> it = ui.getUsersCount().entrySet().iterator();
+			// total users in every address book
+			for (Entry<String, DocumentCollection> set : people.entrySet()) {
+				DocumentCollection col = set.getValue();
+				String key = set.getKey();
+				key = key.contains(".") ? key.substring(0, key.indexOf(".")) : key;
+				ui.usersCount().put(key, (long) col.getCount());
+			}
+
+			// create data
+			Iterator<Entry<String, Long>> it = ui.usersCount().entrySet().iterator();
 			while (it.hasNext()) {
 				Entry<String, Long> pair = it.next();
 				buf.append("&numUsers" + pair.getKey() + "=" + Long.toString(pair.getValue()));
@@ -757,11 +769,16 @@ public class ReportThread extends NotesThread {
 				buf.append("&DenyAccessWildCard=1");
 			}
 
+			// RECYCLE
+			
 			// recycle databases as we already processed them
 			for(int i=0; i<databases.size(); i++) {
 				Database database = databases.get(i);
 				database.recycle();
 			}
+			
+			// recycle DocumentCollections
+			namesUtil.recycle();
 		} catch (NotesException e) {
 			logSevere(e);
 		}
@@ -1277,7 +1294,7 @@ public class ReportThread extends NotesThread {
 			System.out.println("ReportThread: " + msg);
 		}
 	}
-	
+
 	@Override
 	public void termThread() {
 		if (m_manual) {
@@ -1299,11 +1316,6 @@ public class ReportThread extends NotesThread {
 					doc.recycle();
 				}
 			};
-
-			if (m_namesUtil != null) {
-				m_namesUtil.recycle();
-				m_namesUtil = null;
-			}
 
 			if (m_catalog != null) {
 				m_catalog.recycle();
