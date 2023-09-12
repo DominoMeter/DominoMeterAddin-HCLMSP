@@ -29,12 +29,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "127";
+		return "128";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-06-21 13:45 (da)";
+		return "2023-09-12 13:45 (config)";
 	}
 
 	@Override
