@@ -126,7 +126,7 @@ public class ReportThread extends NotesThread {
 
 			// 7. notes.ini, we could get variables using API call
 			stepStart = new Date();
-			data.append(getNotesINI(keyword));
+			data.append(NotesINI(keyword));
 			data.append("&numStep7=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
@@ -136,127 +136,132 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep8=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 9. program documents
+			// 9. config document
+			stepStart = new Date();
+			data.append(Confign(keyword));
+			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+
+			// 10. program documents
 			stepStart = new Date();
 			data.append("&programs=" + StringUtils.encodeValue(getProgram(m_ab)));
-			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 10. id files on server
+			// 11. id files on server
 			stepStart = new Date();
 			String idFiles = getIdFiles(ndd);
 			if (!idFiles.isEmpty()) {
 				data.append("&idfiles=" + idFiles);
 			}
-			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep11=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 11. services
+			// 12. services
 			stepStart = new Date();
 			String services = this.getServices();
 			if (!services.isEmpty()) {
 				data.append(services);
 			}
-			data.append("&numStep11=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 12. Linux specific data
+			// 13. Linux specific data
 			stepStart = new Date();
 			if (isLinux) {
 				data.append(this.getLinuxInfo());
 			}
-			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 13. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
+			// 14. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
 			stepStart = new Date();
 			String nsd = getNSD(ndd);
 			if (!nsd.isEmpty()) {
 				data.append(nsd);
 			}
-			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			if (this.isInterrupted()) return;
-
-			// 14. In case if connection is done via HTTP we still need to check if HTTPS works
-			stepStart = new Date();
-			data.append(checkHTTPSConnection());
 			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 15. Jedi
+			// 15. In case if connection is done via HTTP we still need to check if HTTPS works
+			stepStart = new Date();
+			data.append(checkHTTPSConnection());
+			data.append("&numStep15=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
+			// 16. Jedi
 			stepStart = new Date();
 			if (isLinux) {
 				data.append(jedi());
 			}
-			data.append("&numStep15=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep16=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 16. installed utils (f.x. gdp)
+			// 17. installed utils (f.x. gdp)
 			stepStart = new Date();
 			if (isLinux) {
 				data.append(installedUtils());
 			}
-			data.append("&numStep16=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			if (this.isInterrupted()) return;
-
-			// 17. check if folder(s) exist (extend with other files/folder if needed)
-			stepStart = new Date();
-			data.append(checkFilesFolders(ndd));
 			data.append("&numStep17=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 18. IDVault check
+			// 18. check if folder(s) exist (extend with other files/folder if needed)
 			stepStart = new Date();
-			data.append(vault(ndd));
+			data.append(checkFilesFolders(ndd));
 			data.append("&numStep18=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 19. Panagenda
+			// 19. IDVault check
 			stepStart = new Date();
-			data.append(panagenda(ndd));
+			data.append(vault(ndd));
 			data.append("&numStep19=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 20. SAML
+			// 20. Panagenda
 			stepStart = new Date();
-			data.append(saml(ndd));
+			data.append(panagenda(ndd));
 			data.append("&numStep20=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 21. Directory Profile
+			// 21. SAML
 			stepStart = new Date();
-			data.append(directoryProfile(keyword));
+			data.append(saml(ndd));
 			data.append("&numStep21=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 22. MFA installed?
+			// 22. Directory Profile
+			stepStart = new Date();
+			data.append(directoryProfile(keyword));
+			data.append("&numStep22=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
+			// 23. MFA installed?
 			stepStart = new Date();
 			data.append(mfa());
-			data.append("&numStep22" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			data.append("&numStep23" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 23. jvm/lib/ext file lists
+			// 24. jvm/lib/ext file lists
 			stepStart = new Date();
 			data.append(jvmLibExt());
-			data.append("&numStep23=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			if (this.isInterrupted()) return;
-
-			// 24. file content: java.policy, java.security, /etc/hosts, /etc/resolv.conf
-			stepStart = new Date();
-			data.append(filesContent(isLinux));
 			data.append("&numStep24=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
-			// 25. parse trace result from noteslong (or console.log)
+			// 25. file content: java.policy, java.security, /etc/hosts, /etc/resolv.conf
+			stepStart = new Date();
+			data.append(filesContent(isLinux));
+			data.append("&numStep25=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			if (this.isInterrupted()) return;
+
+			// 26. parse trace result from noteslong (or console.log)
 			stepStart = new Date();
 			data.append(parseTraceOutput(ndd, connection, isLinux));
-			data.append("&numStep25=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-
-			// 26. repair list missing
-			stepStart = new Date();
-			data.append(repairListMissing());
 			data.append("&numStep26=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
+			// 27. repair list missing
+			stepStart = new Date();
+			data.append(repairListMissing());
+			data.append("&numStep27=" + Long.toString(new Date().getTime() - stepStart.getTime()));
+			
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(exception_total));
@@ -577,30 +582,6 @@ public class ReportThread extends NotesThread {
 		}
 
 		return "";
-	}
-
-	private String directoryProfile(StringBuffer keyword) {
-		StringBuffer buf = new StringBuffer();
-
-		try {
-			String[] variables = getKeywordAsArray(keyword, "DirectoryProfile=");
-			if (variables == null) return "";
-
-			Document doc = this.m_ab.getProfileDocument("DirectoryProfile", null);
-			if (doc == null) return "";
-
-			for(int i = 0; i < variables.length; i++) {
-				String variable = variables[i].toLowerCase();
-				if (doc.hasItem(variable)) {
-					String v = doc.getFirstItem(variable).getText();
-					buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
-				}
-			}
-		} catch (Exception e) {
-			logSevere(e);
-		}
-
-		return buf.toString();
 	}
 
 	private String saml(String ndd) {
@@ -1054,7 +1035,7 @@ public class ReportThread extends NotesThread {
 	/*
 	 * read variables from notes.ini
 	 */
-	private String getNotesINI(StringBuffer keyword) {
+	private String NotesINI(StringBuffer keyword) {
 		StringBuffer buf = new StringBuffer();
 
 		try {
@@ -1063,9 +1044,9 @@ public class ReportThread extends NotesThread {
 
 			for(int i = 0; i < variables.length; i++) {
 				String variable = variables[i].toLowerCase();
-				String iniValue = m_session.getEnvironmentString(variable, true);
-				if (iniValue.length() > 0) {
-					buf.append("&" + variable + "=" + StringUtils.encodeValue(iniValue));
+				String v = m_session.getEnvironmentString(variable, true);
+				if (v.length() > 0) {
+					buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
 				}
 			}
 		} catch (Exception e) {
@@ -1079,16 +1060,68 @@ public class ReportThread extends NotesThread {
 	 * read variables from server document
 	 */
 	private String getServerItems(StringBuffer keyword) {
-		if (m_serverDoc == null) return "";
-		StringBuffer buf = new StringBuffer();
+		String res = "";
 
 		try {
-			String[] variables = getKeywordAsArray(keyword, "Server=");
+			if (m_serverDoc == null) return "";
+			res = DocItems(m_serverDoc, keyword, "Server=");
+		} catch (Exception e) {
+			logSevere(e);
+		}
+
+		return res;
+	}
+	
+
+	private String Confign(StringBuffer keyword) {
+		String res = "";
+		try {
+			View view = m_ab.getView("($ServerConfig)");
+			Document doc = view.getDocumentByKey(m_server, true);
+			if (doc==null) {
+				doc = view.getDocumentByKey("*", true);
+			}
+
+			if (doc!=null) {
+				res = DocItems(doc, keyword, "Config=");
+				doc.recycle();
+			};
+			
+			view.recycle();
+		} catch (Exception e) {
+			logSevere(e);
+		}
+
+		return res;
+	}
+	
+	private String directoryProfile(StringBuffer keyword) {
+		String res = "";
+		try {
+			Document doc = this.m_ab.getProfileDocument("DirectoryProfile", null);
+			if (doc == null) return "";
+
+			if (doc != null) {
+				res = DocItems(doc, keyword, "DirectoryProfile=");
+				doc.recycle();
+			}
+		} catch (Exception e) {
+			logSevere(e);
+		}
+
+		return res;
+	}
+	
+	private String DocItems(Document doc, StringBuffer keyword, String keywordId) {
+		StringBuffer buf = new StringBuffer();
+		try {
+			String[] variables = getKeywordAsArray(keyword, keywordId);
 			if (variables == null) return "";
+
 			for(int i = 0; i < variables.length; i++) {
 				String variable = variables[i].toLowerCase();
-				if (m_serverDoc.hasItem(variable)) {
-					String v = m_serverDoc.getFirstItem(variable).getText();
+				if (doc.hasItem(variable)) {
+					String v = doc.getFirstItem(variable).getText();
 					buf.append("&" + variable + "=" + StringUtils.encodeValue(v));
 				}
 			}
