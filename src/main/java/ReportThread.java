@@ -261,7 +261,7 @@ public class ReportThread extends NotesThread {
 			stepStart = new Date();
 			data.append(repairListMissing());
 			data.append("&numStep27=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-			
+
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(exception_total));
@@ -751,13 +751,13 @@ public class ReportThread extends NotesThread {
 			}
 
 			// RECYCLE
-			
+
 			// recycle databases as we already processed them
 			for(int i=0; i<databases.size(); i++) {
 				Database database = databases.get(i);
 				database.recycle();
 			}
-			
+
 			// recycle DocumentCollections
 			namesUtil.recycle();
 		} catch (NotesException e) {
@@ -1071,7 +1071,7 @@ public class ReportThread extends NotesThread {
 
 		return res;
 	}
-	
+
 
 	private String Confign(StringBuffer keyword) {
 		String res = "";
@@ -1086,7 +1086,7 @@ public class ReportThread extends NotesThread {
 				res = DocItems(doc, keyword, "Config=");
 				doc.recycle();
 			};
-			
+
 			view.recycle();
 		} catch (Exception e) {
 			logSevere(e);
@@ -1094,7 +1094,7 @@ public class ReportThread extends NotesThread {
 
 		return res;
 	}
-	
+
 	private String directoryProfile(StringBuffer keyword) {
 		String res = "";
 		try {
@@ -1111,7 +1111,7 @@ public class ReportThread extends NotesThread {
 
 		return res;
 	}
-	
+
 	private String DocItems(Document doc, StringBuffer keyword, String keywordId) {
 		StringBuffer buf = new StringBuffer();
 		try {
@@ -1191,8 +1191,13 @@ public class ReportThread extends NotesThread {
 			if (console.contains("Sametime")) {
 				buf.append("&sametime=1");
 			}
+			
+			// 4. show stat Platform.LogicalDisk.*
+			if (this.isInterrupted()) return "";
+			console = m_session.sendConsoleCommand("", "!sh stat Platform.LogicalDisk.*");
+			buf.append("&sh_stat=" + StringUtils.encodeValue(console));
 
-			// 4. show heartbeat
+			// 5. show heartbeat
 			if (this.isInterrupted()) return "";
 			console = m_session.sendConsoleCommand("", "!sh heartbeat");
 			buf.append("&sh_heartbeat=" + StringUtils.encodeValue(console));
@@ -1200,7 +1205,7 @@ public class ReportThread extends NotesThread {
 				String elapsed_time = console.substring(console.lastIndexOf(":") + 2, console.lastIndexOf("seconds") - 1);
 				buf.append("&numElapsedTime=" + elapsed_time);
 			}
-
+			
 		} catch (NotesException e) {
 			logSevere(e);
 		}
