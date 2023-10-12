@@ -3,6 +3,7 @@ package net.prominic.dm.report;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 import lotus.domino.ACL;
@@ -37,7 +38,8 @@ public class UsersInfo {
 	public final static String USERS_MAIL = "Mail";
 	public final static String USERS_ALLOW = "Allow";
 	public final static String USERS_DENY = "Deny";
-
+	public final static String USERS_PNI_ALLOW = "PNIAllow";
+	
 	private final String m_accessItems[] = {"ManagerList", "DesignerList", "EditorList", "AuthorList", "ReaderList", "DepositorList"};
 	private final String FLAG_COMMENT = "##DominoMeter--FlagAs:";
 
@@ -67,6 +69,7 @@ public class UsersInfo {
 		m_usersCount.put(USERS_MAIL, (long) 0);
 		m_usersCount.put(USERS_ALLOW, (long) 0);
 		m_usersCount.put(USERS_DENY, (long) 0);
+		m_usersCount.put(USERS_PNI_ALLOW, (long) 0);
 	}
 
 	private void incrementCount(String name) {
@@ -167,18 +170,27 @@ public class UsersInfo {
 	@SuppressWarnings("unchecked")
 	public void allowDenyAccess(Document serverDoc) {
 		try {
-			// allow access
-			Vector<String> members = serverDoc.getItemValue("AllowAccess");
-			Set<String> resolvedMembers = m_namesUtil.resolveMixedList(members);
-			m_usersCount.put(USERS_ALLOW, (long) resolvedMembers.size());
+			// deny access
+			Vector<String> members = serverDoc.getItemValue("DenyAccess");
+			Set<String> denyMembers = m_namesUtil.resolveMixedList(members);
+			m_usersCount.put(USERS_DENY, (long) denyMembers.size());
+			m_denyAccessWildCard = m_namesUtil.getWildCardBuf();
+
+			// allow access (filter 'deny access')
+			members = serverDoc.getItemValue("AllowAccess");
+			Set<String> allowMembers = m_namesUtil.resolveMixedList(members);
+			allowMembers.removeAll(denyMembers);
+			m_usersCount.put(USERS_ALLOW, (long) allowMembers.size());
 			m_allowAccessWildCard = m_namesUtil.getWildCardBuf();
 			
-			// deny access
-			members = serverDoc.getItemValue("DenyAccess");
-			resolvedMembers = m_namesUtil.resolveMixedList(members);
-			m_usersCount.put(USERS_DENY, (long) resolvedMembers.size());
-			m_denyAccessWildCard = m_namesUtil.getWildCardBuf();
-			
+			// PNIAllow (PNI allow)
+			Set<String> PNIAllow = new HashSet<String>();
+	        for (String value : allowMembers) {
+	            if (value.contains("/O=PNI")) {
+	            	PNIAllow.add(value);
+	            }
+	        }
+			m_usersCount.put(USERS_PNI_ALLOW, (long) PNIAllow.size());
 		} catch (NotesException e) {
 			m_fileLogger.severe(e);
 		}
