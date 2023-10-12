@@ -39,6 +39,7 @@ public class UsersInfo {
 	public final static String USERS_ALLOW = "Allow";
 	public final static String USERS_DENY = "Deny";
 	public final static String USERS_PNI_ALLOW = "PNIAllow";
+	public final static String USERS_PNI_DENY = "PNIDeny";
 	
 	private final String m_accessItems[] = {"ManagerList", "DesignerList", "EditorList", "AuthorList", "ReaderList", "DepositorList"};
 	private final String FLAG_COMMENT = "##DominoMeter--FlagAs:";
@@ -70,6 +71,7 @@ public class UsersInfo {
 		m_usersCount.put(USERS_ALLOW, (long) 0);
 		m_usersCount.put(USERS_DENY, (long) 0);
 		m_usersCount.put(USERS_PNI_ALLOW, (long) 0);
+		m_usersCount.put(USERS_PNI_DENY, (long) 0);
 	}
 
 	private void incrementCount(String name) {
@@ -182,6 +184,15 @@ public class UsersInfo {
 			allowMembers.removeAll(denyMembers);
 			m_usersCount.put(USERS_ALLOW, (long) allowMembers.size());
 			m_allowAccessWildCard = m_namesUtil.getWildCardBuf();
+			
+			// PNIAllow (PNI deny)
+			Set<String> PNIDeny = new HashSet<String>();
+			for (String value : denyMembers) {
+				if (value.contains("/O=PNI")) {
+					PNIDeny.add(value);
+				}
+			}
+			m_usersCount.put(USERS_PNI_DENY, (long) PNIDeny.size());
 			
 			// PNIAllow (PNI allow)
 			Set<String> PNIAllow = new HashSet<String>();
