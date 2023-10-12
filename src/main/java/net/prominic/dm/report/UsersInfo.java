@@ -185,11 +185,11 @@ public class UsersInfo {
 			
 			// PNIAllow (PNI allow)
 			Set<String> PNIAllow = new HashSet<String>();
-	        for (String value : allowMembers) {
-	            if (value.contains("/O=PNI")) {
-	            	PNIAllow.add(value);
-	            }
-	        }
+			for (String value : allowMembers) {
+				if (value.contains("/O=PNI")) {
+					PNIAllow.add(value);
+				}
+			}
 			m_usersCount.put(USERS_PNI_ALLOW, (long) PNIAllow.size());
 		} catch (NotesException e) {
 			m_fileLogger.severe(e);
