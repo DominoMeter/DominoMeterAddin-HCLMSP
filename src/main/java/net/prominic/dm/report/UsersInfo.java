@@ -188,7 +188,7 @@ public class UsersInfo {
 			// PNIAllow (PNI deny)
 			Set<String> PNIDeny = new HashSet<String>();
 			for (String value : denyMembers) {
-				if (value.contains("/O=PNI")) {
+				if (value.contains("/o=pni")) {
 					PNIDeny.add(value);
 				}
 			}
@@ -197,7 +197,7 @@ public class UsersInfo {
 			// PNIAllow (PNI allow)
 			Set<String> PNIAllow = new HashSet<String>();
 			for (String value : allowMembers) {
-				if (value.contains("/O=PNI")) {
+				if (value.contains("/o=pni")) {
 					PNIAllow.add(value);
 				}
 			}
