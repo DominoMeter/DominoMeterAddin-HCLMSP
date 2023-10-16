@@ -537,7 +537,12 @@ public class ReportThread extends NotesThread {
 				buf = FileUtils.readFileContent("/etc/hosts");
 				if (buf != null) {
 					res += "&FileEtcHosts=" + StringUtils.encodeValue(buf.toString());
-				}				
+				}
+				
+				buf = FileUtils.readFileContent("/etc/fstab");
+				if (buf != null) {
+					res += "&FileEtcFstab=" + StringUtils.encodeValue(buf.toString());
+				}
 			}
 		} catch (NoSuchAlgorithmException e) {
 			logSevere(e);
