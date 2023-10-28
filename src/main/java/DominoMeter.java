@@ -29,12 +29,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "133";
+		return "134";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-10-12 15:00 (license calculation)";
+		return "2023-10-28 17:00 (entitlementtrack.ncf)";
 	}
 
 	@Override

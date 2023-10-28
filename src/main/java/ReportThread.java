@@ -1211,6 +1211,12 @@ public class ReportThread extends NotesThread {
 				buf.append("&numElapsedTime=" + elapsed_time);
 			}
 			
+			//6. sh database entitlementtrack.ncf
+			if (this.isInterrupted()) return "";
+			console = m_session.sendConsoleCommand("", "!sh database entitlementtrack.ncf");
+			if (!console.contains("File does not exist") || console.length()>100) {
+				buf.append("&entitlementtrack=1");				
+			}
 		} catch (NotesException e) {
 			logSevere(e);
 		}
