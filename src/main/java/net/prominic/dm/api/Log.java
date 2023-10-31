@@ -38,7 +38,7 @@ public class Log {
 			server = StringUtils.encodeValue(server);
 			subject = StringUtils.encodeValue(subject);
 			body = StringUtils.encodeValue(body);
-			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + server, "subject=" + subject + "&body=" + body + "&logLevel=" + Integer.toString(logLevel));
+			StringBuffer res = RESTClient.sendPOST(endpoint + "/log?openAgent&server=" + server, "application/x-www-form-urlencoded", "subject=" + subject + "&body=" + body + "&logLevel=" + Integer.toString(logLevel));
 			return res.toString().equalsIgnoreCase("OK");
 		} catch (IOException e) {
 			e.printStackTrace();

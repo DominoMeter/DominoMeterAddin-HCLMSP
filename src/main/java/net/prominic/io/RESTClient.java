@@ -14,11 +14,11 @@ public class RESTClient {
 	private static final String USER_AGENT = "DominoMeter";
 	private static final String ACCESS_TOKEN = "f21f20afae6b4d99c1258551002002fa";
 
-	public static StringBuffer sendPOST(String endpoint, String data) throws IOException {
+	public static StringBuffer sendPOST(String endpoint, String contentType, String data) throws IOException {
 		HttpURLConnection con = open(endpoint);
 		con.setDoOutput(true);
 		con.setRequestMethod("POST");
-		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		con.setRequestProperty("Content-Type", contentType);
 		con.getOutputStream().write(data.getBytes(), 0, data.length());
 
 		return response(con);
