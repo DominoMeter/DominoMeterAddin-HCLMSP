@@ -19,9 +19,13 @@ import java.util.Vector;
 
 import javax.net.ssl.SSLContext;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
+import lotus.domino.Item;
 import lotus.domino.NoteCollection;
 import lotus.domino.NotesException;
 import lotus.domino.NotesFactory;
@@ -64,6 +68,7 @@ public class ReportThread extends NotesThread {
 		m_manual = manual;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void runNotes() {
 		try {
@@ -81,7 +86,6 @@ public class ReportThread extends NotesThread {
 
 			boolean isLinux = System.getProperty("os.name").equalsIgnoreCase("Linux");
 			String ndd = m_session.getEnvironmentString("Directory", true);
-			String url = m_endpoint.concat("/report?openagent");
 
 			// pre: trace connection
 			ArrayList<String> connection = traceConnection();
@@ -138,7 +142,7 @@ public class ReportThread extends NotesThread {
 
 			// 9. config document
 			stepStart = new Date();
-			data.append(Confign(keyword));
+			data.append(Config(keyword));
 			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 10. program documents
@@ -257,11 +261,6 @@ public class ReportThread extends NotesThread {
 			data.append(parseTraceOutput(ndd, connection, isLinux));
 			data.append("&numStep26=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
-			// 27. repair list missing
-			stepStart = new Date();
-			data.append(repairListMissing());
-			data.append("&numStep27=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(exception_total));
@@ -275,8 +274,20 @@ public class ReportThread extends NotesThread {
 			data.append("&numDuration=" + numDuration);
 			if (this.isInterrupted()) return;
 
-			StringBuffer res = RESTClient.sendPOST(url, data.toString());
-			logMessage("finished (" + res.toString() + ")");
+			// report
+			String url = m_endpoint.concat("/report?openagent");
+			StringBuffer res = RESTClient.sendPOST(url, "application/x-www-form-urlencoded", data.toString());
+			logMessage("finished report (" + res.toString() + ")");
+
+			// 1. JSON: Documents
+			JSONObject json = new JSONObject();
+			json.put("server", m_server);
+			json.put("docs", documents(keyword));
+
+			// documents
+			String urldocs = m_endpoint.concat("/docs?openagent");
+			res = RESTClient.sendPOST(urldocs, "application/json", json.toString());
+			logMessage("finished docs (" + res.toString() + ")");
 		}
 		catch (NotesException e) {
 			logSevere(e);
@@ -289,24 +300,32 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
-	private String repairListMissing() throws NotesException {
-		String res = m_session.sendConsoleCommand("", "!repair list missing");
-		if (!res.contains("[Missing]")) return "";
+	@SuppressWarnings("unchecked")
+	private JSONArray documents(StringBuffer keyword) {
+		JSONArray array = new JSONArray();
+		try {
+			String docs[] = getKeywordAsArray(keyword, "Docs");
 
-		StringBuffer data = new StringBuffer();
-
-		String[] lines = res.split(System.getProperty("line.separator"));
-		for (String line : lines) {
-			if (line.contains("[Missing]")) {
-				String filepath = line.substring(0, line.indexOf(","));
-				if (data.length()>0) {
-					data.append(";");
+			for (int i = 0; i < docs.length; i++) {
+				String keys = docs[i];
+				String[] parts = keys.split("\\~");
+				String variables[] = getKeywordAsArray(keyword, parts[0]);
+				DocumentCollection col = m_ab.search(parts[1]);
+				Document doc = col.getFirstDocument();
+				while (doc != null) {
+					JSONObject obj = DocItemsJSON(doc, variables);
+					obj.put("unid", doc.getUniversalID());
+					if (obj!= null) {
+						array.add(obj);	
+					}
+					doc = col.getNextDocument();
 				}
-				data.append(filepath);
 			}
+		} catch (NotesException e) {
+			logSevere(e);
 		}
 
-		return "&repairmissing=" + StringUtils.encodeValue(data.toString());
+		return array;
 	}
 
 	// send trace <server> command to console
@@ -538,7 +557,7 @@ public class ReportThread extends NotesThread {
 				if (buf != null) {
 					res += "&FileEtcHosts=" + StringUtils.encodeValue(buf.toString());
 				}
-				
+
 				buf = FileUtils.readFileContent("/etc/fstab");
 				if (buf != null) {
 					res += "&FileEtcFstab=" + StringUtils.encodeValue(buf.toString());
@@ -1022,6 +1041,10 @@ public class ReportThread extends NotesThread {
 			return null;
 		}
 
+		if (!id.endsWith("=")) {
+			id = id + "=";
+		}
+
 		int index1 = keyword.indexOf(id);
 		if (index1 < 0) return null;
 
@@ -1044,7 +1067,7 @@ public class ReportThread extends NotesThread {
 		StringBuffer buf = new StringBuffer();
 
 		try {
-			String[] variables = getKeywordAsArray(keyword, "Notes.ini=");
+			String[] variables = getKeywordAsArray(keyword, "Notes.ini");
 			if (variables == null) return "";
 
 			for(int i = 0; i < variables.length; i++) {
@@ -1069,7 +1092,7 @@ public class ReportThread extends NotesThread {
 
 		try {
 			if (m_serverDoc == null) return "";
-			res = DocItems(m_serverDoc, keyword, "Server=");
+			res = DocItems(m_serverDoc, keyword, "Server");
 		} catch (Exception e) {
 			logSevere(e);
 		}
@@ -1078,7 +1101,7 @@ public class ReportThread extends NotesThread {
 	}
 
 
-	private String Confign(StringBuffer keyword) {
+	private String Config(StringBuffer keyword) {
 		String res = "";
 		try {
 			View view = m_ab.getView("($ServerConfig)");
@@ -1088,7 +1111,7 @@ public class ReportThread extends NotesThread {
 			}
 
 			if (doc!=null) {
-				res = DocItems(doc, keyword, "Config=");
+				res = DocItems(doc, keyword, "Config");
 				doc.recycle();
 			};
 
@@ -1107,7 +1130,7 @@ public class ReportThread extends NotesThread {
 			if (doc == null) return "";
 
 			if (doc != null) {
-				res = DocItems(doc, keyword, "DirectoryProfile=");
+				res = DocItems(doc, keyword, "DirectoryProfile");
 				doc.recycle();
 			}
 		} catch (Exception e) {
@@ -1135,6 +1158,37 @@ public class ReportThread extends NotesThread {
 		}
 
 		return buf.toString();
+	}
+
+	@SuppressWarnings("unchecked")
+	private JSONObject DocItemsJSON(Document doc, String[] variables) {
+		JSONObject obj = null;
+		try {
+			if (variables == null) return null;
+
+			obj = new JSONObject();
+			for(int i = 0; i < variables.length; i++) {
+				String variable = variables[i].toLowerCase();
+				if (doc.hasItem(variable)) {
+					Item item = doc.getFirstItem(variable);
+					JSONArray values = new JSONArray();
+					
+					int type = item.getType();
+					if (type==Item.TEXT || type==Item.NUMBERS || type==Item.NAMES || type==Item.AUTHORS || type==Item.READERS) {
+						values.addAll(item.getValues());						
+					}
+					else {
+						values.add(item.getText());
+					}
+
+					obj.put(variable, values);
+				}
+			}
+		} catch (Exception e) {
+			logSevere(e);
+		}
+
+		return obj;
 	}
 
 	private static String getDatabaseVersionNumber(Database database) throws NotesException {
@@ -1196,7 +1250,7 @@ public class ReportThread extends NotesThread {
 			if (console.contains("Sametime")) {
 				buf.append("&sametime=1");
 			}
-			
+
 			// 4. show stat Platform.LogicalDisk.*
 			if (this.isInterrupted()) return "";
 			console = m_session.sendConsoleCommand("", "!sh stat Platform.LogicalDisk.*");
@@ -1210,8 +1264,27 @@ public class ReportThread extends NotesThread {
 				String elapsed_time = console.substring(console.lastIndexOf(":") + 2, console.lastIndexOf("seconds") - 1);
 				buf.append("&numElapsedTime=" + elapsed_time);
 			}
-			
-			//6. sh database entitlementtrack.ncf
+
+			//6. repair list missing
+			console = m_session.sendConsoleCommand("", "!repair list missing");
+			if (console.contains("[Missing]")) {
+				StringBuffer data = new StringBuffer();
+
+				String[] lines = console.split(System.getProperty("line.separator"));
+				for (String line : lines) {
+					if (line.contains("[Missing]")) {
+						String filepath = line.substring(0, line.indexOf(","));
+						if (data.length()>0) {
+							data.append(";");
+						}
+						data.append(filepath);
+					}
+				}
+
+				buf.append("&repairmissing=" + StringUtils.encodeValue(data.toString()));
+			};
+
+			//7. sh database entitlementtrack.ncf
 			if (this.isInterrupted()) return "";
 			console = m_session.sendConsoleCommand("", "!sh database entitlementtrack.ncf");
 			if (!console.contains("File does not exist") || console.length()>100) {
