@@ -146,121 +146,92 @@ public class ReportThread extends NotesThread {
 			data.append("&numStep9=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 
 			// 10. program documents
-			stepStart = new Date();
 			data.append("&programs=" + StringUtils.encodeValue(getProgram(m_ab)));
-			data.append("&numStep10=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 11. id files on server
-			stepStart = new Date();
 			String idFiles = getIdFiles(ndd);
 			if (!idFiles.isEmpty()) {
 				data.append("&idfiles=" + idFiles);
 			}
-			data.append("&numStep11=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 12. services
-			stepStart = new Date();
 			String services = this.getServices();
 			if (!services.isEmpty()) {
 				data.append(services);
 			}
-			data.append("&numStep12=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 13. Linux specific data
-			stepStart = new Date();
 			if (isLinux) {
 				data.append(this.getLinuxInfo());
 			}
-			data.append("&numStep13=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 14. Get 10 last NSD files from IBM_TECHNICAL_SUPPORT folder
-			stepStart = new Date();
 			String nsd = getNSD(ndd);
 			if (!nsd.isEmpty()) {
 				data.append(nsd);
 			}
-			data.append("&numStep14=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 15. In case if connection is done via HTTP we still need to check if HTTPS works
-			stepStart = new Date();
 			data.append(checkHTTPSConnection());
-			data.append("&numStep15=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 16. Jedi
-			stepStart = new Date();
 			if (isLinux) {
 				data.append(jedi());
 			}
-			data.append("&numStep16=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 17. installed utils (f.x. gdp)
-			stepStart = new Date();
 			if (isLinux) {
 				data.append(installedUtils());
 			}
-			data.append("&numStep17=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 18. check if folder(s) exist (extend with other files/folder if needed)
-			stepStart = new Date();
 			data.append(checkFilesFolders(ndd));
-			data.append("&numStep18=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 19. IDVault check
-			stepStart = new Date();
 			data.append(vault(ndd));
-			data.append("&numStep19=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 20. Panagenda
-			stepStart = new Date();
 			data.append(panagenda(ndd));
-			data.append("&numStep20=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 21. SAML
-			stepStart = new Date();
 			data.append(saml(ndd));
-			data.append("&numStep21=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 22. Directory Profile
-			stepStart = new Date();
 			data.append(directoryProfile(keyword));
-			data.append("&numStep22=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 23. MFA installed?
-			stepStart = new Date();
 			data.append(mfa());
-			data.append("&numStep23" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 24. jvm/lib/ext file lists
-			stepStart = new Date();
 			data.append(jvmLibExt());
-			data.append("&numStep24=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 25. file content: java.policy, java.security, /etc/hosts, /etc/resolv.conf
-			stepStart = new Date();
 			data.append(filesContent(isLinux));
-			data.append("&numStep25=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
 
 			// 26. parse trace result from noteslong (or console.log)
-			stepStart = new Date();
 			data.append(parseTraceOutput(ndd, connection, isLinux));
-			data.append("&numStep26=" + Long.toString(new Date().getTime() - stepStart.getTime()));
-
+			if (this.isInterrupted()) return;
+			
+			// 27. entitlementtrack.ncf
+			data.append(entitlement(ndd));
+			if (this.isInterrupted()) return;
+			
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(exception_total));
@@ -300,17 +271,29 @@ public class ReportThread extends NotesThread {
 		}
 	}
 
+	// entitlementtrack.ncf
+	private String entitlement(String ndd) {
+		String path = ndd + File.separator + "entitlementtrack.ncf";
+		File file = new File(path);
+
+		if(!file.exists()) return "";
+		return "&entitlementtrack=1";
+	}
+
 	@SuppressWarnings("unchecked")
 	private JSONArray documents(StringBuffer keyword) {
 		JSONArray array = new JSONArray();
 		try {
-			String docs[] = getKeywordAsArray(keyword, "Docs");
-
+			String docs[] = getKeywordAsArray(keyword, "Docs136");
 			for (int i = 0; i < docs.length; i++) {
 				String keys = docs[i];
 				String[] parts = keys.split("\\~");
 				String variables[] = getKeywordAsArray(keyword, parts[0]);
-				DocumentCollection col = m_ab.search(parts[1]);
+
+				String search = parts[1];
+				search = search.replace("$server", m_server);	
+				DocumentCollection col = m_ab.search(search);
+
 				Document doc = col.getFirstDocument();
 				while (doc != null) {
 					JSONObject obj = DocItemsJSON(doc, variables);
@@ -1283,13 +1266,6 @@ public class ReportThread extends NotesThread {
 
 				buf.append("&repairmissing=" + StringUtils.encodeValue(data.toString()));
 			};
-
-			//7. sh database entitlementtrack.ncf
-			if (this.isInterrupted()) return "";
-			console = m_session.sendConsoleCommand("", "!sh database entitlementtrack.ncf");
-			if (!console.contains("File does not exist") || console.length()>100) {
-				buf.append("&entitlementtrack=1");				
-			}
 		} catch (NotesException e) {
 			logSevere(e);
 		}
