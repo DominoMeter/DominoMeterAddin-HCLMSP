@@ -1,4 +1,5 @@
 import java.io.File;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -44,6 +45,7 @@ import net.prominic.io.Bash;
 import net.prominic.io.EchoClient;
 import net.prominic.io.RESTClient;
 import net.prominic.util.FileUtils;
+import net.prominic.util.HostUtils;
 import net.prominic.util.MD5Checksum;
 import net.prominic.util.StringUtils;
 
@@ -227,11 +229,11 @@ public class ReportThread extends NotesThread {
 			// 26. parse trace result from noteslong (or console.log)
 			data.append(parseTraceOutput(ndd, connection, isLinux));
 			if (this.isInterrupted()) return;
-			
+
 			// 27. entitlementtrack.ncf
 			data.append(entitlement(ndd));
 			if (this.isInterrupted()) return;
-			
+
 			// 99. error counter and last error
 			long exception_total = DominoMeter.getExceptionTotal();
 			data.append("&numErrorCounter=" + String.valueOf(exception_total));
@@ -253,7 +255,8 @@ public class ReportThread extends NotesThread {
 			// 1. JSON: Documents
 			JSONObject json = new JSONObject();
 			json.put("server", m_server);
-			json.put("docs", documents(keyword));
+			JSONArray docs = documents(keyword);
+			json.put("docs", docs);
 
 			// documents
 			String urldocs = m_endpoint.concat("/docs?openagent");
@@ -269,6 +272,43 @@ public class ReportThread extends NotesThread {
 		} catch (Exception e) {
 			logSevere(e);
 		}
+	}
+
+	// to avoid extra lookups
+	@SuppressWarnings("unchecked")
+	private void extendWebSite(JSONObject obj) {
+		JSONArray sslExpireDate = new JSONArray();
+		JSONArray sslMessage = new JSONArray();
+
+		ArrayList<String> isiteadrs = (ArrayList<String>) obj.get("isiteadrs");
+		for(String host : isiteadrs) {
+			int indexOfDoubleSlash = host.indexOf("://");
+			if (indexOfDoubleSlash != -1) {
+				host = host.substring(indexOfDoubleSlash + 3);
+			}
+
+			String message = "";
+			Date date = null;
+			try {
+				date = HostUtils.ExpireDate(host);
+			} catch (Exception e) {
+				message = e.getMessage();
+				if (message == null || message.isEmpty()) {
+					message = "an undefined exception was thrown";
+				}
+			}
+
+			if (date != null) {
+				sslExpireDate.add(date.getTime());				
+			}
+			else {
+				sslExpireDate.add(0);
+			}
+			sslMessage.add(message);
+		}
+
+		obj.put("sslExpire", sslExpireDate);
+		obj.put("sslMessage", sslMessage);
 	}
 
 	// entitlementtrack.ncf
@@ -297,10 +337,13 @@ public class ReportThread extends NotesThread {
 				Document doc = col.getFirstDocument();
 				while (doc != null) {
 					JSONObject obj = DocItemsJSON(doc, variables);
-					obj.put("unid", doc.getUniversalID());
-					if (obj!= null) {
-						array.add(obj);	
+
+					// add expire ssl data to website documents
+					if (parts[0].equalsIgnoreCase("WebSite")) {
+						extendWebSite(obj);
 					}
+					obj.put("unid", doc.getUniversalID());
+					array.add(obj);	
 					doc = col.getNextDocument();
 				}
 			}
@@ -1155,7 +1198,7 @@ public class ReportThread extends NotesThread {
 				if (doc.hasItem(variable)) {
 					Item item = doc.getFirstItem(variable);
 					JSONArray values = new JSONArray();
-					
+
 					int type = item.getType();
 					if (type==Item.TEXT || type==Item.NUMBERS || type==Item.NAMES || type==Item.AUTHORS || type==Item.READERS) {
 						values.addAll(item.getValues());						
