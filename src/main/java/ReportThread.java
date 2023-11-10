@@ -280,7 +280,10 @@ public class ReportThread extends NotesThread {
 		JSONArray sslExpireDate = new JSONArray();
 		JSONArray sslMessage = new JSONArray();
 
+		if (!obj.containsKey("isiteadrs")) return;
 		ArrayList<String> isiteadrs = (ArrayList<String>) obj.get("isiteadrs");
+		if (isiteadrs==null) return;
+		
 		for(String host : isiteadrs) {
 			int indexOfDoubleSlash = host.indexOf("://");
 			if (indexOfDoubleSlash != -1) {
@@ -435,8 +438,9 @@ public class ReportThread extends NotesThread {
 						// PROCESS: [10B8:0009-1900] Encryption is Disabled
 						// SKIP: [1930:0008-0ED8] 23-03-2023 12:11:30   ...text...
 						if (!line.contains(year)) {
-							if (line.contains("]")) {
-								line = line.substring(line.indexOf("]")+2);
+							int bracketIndex = line.indexOf("]");
+							if (bracketIndex != -1 && bracketIndex + 2 < line.length()) {
+								line = line.substring(bracketIndex+2);
 							}
 							fifo.push(line);
 
@@ -494,8 +498,10 @@ public class ReportThread extends NotesThread {
 			this.logSevere(e);
 		} catch (IOException e) {
 			this.logSevere(e);
+		} catch (Exception e) {
+			this.logSevere(e);
 		}
-
+		
 		return "&traceConnection=" + StringUtils.encodeValue(res.toString());
 	}
 
@@ -1201,7 +1207,13 @@ public class ReportThread extends NotesThread {
 
 					int type = item.getType();
 					if (type==Item.TEXT || type==Item.NUMBERS || type==Item.NAMES || type==Item.AUTHORS || type==Item.READERS) {
-						values.addAll(item.getValues());						
+						Vector<?> itemValues = item.getValues();
+						if (itemValues == null || itemValues.isEmpty()) {
+							values.add("");
+						}
+						else {
+							values.addAll(itemValues);
+						}
 					}
 					else {
 						values.add(item.getText());
