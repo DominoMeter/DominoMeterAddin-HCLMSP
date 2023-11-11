@@ -947,29 +947,6 @@ public class ReportThread extends NotesThread {
 
 		try {
 			String osname = System.getProperty("os.name", "n/a");
-
-			// Java6 does not resolve windows higher than 2012 R2
-			if (osname.toLowerCase().contains("windows")) {
-				try {
-					String ver = "";
-					Process process = Runtime.getRuntime().exec("cmd /c ver");
-					BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-					String line;
-					while ((line = reader.readLine()) != null) {
-						if (line.isEmpty()) {
-							ver += ver;
-						}
-					}
-					reader.close();
-
-					if (!ver.isEmpty()) {
-						buf.append("&windows=" + StringUtils.encodeValue(ver));
-					}
-				} catch (IOException e) {
-					logSevere(e);
-				}			
-			}
-
 			buf.append("&server=" + StringUtils.encodeValue(m_server));
 			buf.append("&ostimezone=" + StringUtils.encodeValue(TimeZone.getDefault().getDisplayName()));
 			buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
