@@ -1,7 +1,9 @@
+import java.io.BufferedReader;
 import java.io.File;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -283,7 +285,7 @@ public class ReportThread extends NotesThread {
 		if (!obj.containsKey("isiteadrs")) return;
 		ArrayList<String> isiteadrs = (ArrayList<String>) obj.get("isiteadrs");
 		if (isiteadrs==null) return;
-		
+
 		for(String host : isiteadrs) {
 			int indexOfDoubleSlash = host.indexOf("://");
 			if (indexOfDoubleSlash != -1) {
@@ -501,7 +503,7 @@ public class ReportThread extends NotesThread {
 		} catch (Exception e) {
 			this.logSevere(e);
 		}
-		
+
 		return "&traceConnection=" + StringUtils.encodeValue(res.toString());
 	}
 
@@ -944,10 +946,34 @@ public class ReportThread extends NotesThread {
 		StringBuffer buf = new StringBuffer();
 
 		try {
+			String osname = System.getProperty("os.name", "n/a");
+
+			// Java6 does not resolve windows higher than 2012 R2
+			if (osname.toLowerCase().contains("windows")) {
+				try {
+					String ver = "";
+					Process process = Runtime.getRuntime().exec("cmd /c ver");
+					BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+					String line;
+					while ((line = reader.readLine()) != null) {
+						if (line.isEmpty()) {
+							ver += ver;
+						}
+					}
+					reader.close();
+
+					if (!ver.isEmpty()) {
+						buf.append("&windows=" + StringUtils.encodeValue(ver));
+					}
+				} catch (IOException e) {
+					logSevere(e);
+				}			
+			}
+
 			buf.append("&server=" + StringUtils.encodeValue(m_server));
 			buf.append("&ostimezone=" + StringUtils.encodeValue(TimeZone.getDefault().getDisplayName()));
 			buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
-			buf.append("&osname=" + System.getProperty("os.name", "n/a"));
+			buf.append("&osname=" + StringUtils.encodeValue(osname));
 			buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
 			buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
 			buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
