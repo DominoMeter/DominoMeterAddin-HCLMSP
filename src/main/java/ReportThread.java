@@ -960,7 +960,7 @@ public class ReportThread extends NotesThread {
 	
 	private String getSystemInfoOnFirstRun(boolean isLinux) {
 		StringBuffer buf = new StringBuffer();
-
+		
 		// windows specific
 		if (!isLinux) {
 			try {
@@ -981,24 +981,6 @@ public class ReportThread extends NotesThread {
 		}
 
 		try {
-			buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
-			buf.append("&osname=" + StringUtils.encodeValue(System.getProperty("os.name", "n/a")));
-			buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
-			buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
-			buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
-			buf.append("&domino=" + m_session.getNotesVersion().trim());
-			buf.append("&ostimezone=" + StringUtils.encodeValue(TimeZone.getDefault().getDisplayName()));
-			buf.append("&username=" + System.getProperty("user.name", "n/a"));
-			buf.append("&version=" + m_version);
-
-			String host = "";
-			try {
-				InetAddress local = InetAddress.getLocalHost();
-				host = local.getHostName();
-			} catch (UnknownHostException e) {
-				host = "n/a";
-			}
-			buf.append("&hostname=" + host);
 		} catch (Exception e) {
 			logSevere(e);
 		}
@@ -1014,7 +996,17 @@ public class ReportThread extends NotesThread {
 
 		try {
 			buf.append("&server=" + StringUtils.encodeValue(m_server));
+			buf.append("&version=" + m_version);
 			buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));
+
+			buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
+			buf.append("&osname=" + StringUtils.encodeValue(System.getProperty("os.name", "n/a")));
+			buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
+			buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
+			buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
+			buf.append("&domino=" + m_session.getNotesVersion().trim());
+			buf.append("&ostimezone=" + StringUtils.encodeValue(TimeZone.getDefault().getDisplayName()));
+			buf.append("&username=" + System.getProperty("user.name", "n/a"));
 			buf.append("&templateVersion=" + getDatabaseVersionNumber(m_ab));
 
 			SimpleDateFormat formatter = new SimpleDateFormat("z");
