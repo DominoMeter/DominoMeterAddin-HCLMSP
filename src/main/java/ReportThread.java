@@ -57,21 +57,21 @@ public class ReportThread extends NotesThread {
 	private String m_version;
 	private GLogger m_fileLogger;
 	private boolean m_manual = false;
-
+	private boolean m_firstRun = false;
+	
 	private Session m_session = null;
 	private Database m_ab = null;
 	private Database m_catalog = null;
 	private ArrayList<Document> m_catalogList = null;
 	private Document m_serverDoc = null;
 
-	public ReportThread(String server, String endpoint, String version, GLogger fileLogger, boolean manual) {
+	public ReportThread(String server, String endpoint, String version, GLogger fileLogger) {
 		m_server = server;
 		m_endpoint = endpoint;
 		m_version = version;
 		m_fileLogger = fileLogger;
-		m_manual = manual;
 	}
-
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	public void runNotes() {
@@ -128,6 +128,9 @@ public class ReportThread extends NotesThread {
 
 			// 6. system data
 			stepStart = new Date();
+			if (firstRun()) {
+				data.append(getSystemInfoOnFirstRun(isLinux));	
+			}
 			data.append(getSystemInfo());
 			data.append("&numStep6=" + Long.toString(new Date().getTime() - stepStart.getTime()));
 			if (this.isInterrupted()) return;
@@ -274,6 +277,22 @@ public class ReportThread extends NotesThread {
 		} catch (Exception e) {
 			logSevere(e);
 		}
+	}
+	
+	public boolean firstRun() {
+		return m_firstRun;
+	}
+
+	public void firstRun(boolean flag) {
+		this.m_firstRun = flag;
+	}
+	
+	public boolean manual() {
+		return m_manual;
+	}
+
+	public void manual(boolean flag) {
+		this.m_manual = flag;
 	}
 
 	// to avoid extra lookups
@@ -938,7 +957,55 @@ public class ReportThread extends NotesThread {
 
 		return "&numUlimit=" + ulimit;
 	}
+	
+	private String getSystemInfoOnFirstRun(boolean isLinux) {
+		StringBuffer buf = new StringBuffer();
 
+		// windows specific
+		if (!isLinux) {
+			try {
+				String systeminfo = "";
+				Process process = Runtime.getRuntime().exec("systeminfo /fo csv /nh");
+				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+				String line;
+				while ((line = reader.readLine()) != null) {
+					if (!line.isEmpty()) {
+						systeminfo += line;
+					}
+				}
+				reader.close();
+				buf.append("&systeminfo=" + StringUtils.encodeValue(systeminfo));
+			} catch (IOException e) {
+				logSevere(e);
+			}
+		}
+
+		try {
+			buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
+			buf.append("&osname=" + StringUtils.encodeValue(System.getProperty("os.name", "n/a")));
+			buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
+			buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
+			buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
+			buf.append("&domino=" + m_session.getNotesVersion().trim());
+			buf.append("&ostimezone=" + StringUtils.encodeValue(TimeZone.getDefault().getDisplayName()));
+			buf.append("&username=" + System.getProperty("user.name", "n/a"));
+			buf.append("&version=" + m_version);
+
+			String host = "";
+			try {
+				InetAddress local = InetAddress.getLocalHost();
+				host = local.getHostName();
+			} catch (UnknownHostException e) {
+				host = "n/a";
+			}
+			buf.append("&hostname=" + host);
+		} catch (Exception e) {
+			logSevere(e);
+		}
+
+		return buf.toString();
+	}
+	
 	/*
 	 * OS data
 	 */
@@ -946,17 +1013,7 @@ public class ReportThread extends NotesThread {
 		StringBuffer buf = new StringBuffer();
 
 		try {
-			String osname = System.getProperty("os.name", "n/a");
 			buf.append("&server=" + StringUtils.encodeValue(m_server));
-			buf.append("&ostimezone=" + StringUtils.encodeValue(TimeZone.getDefault().getDisplayName()));
-			buf.append("&osversion=" + System.getProperty("os.version", "n/a"));
-			buf.append("&osname=" + StringUtils.encodeValue(osname));
-			buf.append("&javaversion=" + System.getProperty("java.version", "n/a"));
-			buf.append("&javavendor=" + System.getProperty("java.vendor", "n/a"));
-			buf.append("&platform=" + StringUtils.encodeValue(m_session.getPlatform()));
-			buf.append("&domino=" + m_session.getNotesVersion().trim());
-			buf.append("&username=" + System.getProperty("user.name", "n/a"));
-			buf.append("&version=" + m_version);
 			buf.append("&endpoint=" + StringUtils.encodeValue(m_endpoint));
 			buf.append("&templateVersion=" + getDatabaseVersionNumber(m_ab));
 
@@ -1495,4 +1552,5 @@ public class ReportThread extends NotesThread {
 			logSevere(e);
 		}
 	}
+
 }

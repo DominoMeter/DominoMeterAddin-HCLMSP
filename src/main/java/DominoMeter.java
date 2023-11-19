@@ -29,12 +29,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "140";
+		return "141";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-11-11 12:00 (windows)";
+		return "2023-11-19 14:00 (windows, firstRun)";
 	}
 
 	@Override
@@ -115,7 +115,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			if (!res) logMessage("version is up to date");
 		}
 		else if ("-r".equals(cmd) || "report".equals(cmd)) {
-			sendReport(true);
+			sendReport(true, false);
 		}
 		else if ("-c".equals(cmd) || "config".equals(cmd)) {
 			boolean res = loadConfig();
@@ -194,9 +194,11 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return true;
 	}
 
-	protected void sendReport(boolean manual) {
+	protected void sendReport(boolean manual, boolean firstRun) {
 		if (thread == null || !thread.isAlive()) {
-			thread = new ReportThread(m_server, m_endpoint, m_version, m_logger, manual);
+			thread = new ReportThread(m_server, m_endpoint, m_version, m_logger);
+			thread.manual(manual);
+			thread.firstRun(firstRun);
 			thread.start();
 		}
 		else {
