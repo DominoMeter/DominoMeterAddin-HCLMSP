@@ -964,17 +964,18 @@ public class ReportThread extends NotesThread {
 		// windows specific
 		if (!isLinux) {
 			try {
-				String systeminfo = "";
-				Process process = Runtime.getRuntime().exec("systeminfo /fo csv /nh");
+				Process process = Runtime.getRuntime().exec("systeminfo /fo csv");
 				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+				StringBuilder systemInfo = new StringBuilder();
+				
 				String line;
 				while ((line = reader.readLine()) != null) {
 					if (!line.isEmpty()) {
-						systeminfo += line;
+						systemInfo.append(line).append("\n");
 					}
 				}
 				reader.close();
-				buf.append("&systeminfo=" + StringUtils.encodeValue(systeminfo));
+				buf.append("&systeminfo=" + StringUtils.encodeValue(systemInfo.toString()));
 			} catch (IOException e) {
 				logSevere(e);
 			}
