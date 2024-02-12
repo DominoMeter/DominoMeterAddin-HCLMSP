@@ -620,7 +620,7 @@ public class ReportThread extends NotesThread {
 
 			// config.txt
 			String filePath = isLinux ? ndd : np;
-			filePath += File.separator + "JavaAddin/DominoMeter/config.txt";
+			filePath += File.separator + "JavaAddin" + File.separator + "DominoMeter" + File.separator + "config.txt";
 			buf = FileUtils.readFileContent(filePath);
 			if (buf != null) {
 				res += "&FileConfigTxt=" + StringUtils.encodeValue(buf.toString());
