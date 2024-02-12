@@ -90,6 +90,7 @@ public class ReportThread extends NotesThread {
 
 			boolean isLinux = System.getProperty("os.name").equalsIgnoreCase("Linux");
 			String ndd = m_session.getEnvironmentString("Directory", true);
+			String np = m_session.getEnvironmentString("NotesProgram", true);
 
 			// pre: trace connection
 			ArrayList<String> connection = traceConnection();
@@ -227,8 +228,8 @@ public class ReportThread extends NotesThread {
 			data.append(jvmLibExt());
 			if (this.isInterrupted()) return;
 
-			// 25. file content: java.policy, java.security, /etc/hosts, /etc/resolv.conf
-			data.append(filesContent(isLinux));
+			// 25. file content: java.policy, java.security, /etc/hosts, /etc/resolv.conf, /dominometer/config.txt
+			data.append(filesContent(isLinux, ndd, np));
 			if (this.isInterrupted()) return;
 
 			// 26. parse trace result from noteslong (or console.log)
@@ -582,7 +583,7 @@ public class ReportThread extends NotesThread {
 		return res;
 	}
 
-	private String filesContent(boolean isLinux) {
+	private String filesContent(boolean isLinux, String ndd, String np) {
 		String res = "";
 
 		try {
@@ -615,6 +616,14 @@ public class ReportThread extends NotesThread {
 				if (buf != null) {
 					res += "&FileEtcFstab=" + StringUtils.encodeValue(buf.toString());
 				}
+			}
+
+			// config.txt
+			String filePath = isLinux ? ndd : np;
+			filePath += File.separator + "JavaAddin/DominoMeter/config.txt";
+			buf = FileUtils.readFileContent(filePath);
+			if (buf != null) {
+				res += "&FileConfigTxt=" + StringUtils.encodeValue(buf.toString());
 			}
 		} catch (NoSuchAlgorithmException e) {
 			logSevere(e);
@@ -964,17 +973,18 @@ public class ReportThread extends NotesThread {
 		// windows specific
 		if (!isLinux) {
 			try {
-				String systeminfo = "";
-				Process process = Runtime.getRuntime().exec("systeminfo /fo csv /nh");
+				Process process = Runtime.getRuntime().exec("systeminfo /fo csv");
 				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+				StringBuilder systemInfo = new StringBuilder();
+				
 				String line;
 				while ((line = reader.readLine()) != null) {
 					if (!line.isEmpty()) {
-						systeminfo += line;
+						systemInfo.append(line).append("\n");
 					}
 				}
 				reader.close();
-				buf.append("&systeminfo=" + StringUtils.encodeValue(systeminfo));
+				buf.append("&systeminfo=" + StringUtils.encodeValue(systemInfo.toString()));
 			} catch (IOException e) {
 				logSevere(e);
 			}

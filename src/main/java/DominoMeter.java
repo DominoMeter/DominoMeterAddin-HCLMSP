@@ -34,7 +34,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2023-11-19 14:00 (windows, firstRun)";
+		return "2024-02-12 14:00 (config)";
 	}
 
 	@Override
