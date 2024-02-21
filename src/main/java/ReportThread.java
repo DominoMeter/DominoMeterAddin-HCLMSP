@@ -58,7 +58,7 @@ public class ReportThread extends NotesThread {
 	private GLogger m_fileLogger;
 	private boolean m_manual = false;
 	private boolean m_firstRun = false;
-	
+
 	private Session m_session = null;
 	private Database m_ab = null;
 	private Database m_catalog = null;
@@ -71,7 +71,7 @@ public class ReportThread extends NotesThread {
 		m_version = version;
 		m_fileLogger = fileLogger;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public void runNotes() {
@@ -232,12 +232,19 @@ public class ReportThread extends NotesThread {
 			data.append(filesContent(isLinux, ndd, np));
 			if (this.isInterrupted()) return;
 
-			// 26. parse trace result from noteslong (or console.log)
-			data.append(parseTraceOutput(ndd, connection, isLinux));
+			// 26. entitlementtrack.ncf
+			data.append(entitlement(ndd));
 			if (this.isInterrupted()) return;
 
-			// 27. entitlementtrack.ncf
-			data.append(entitlement(ndd));
+			// 27. check verse version
+			String verseFiles = verse(np);
+			if (!verseFiles.isEmpty()) {
+				data.append("&verseFiles=" + verseFiles);
+			}
+			if (this.isInterrupted()) return;
+
+			// 28. parse trace result from noteslog (or console.log)
+			data.append(parseTraceOutput(ndd, connection, isLinux));
 			if (this.isInterrupted()) return;
 
 			// 99. error counter and last error
@@ -279,7 +286,7 @@ public class ReportThread extends NotesThread {
 			logSevere(e);
 		}
 	}
-	
+
 	public boolean firstRun() {
 		return m_firstRun;
 	}
@@ -287,7 +294,7 @@ public class ReportThread extends NotesThread {
 	public void firstRun(boolean flag) {
 		this.m_firstRun = flag;
 	}
-	
+
 	public boolean manual() {
 		return m_manual;
 	}
@@ -966,17 +973,17 @@ public class ReportThread extends NotesThread {
 
 		return "&numUlimit=" + ulimit;
 	}
-	
+
 	private String getSystemInfoOnFirstRun(boolean isLinux) {
 		StringBuffer buf = new StringBuffer();
-		
+
 		// windows specific
 		if (!isLinux) {
 			try {
 				Process process = Runtime.getRuntime().exec("systeminfo /fo csv");
 				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 				StringBuilder systemInfo = new StringBuilder();
-				
+
 				String line;
 				while ((line = reader.readLine()) != null) {
 					if (!line.isEmpty()) {
@@ -997,7 +1004,7 @@ public class ReportThread extends NotesThread {
 
 		return buf.toString();
 	}
-	
+
 	/*
 	 * OS data
 	 */
@@ -1385,6 +1392,34 @@ public class ReportThread extends NotesThread {
 			};
 		} catch (NotesException e) {
 			logSevere(e);
+		}
+
+		return buf.toString();
+	}
+
+	/*
+	 * Search for certain jar files responsible for verse in folder Domino\osgi\shared\eclipse\plugins
+	 */
+	private String verse(String np) throws NoSuchAlgorithmException, IOException {
+		String plugins = np + File.separator + "osgi" + File.separator + "shared" + File.separator + "eclipse" + File.separator + "plugins";
+		File dir = new File(plugins);
+		if (!dir.exists()) return "";
+		File files[] = FileUtils.endsWith(dir, ".jar");
+		if (files.length == 0) return "";
+
+		String prefixes[] = {"ats-", "core-", "sequoia-", "servlet-"};
+
+		StringBuffer buf = new StringBuffer();
+		for (File file : files) {
+			String fileName = file.getName();
+
+			for (String prefix : prefixes) {
+				if (fileName.startsWith(prefix)) {
+					if(buf.length()>0) buf.append("~");
+					buf.append(fileName);
+					break;
+				}
+			}
 		}
 
 		return buf.toString();
