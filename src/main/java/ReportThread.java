@@ -980,6 +980,7 @@ public class ReportThread extends NotesThread {
 		// windows specific
 		if (!isLinux) {
 			try {
+				@SuppressWarnings("deprecation")
 				Process process = Runtime.getRuntime().exec("systeminfo /fo csv");
 				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 				StringBuilder systemInfo = new StringBuilder();
