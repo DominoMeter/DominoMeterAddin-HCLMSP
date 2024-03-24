@@ -237,7 +237,7 @@ public class ReportThread extends NotesThread {
 			if (this.isInterrupted()) return;
 
 			// 27. check verse version
-			String verseFiles = verse(np);
+			String verseFiles = verse(np, ndd);
 			if (!verseFiles.isEmpty()) {
 				data.append("&verseFiles=" + verseFiles);
 			}
@@ -412,7 +412,7 @@ public class ReportThread extends NotesThread {
 		return res;
 	}
 
-	private String getLogFilePath(String ndd, boolean isLinux) {
+	private String getLogFilePath(String ndd) {
 		String res = null;
 
 		// check if noteslog folder exists (must be present on all linux servers)
@@ -438,7 +438,7 @@ public class ReportThread extends NotesThread {
 		try {
 			if (traceList.size() == 0) return "";
 
-			String filePath = getLogFilePath(ndd, isLinux);
+			String filePath = getLogFilePath(ndd);
 			if (filePath==null || filePath.isEmpty()) return "";
 
 			File file = new File(filePath);
@@ -980,6 +980,7 @@ public class ReportThread extends NotesThread {
 		// windows specific
 		if (!isLinux) {
 			try {
+				@SuppressWarnings("deprecation")
 				Process process = Runtime.getRuntime().exec("systeminfo /fo csv");
 				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 				StringBuilder systemInfo = new StringBuilder();
@@ -1396,34 +1397,45 @@ public class ReportThread extends NotesThread {
 
 		return buf.toString();
 	}
+	
+	private String verse(String np, String ndd) throws NoSuchAlgorithmException, IOException {
+	    String fs = File.separator;
+	    final String[] folders = {
+	        np + fs + "osgi" + fs + "shared" + fs + "eclipse" + fs + "plugins",
+	        ndd + fs + "domino" + fs + "workspace" + fs + "applications" + fs + "eclipse" + fs + "plugins"
+	    };
+	    final String[] prefixes = {"ats-", "core-", "sequoia-", "servlet-"};
 
-	/*
-	 * Search for certain jar files responsible for verse in folder Domino\osgi\shared\eclipse\plugins
-	 */
-	private String verse(String np) throws NoSuchAlgorithmException, IOException {
-		String plugins = np + File.separator + "osgi" + File.separator + "shared" + File.separator + "eclipse" + File.separator + "plugins";
-		File dir = new File(plugins);
-		if (!dir.exists()) return "";
-		File files[] = FileUtils.endsWith(dir, ".jar");
-		if (files.length == 0) return "";
+	    StringBuffer buf = new StringBuffer();
 
-		String prefixes[] = {"ats-", "core-", "sequoia-", "servlet-"};
+	    for (String folderName : folders) {
+	        String folderPath = folderName;
+	        File dir = new File(folderPath);
 
-		StringBuffer buf = new StringBuffer();
-		for (File file : files) {
-			String fileName = file.getName();
+	        if (dir.exists()) {
+	        	File[] files = dir.listFiles();
 
-			for (String prefix : prefixes) {
-				if (fileName.startsWith(prefix)) {
-					if(buf.length()>0) buf.append("~");
-					buf.append(fileName);
-					break;
-				}
-			}
-		}
+	            if (files != null) {
+	                for (File file : files) {
+	                	String fileName = file.getName().toLowerCase();
 
-		return buf.toString();
+	                    if (fileName.endsWith(".jar")) {
+	                        for (String prefix : prefixes) {
+	                            if (fileName.startsWith(prefix)) {
+	                                if (buf.length() > 0) buf.append("~");
+	                                buf.append(file.getName());
+	                                break;
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	    }
+
+	    return buf.toString();
 	}
+
 
 	/*
 	 * Search all .id files in Domino Data directory
