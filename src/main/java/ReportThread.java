@@ -1401,30 +1401,33 @@ public class ReportThread extends NotesThread {
 	private String verse(String np, String ndd) throws NoSuchAlgorithmException, IOException {
 	    String fs = File.separator;
 	    final String[] folders = {
-	        "osgi" + fs + "shared" + fs + "eclipse" + fs + "plugins",
-	        "domino" + fs + "workspace" + fs + "applications" + fs + "eclipse" + fs + "plugins"
+	        np + fs + "osgi" + fs + "shared" + fs + "eclipse" + fs + "plugins",
+	        ndd + fs + "domino" + fs + "workspace" + fs + "applications" + fs + "eclipse" + fs + "plugins"
 	    };
 	    final String[] prefixes = {"ats-", "core-", "sequoia-", "servlet-"};
 
 	    StringBuffer buf = new StringBuffer();
 
 	    for (String folderName : folders) {
-	        String folderPath = np + fs + folderName;
+	        String folderPath = folderName;
 	        File dir = new File(folderPath);
 
 	        if (dir.exists()) {
-	    		File files[] = FileUtils.endsWith(dir, ".jar");
+	        	File[] files = dir.listFiles();
 
 	            if (files != null) {
 	                for (File file : files) {
-	                    String fileName = file.getName().toLowerCase();
-                        for (String prefix : prefixes) {
-                            if (fileName.startsWith(prefix)) {
-                                if (buf.length() > 0) buf.append("~");
-                                buf.append(file.getName());
-                                break;
-                            }
-                        }
+	                	String fileName = file.getName().toLowerCase();
+
+	                    if (fileName.endsWith(".jar")) {
+	                        for (String prefix : prefixes) {
+	                            if (fileName.startsWith(prefix)) {
+	                                if (buf.length() > 0) buf.append("~");
+	                                buf.append(file.getName());
+	                                break;
+	                            }
+	                        }
+	                    }
 	                }
 	            }
 	        }
