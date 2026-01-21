@@ -12,7 +12,7 @@ import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
 import lotus.domino.NotesException;
-import net.prominic.gja_v084.GLogger;
+import net.prominic.gja_v085.GLogger;
 
 public class NamesUtil {
 	List<String> m_fullNameList = null;

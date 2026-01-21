@@ -5,7 +5,7 @@ import java.io.IOException;
 
 import net.prominic.io.RESTClient;
 import net.prominic.util.ParsedError;
-import net.prominic.util.StringUtils;
+import net.prominic.gja_v085.utils.StringUtils;
 
 public class Ping {
 	private ParsedError m_pe = null;

@@ -37,19 +37,21 @@ import lotus.domino.Session;
 import lotus.domino.View;
 import lotus.domino.ViewEntry;
 import lotus.domino.ViewEntryCollection;
+import lotus.domino.Name;
 import net.prominic.dm.api.Keyword;
 import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.report.NamesUtil;
 import net.prominic.dm.report.UsersInfo;
-import net.prominic.gja_v084.GLogger;
+import net.prominic.gja_v085.GLogger;
+import net.prominic.gja_v085.utils.DominoUtils;
 import net.prominic.io.Bash;
 import net.prominic.io.EchoClient;
 import net.prominic.io.RESTClient;
-import net.prominic.util.FileUtils;
+import net.prominic.gja_v085.utils.FileUtils;
 import net.prominic.util.HostUtils;
 import net.prominic.util.MD5Checksum;
-import net.prominic.util.StringUtils;
+import net.prominic.gja_v085.utils.StringUtils;
 
 public class ReportThread extends NotesThread {
 	private String m_server;
@@ -210,6 +212,10 @@ public class ReportThread extends NotesThread {
 
 			// 20. Panagenda
 			data.append(panagenda(ndd));
+			if (this.isInterrupted()) return;
+
+			// 20b. MarvelClient User Count
+			data.append(marvelClientUserCount(ndd));
 			if (this.isInterrupted()) return;
 
 			// 21. SAML
@@ -749,6 +755,79 @@ public class ReportThread extends NotesThread {
 		}
 
 		return "&panagendaDbList=" + StringUtils.encodeValue(res.toString());
+	}
+
+	/*
+	 * Get MarvelClient distinct user count from panagenda MarvelClient Analyze database
+	 * Database can be: panagenda/pmc_analyze.nsf or panagenda/mc_analyze.nsf
+	 * Reads v_users_by_licensing view and counts unique users by abbreviated name
+	 */
+	private String marvelClientUserCount(String ndd) {
+		String panagendaDir = ndd + File.separator + "panagenda" + File.separator;
+		String[] possibleDbNames = {"pmc_analyze.nsf", "mc_analyze.nsf"};
+		String dbPath = null;
+		for (String dbName : possibleDbNames) {
+			File file = new File(panagendaDir + dbName);
+			if (file.exists()) {
+				dbPath = panagendaDir + dbName;
+				break;
+			}
+		}
+		if (dbPath == null) return "";
+
+		try {
+			Database db = m_session.getDatabase(null, dbPath);
+			if (db == null || !db.isOpen()) return "";
+			View view = db.getView("v_users_by_licensing");
+			if (view == null) {
+				DominoUtils.recycle(db);
+				return "";
+			}
+			// Count distinct users by abbreviated name
+			ViewEntryCollection vc = view.getAllEntries();
+			int userCount = 0;
+			int profileCount = 0;
+			String lastUsername = "";
+
+			ViewEntry entry = vc.getFirstEntry();
+			while (entry != null) {
+				profileCount++;
+
+				// First column (index 0) contains the username - view is sorted by username
+				@SuppressWarnings("unchecked")
+				Vector<Object> columnValues = entry.getColumnValues();
+				if (columnValues.size() > 0) {
+					String currentUsername = columnValues.get(1).toString();
+					// Get abbreviated form
+					if (!currentUsername.isEmpty()) {
+						try {
+							Name notesName = m_session.createName(currentUsername);
+							currentUsername = notesName.getAbbreviated();
+							DominoUtils.recycle(notesName);
+						} catch (NotesException e) {
+							// Use as-is if name parsing fails
+						}
+					}
+
+					if (!currentUsername.equals(lastUsername)) {
+						userCount++;
+						lastUsername = currentUsername;
+					}
+				}
+
+				ViewEntry nextEntry = vc.getNextEntry(entry);
+				DominoUtils.recycle(entry);
+				entry = nextEntry;
+			}
+
+			DominoUtils.recycle(vc, view, db);
+			return "&numMarvelClientUsers=" + userCount + "&numMarvelClientProfiles=" + profileCount;
+
+		} catch (NotesException e) {
+			m_fileLogger.info("MarvelClient check failed: " + e.getMessage());
+		}
+
+		return "";
 	}
 
 	private String checkFilesFolders(String ndd) {

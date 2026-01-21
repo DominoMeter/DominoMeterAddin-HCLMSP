@@ -1,7 +1,7 @@
 package net.prominic.dm.api;
 
 import net.prominic.io.RESTClient;
-import net.prominic.util.StringUtils;
+import net.prominic.gja_v085.utils.StringUtils;
 
 public class Config {
 	private String jar;
