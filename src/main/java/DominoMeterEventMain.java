@@ -13,7 +13,6 @@ public class DominoMeterEventMain extends Event {
 	public void run() {
 		if (!dominoMeter.checkConnection()) return;
 
-		dominoMeter.loadConfig();
 		dominoMeter.sendReport(false, m_firstRun);
 		dominoMeter.updateVersion();
 		
