@@ -68,9 +68,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			else if("prod".equalsIgnoreCase(m_endpoint)) {
 				m_endpoint = "https://prominic.dominometer.com/duca.nsf";
 			}
-			else if("belsoft".equalsIgnoreCase(m_endpoint)) {
-				m_endpoint = "https://belsoft.dominometer.com/duca.nsf";
-			}
 
 			if (args.length > 1) {
 				setLogLevel(args[1]);
@@ -164,9 +161,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 		boolean res = m_config.load(m_endpoint, m_server);
 		logMessage("- " + String.valueOf(res));
-		if (res && m_config.getInterval() > 0) {
-			m_interval = m_config.getInterval();
-		}
 
 		return res;
 	}
@@ -279,7 +273,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return exception_last;
 	}
 
-	protected void termBeforeAB() {
+	protected void termBeforeCleanup() {
 		terminateReportThread();
 	}
 
