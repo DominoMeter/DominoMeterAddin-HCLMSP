@@ -157,7 +157,10 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		setAddinState("UpdateRobot");
 		logMessage("UpdateRobot");
 
-		m_config.load(m_endpoint, m_server);
+		if (!m_config.load(m_endpoint, m_server)) {
+			logMessage("- config load failed, skipping update");
+			return false;
+		}
 
 		UpdateRobot ur = new UpdateRobot(this.m_logger);
 		String newAddinFile = ur.applyNewVersion(m_session, m_server, m_endpoint, m_config.getJAR(), m_version);
