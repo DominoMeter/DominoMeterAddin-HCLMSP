@@ -29,12 +29,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "144";
+		return "145";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2026-01-20 17:00 (marvel client)";
+		return "2026-02-16 14:00 (crash fix, config cleanup)";
 	}
 
 	@Override
@@ -107,16 +107,11 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		if (flag) return true;
 
 		if ("-u".equals(cmd) || "update".equals(cmd)) {
-			m_config.load(m_endpoint, m_server);
 			boolean res = updateVersion();
 			if (!res) logMessage("version is up to date");
 		}
 		else if ("-r".equals(cmd) || "report".equals(cmd)) {
 			sendReport(true, false);
-		}
-		else if ("-c".equals(cmd) || "config".equals(cmd)) {
-			boolean res = loadConfig();
-			logMessage(res ? "updated (OK)" : "updated (*FAILED*)");
 		}
 		else {
 			logMessage("invalid command (use -h or help to get details)");
@@ -156,18 +151,16 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return false;
 	}
 
-	protected boolean loadConfig() {
-		logMessage("LoadConfig");
 
-		boolean res = m_config.load(m_endpoint, m_server);
-		logMessage("- " + String.valueOf(res));
-
-		return res;
-	}
 
 	protected boolean updateVersion() {
 		setAddinState("UpdateRobot");
 		logMessage("UpdateRobot");
+
+		if (!m_config.load(m_endpoint, m_server)) {
+			logMessage("- config load failed, skipping update");
+			return false;
+		}
 
 		UpdateRobot ur = new UpdateRobot(this.m_logger);
 		String newAddinFile = ur.applyNewVersion(m_session, m_server, m_endpoint, m_config.getJAR(), m_version);
@@ -232,7 +225,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		AddInLogMessageText("   info       Show version and more of DominoMeter");
 		AddInLogMessageText("   update     Check for a new version (or -u)");
 		AddInLogMessageText("   report     Send report (or -r)");
-		AddInLogMessageText("   config     Reload config for addin (or -c)");
 		AddInLogMessageText("Copyright (C) Prominic.NET, Inc. 2020" + (year > 2020 ? " - " + Integer.toString(year) : ""));
 		AddInLogMessageText("See https://dominometer.com for more details.");
 	}
