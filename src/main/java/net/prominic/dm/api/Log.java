@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import net.prominic.io.RESTClient;
 import net.prominic.util.ParsedError;
-import net.prominic.util.StringUtils;
+import net.prominic.gja_v085.utils.StringUtils;
 
 public class Log {
 	public static boolean sendError(String server, String endpoint, ParsedError pe) {

@@ -5,7 +5,7 @@ import net.prominic.dm.api.Config;
 import net.prominic.dm.api.Log;
 import net.prominic.dm.api.Ping;
 import net.prominic.dm.update.UpdateRobot;
-import net.prominic.gja_v084.JavaServerAddinGenesis;
+import net.prominic.gja_v085.JavaServerAddinGenesis;
 
 public class DominoMeter extends JavaServerAddinGenesis {
 	public static String	exception_last = null;
@@ -29,12 +29,12 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 	@Override
 	protected String getJavaAddinVersion() {
-		return "143";
+		return "144";
 	}
 
 	@Override
 	protected String getJavaAddinDate() {
-		return "2024-03-24 17:00 (files)";
+		return "2026-01-20 17:00 (marvel client)";
 	}
 
 	@Override
@@ -67,9 +67,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 			}
 			else if("prod".equalsIgnoreCase(m_endpoint)) {
 				m_endpoint = "https://prominic.dominometer.com/duca.nsf";
-			}
-			else if("belsoft".equalsIgnoreCase(m_endpoint)) {
-				m_endpoint = "https://belsoft.dominometer.com/duca.nsf";
 			}
 
 			if (args.length > 1) {
@@ -164,9 +161,6 @@ public class DominoMeter extends JavaServerAddinGenesis {
 
 		boolean res = m_config.load(m_endpoint, m_server);
 		logMessage("- " + String.valueOf(res));
-		if (res && m_config.getInterval() > 0) {
-			m_interval = m_config.getInterval();
-		}
 
 		return res;
 	}
@@ -279,7 +273,7 @@ public class DominoMeter extends JavaServerAddinGenesis {
 		return exception_last;
 	}
 
-	protected void termBeforeAB() {
+	protected void termBeforeCleanup() {
 		terminateReportThread();
 	}
 
