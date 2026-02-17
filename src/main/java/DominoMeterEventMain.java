@@ -13,9 +13,9 @@ public class DominoMeterEventMain extends Event {
 	public void run() {
 		if (!dominoMeter.checkConnection()) return;
 
-		if (!dominoMeter.updateVersion()) {
-			dominoMeter.sendReport(false, m_firstRun);
-		}
+		if (dominoMeter.updateVersion()) return;
+
+		dominoMeter.sendReport(false, m_firstRun);
 		
 		m_firstRun = false;
 	}
